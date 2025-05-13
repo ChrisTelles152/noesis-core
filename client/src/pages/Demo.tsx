@@ -9,6 +9,7 @@ import { useNoesisSDK } from "@/hooks/useNoesisSDK";
 
 export default function Demo() {
   const contentRef = useRef<HTMLDivElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
   const [webcamEnabled, setWebcamEnabled] = useState(false);
   const [llmSuggestion, setLlmSuggestion] = useState(
     "Based on your attention patterns, would you like me to provide a visual example of how binary search works?"
@@ -16,8 +17,8 @@ export default function Demo() {
   
   const { startTracking, stopTracking, attentionData } = useAttentionTracking();
   const { recordProgress, masteryData } = useMasteryTracking([
-    { id: 'search_basics', name: 'Search Algorithms Basics', progress: 0.92 },
-    { id: 'binary_search', name: 'Binary Search Implementation', progress: 0.45 },
+    { id: 'search_basics', name: 'Search Algorithms Basics', progress: 0.644 },
+    { id: 'binary_search', name: 'Binary Search Implementation', progress: 0.315 },
     { id: 'time_complexity', name: 'Algorithm Time Complexity', progress: 0 }
   ]);
   
@@ -83,23 +84,39 @@ export default function Demo() {
             <div className="p-6 border-b md:border-b-0 md:border-r border-slate-200">
               <h3 className="text-lg font-semibold text-slate-900 mb-4">Attention Tracking Demo</h3>
               
-              <div className="bg-slate-800 rounded-lg overflow-hidden mb-4 aspect-video flex items-center justify-center">
-                <div className="text-center p-8">
-                  <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-slate-700 border-2 border-slate-600 flex items-center justify-center">
-                    <i className={`fas ${webcamEnabled ? 'fa-video' : 'fa-video-slash'} text-${webcamEnabled ? 'green' : 'slate'}-500 text-2xl`}></i>
+              <div className="bg-slate-800 rounded-lg overflow-hidden mb-4 aspect-video flex items-center justify-center relative">
+                {webcamEnabled ? (
+                  <div className="w-full h-full relative">
+                    <video 
+                      ref={videoRef}
+                      className="w-full h-full object-cover"
+                      autoPlay 
+                      muted 
+                      playsInline
+                    />
+                    <div className="absolute bottom-4 right-4">
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                        <span className="w-2 h-2 mr-1 bg-green-500 rounded-full animate-pulse"></span>
+                        Tracking
+                      </span>
+                    </div>
                   </div>
-                  <p className="text-slate-400 text-sm">
-                    {webcamEnabled 
-                      ? "Webcam active - tracking attention" 
-                      : "Enable camera to track attention"}
-                  </p>
-                  <Button 
-                    onClick={toggleWebcam}
-                    className={`mt-4 ${webcamEnabled ? 'bg-red-600 hover:bg-red-700' : 'bg-primary-600 hover:bg-primary-700'}`}
-                  >
-                    {webcamEnabled ? 'Disable Camera' : 'Enable Camera'}
-                  </Button>
-                </div>
+                ) : (
+                  <div className="text-center p-8">
+                    <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-slate-700 border-2 border-slate-600 flex items-center justify-center">
+                      <i className="fas fa-video-slash text-slate-500 text-2xl"></i>
+                    </div>
+                    <p className="text-slate-400 text-sm">
+                      Enable camera to track attention
+                    </p>
+                  </div>
+                )}
+                <Button 
+                  onClick={toggleWebcam}
+                  className={`absolute bottom-4 left-4 ${webcamEnabled ? 'bg-red-600 hover:bg-red-700' : 'bg-primary-600 hover:bg-primary-700'}`}
+                >
+                  {webcamEnabled ? 'Disable Camera' : 'Enable Camera'}
+                </Button>
               </div>
               
               <div className="mb-4">

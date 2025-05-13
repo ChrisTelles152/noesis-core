@@ -131,19 +131,26 @@ export class AttentionTracker {
       
       this.webcamStream = await navigator.mediaDevices.getUserMedia(webcamOptions);
       
-      // Create video element to display the webcam feed
-      this.videoElement = document.createElement('video');
+      // Find an existing video element with id="webcam-feed" or create one if none exists
+      this.videoElement = document.querySelector('video') || document.createElement('video');
       this.videoElement.srcObject = this.webcamStream;
       this.videoElement.autoplay = true;
       this.videoElement.muted = true;
-      this.videoElement.style.display = 'none';
-      document.body.appendChild(this.videoElement);
+      this.videoElement.playsInline = true;
+      
+      // If we created a new element (no existing video found), hide it and append to body
+      if (!this.videoElement.parentElement) {
+        this.videoElement.style.display = 'none';
+        document.body.appendChild(this.videoElement);
+      }
       
       // Wait for video to be ready
       await new Promise<void>((resolve) => {
         if (this.videoElement) {
           this.videoElement.onloadedmetadata = () => {
-            this.videoElement?.play();
+            this.videoElement?.play().catch(err => {
+              this.log('Error playing video:', err);
+            });
             resolve();
           };
         } else {
