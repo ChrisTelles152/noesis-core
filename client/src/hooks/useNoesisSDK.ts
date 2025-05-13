@@ -11,9 +11,9 @@ export const useNoesisSDK = () => {
     // Create the SDK instance only once if it doesn't exist
     if (!sdkInstance) {
       sdkInstance = new NoesisSDK({
-        apiKey: process.env.OPENAI_API_KEY || process.env.API_KEY || "default_key",
+        apiKey: import.meta.env.VITE_OPENAI_API_KEY || "default_key",
         modules: ['attention', 'mastery', 'orchestration'],
-        debug: process.env.NODE_ENV === 'development',
+        debug: import.meta.env.DEV,
         attentionOptions: {
           trackingInterval: 500, // Update every 500ms
           historySize: 20 // Keep 20 samples for stability calculation
@@ -32,34 +32,13 @@ export const useNoesisSDK = () => {
   if (!sdk) {
     // This should only happen on the first render
     // Return a minimal placeholder until the real SDK is initialized
-    return {
-      attention: {
-        startTracking: async () => false,
-        stopTracking: async () => {},
-        getCurrentData: () => ({ 
-          score: 0, 
-          focusStability: 0, 
-          cognitiveLoad: 0,
-          gazePoint: { x: 0, y: 0 },
-          timestamp: Date.now(),
-          status: 'inactive'
-        }),
-        onAttentionChange: () => {}
-      },
-      mastery: {
-        initialize: () => {},
-        recordEvent: () => {},
-        getMasteryData: () => ([]),
-        getReviewRecommendations: () => ([]),
-        getObjectiveProgress: () => null,
-        onMasteryUpdate: () => {}
-      },
-      orchestration: {
-        getNextStep: async () => ({ suggestion: '' }),
-        suggestEngagement: async () => ({ message: '', type: '' })
-      },
-      getLearnerState: () => ({ timestamp: Date.now() })
-    } as NoesisSDK;
+    // Create a stub SDK to use until the real one is initialized
+    const stubSDK = new NoesisSDK({
+      debug: false,
+      modules: ['attention', 'mastery', 'orchestration']
+    });
+    
+    return stubSDK;
   }
 
   return sdk;

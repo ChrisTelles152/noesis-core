@@ -18,7 +18,7 @@ export class NoesisSDK {
   private activeModules: ModuleType[];
 
   constructor(options: NoesisSDKOptions = {}) {
-    this.apiKey = options.apiKey || process.env.OPENAI_API_KEY || process.env.API_KEY || undefined;
+    this.apiKey = options.apiKey || import.meta.env.VITE_OPENAI_API_KEY || undefined;
     this.debug = options.debug || false;
     this.activeModules = options.modules || ['attention', 'mastery'];
     
