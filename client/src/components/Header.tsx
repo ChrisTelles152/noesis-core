@@ -29,25 +29,32 @@ export default function Header() {
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center py-4">
           <div className="flex items-center space-x-3">
-            <Link href="/">
-              <a className="flex items-center space-x-3">
-                <div className="flex items-center justify-center w-10 h-10 bg-gradient-to-r from-primary-600 to-secondary-500 rounded-lg">
-                  <span className="text-white text-xl font-bold">N</span>
-                </div>
-                <span className="text-xl font-semibold tracking-tight text-slate-900">Noesis SDK</span>
-              </a>
+            <Link href="/" className="flex items-center space-x-3">
+              <div className="flex items-center justify-center w-10 h-10 bg-gradient-to-r from-primary-600 to-secondary-500 rounded-lg">
+                <span className="text-white text-xl font-bold">N</span>
+              </div>
+              <span className="text-xl font-semibold tracking-tight text-slate-900">Noesis SDK</span>
             </Link>
           </div>
           
           <nav className="hidden md:flex items-center space-x-8">
-            <Link href="/#features">
-              <a className={`text-slate-600 hover:text-primary-600 transition-colors text-sm font-medium ${isActive('/#features') ? 'text-primary-600' : ''}`}>Features</a>
+            <Link 
+              href="/#features" 
+              className={`text-slate-600 hover:text-primary-600 transition-colors text-sm font-medium ${isActive('/#features') ? 'text-primary-600' : ''}`}
+            >
+              Features
             </Link>
-            <Link href="/documentation">
-              <a className={`text-slate-600 hover:text-primary-600 transition-colors text-sm font-medium ${isActive('/documentation') ? 'text-primary-600' : ''}`}>Documentation</a>
+            <Link 
+              href="/documentation" 
+              className={`text-slate-600 hover:text-primary-600 transition-colors text-sm font-medium ${isActive('/documentation') ? 'text-primary-600' : ''}`}
+            >
+              Documentation
             </Link>
-            <Link href="/demo">
-              <a className={`text-slate-600 hover:text-primary-600 transition-colors text-sm font-medium ${isActive('/demo') ? 'text-primary-600' : ''}`}>Demo</a>
+            <Link 
+              href="/demo" 
+              className={`text-slate-600 hover:text-primary-600 transition-colors text-sm font-medium ${isActive('/demo') ? 'text-primary-600' : ''}`}
+            >
+              Demo
             </Link>
             <a 
               href="https://github.com/noesis-sdk" 
@@ -70,9 +77,7 @@ export default function Header() {
               <span>Star on GitHub</span>
             </a>
             <Button asChild>
-              <Link href="/#getstarted">
-                <a>Get Started</a>
-              </Link>
+              <Link href="/#getstarted">Get Started</Link>
             </Button>
           </div>
           
@@ -89,14 +94,23 @@ export default function Header() {
       {/* Mobile menu */}
       <div className={`md:hidden bg-white border-b border-slate-200 ${mobileMenuOpen ? 'block' : 'hidden'}`}>
         <div className="container mx-auto px-4 py-3 space-y-1">
-          <Link href="/#features">
-            <a className="block px-3 py-2 text-slate-600 rounded-md hover:bg-slate-100 hover:text-primary-600 transition-colors">Features</a>
+          <Link 
+            href="/#features"
+            className="block px-3 py-2 text-slate-600 rounded-md hover:bg-slate-100 hover:text-primary-600 transition-colors"
+          >
+            Features
           </Link>
-          <Link href="/documentation">
-            <a className="block px-3 py-2 text-slate-600 rounded-md hover:bg-slate-100 hover:text-primary-600 transition-colors">Documentation</a>
+          <Link 
+            href="/documentation"
+            className="block px-3 py-2 text-slate-600 rounded-md hover:bg-slate-100 hover:text-primary-600 transition-colors"
+          >
+            Documentation
           </Link>
-          <Link href="/demo">
-            <a className="block px-3 py-2 text-slate-600 rounded-md hover:bg-slate-100 hover:text-primary-600 transition-colors">Demo</a>
+          <Link 
+            href="/demo"
+            className="block px-3 py-2 text-slate-600 rounded-md hover:bg-slate-100 hover:text-primary-600 transition-colors"
+          >
+            Demo
           </Link>
           <a 
             href="https://github.com/noesis-sdk" 
