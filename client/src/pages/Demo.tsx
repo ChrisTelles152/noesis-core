@@ -125,12 +125,16 @@ export default function Demo() {
                       autoPlay 
                       muted 
                       playsInline
+                      id="attention-tracking-video"
                     />
                     <div className="absolute bottom-4 right-4">
                       <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
                         <span className="w-2 h-2 mr-1 bg-green-500 rounded-full animate-pulse"></span>
-                        Tracking
+                        Tracking Active
                       </span>
+                    </div>
+                    <div className="absolute top-4 right-4 bg-black bg-opacity-50 p-2 rounded-lg text-white text-xs">
+                      <p>Attention Score: {Math.round(attentionData.score * 100)}%</p>
                     </div>
                   </div>
                 ) : (

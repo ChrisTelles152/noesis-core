@@ -221,6 +221,9 @@ export class AttentionTracker {
       status: 'tracking'
     };
     
+    // Log for debugging
+    this.log(`Attention updated - score: ${Math.round(newScore * 100)}%, stability: ${Math.round(stabilityScore * 100)}%`);
+    
     // Notify callbacks
     this.notifyCallbacks();
   }
