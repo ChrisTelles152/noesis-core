@@ -40,12 +40,12 @@ export const useAttentionTracking = () => {
     if (isTracking) {
       await sdk.attention.stopTracking();
       setIsTracking(false);
-      setAttentionData({
-        ...attentionData,
+      setAttentionData(prevData => ({
+        ...prevData,
         status: 'inactive'
-      });
+      }));
     }
-  }, [isTracking, sdk.attention, attentionData]);
+  }, [isTracking, sdk.attention]);
 
   // Clean up on unmount
   useEffect(() => {

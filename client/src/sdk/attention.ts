@@ -200,7 +200,8 @@ export class AttentionTracker {
     
     // Update history for calculating stability
     this.attentionHistory.push(newScore);
-    if (this.attentionHistory.length > this.options.historySize) {
+    const historySize = this.options.historySize || 10;
+    if (this.attentionHistory.length > historySize) {
       this.attentionHistory.shift();
     }
     
@@ -273,7 +274,7 @@ export class AttentionTracker {
    * Calculate stability score based on attention history variance
    */
   private calculateStabilityScore(): number {
-    if (this.attentionHistory.length < 2) return 1;
+    if (!this.attentionHistory || this.attentionHistory.length < 2) return 1;
     
     // Calculate variance
     const mean = this.attentionHistory.reduce((sum, val) => sum + val, 0) / this.attentionHistory.length;

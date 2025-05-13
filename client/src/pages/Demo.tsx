@@ -15,12 +15,15 @@ export default function Demo() {
     "Based on your attention patterns, would you like me to provide a visual example of how binary search works?"
   );
   
-  const { startTracking, stopTracking, attentionData } = useAttentionTracking();
-  const { recordProgress, masteryData } = useMasteryTracking([
+  // Define initial objectives with useRef to prevent recreating on each render
+  const initialObjectives = useRef([
     { id: 'search_basics', name: 'Search Algorithms Basics', progress: 0.644 },
     { id: 'binary_search', name: 'Binary Search Implementation', progress: 0.315 },
     { id: 'time_complexity', name: 'Algorithm Time Complexity', progress: 0 }
   ]);
+  
+  const { startTracking, stopTracking, attentionData } = useAttentionTracking();
+  const { recordProgress, masteryData } = useMasteryTracking(initialObjectives.current);
   
   const sdk = useNoesisSDK();
 
@@ -32,12 +35,41 @@ export default function Demo() {
     };
   }, [webcamEnabled, stopTracking]);
 
+  useEffect(() => {
+    // Create a ref to the video element to use in the SDK
+    if (webcamEnabled && videoRef.current) {
+      const videoElement = videoRef.current;
+      // This needs to happen after video element is rendered
+      const setupStream = async () => {
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({ 
+            video: true, 
+            audio: false 
+          });
+          videoElement.srcObject = stream;
+          videoElement.play();
+        } catch (err) {
+          console.error("Error accessing webcam:", err);
+        }
+      };
+      setupStream();
+    }
+  }, [webcamEnabled, videoRef]);
+
   const toggleWebcam = async () => {
     if (webcamEnabled) {
       stopTracking();
       setWebcamEnabled(false);
+      
+      // Stop the video stream
+      if (videoRef.current && videoRef.current.srcObject) {
+        const stream = videoRef.current.srcObject as MediaStream;
+        stream.getTracks().forEach(track => track.stop());
+        videoRef.current.srcObject = null;
+      }
     } else {
-      if (await startTracking(contentRef.current)) {
+      const success = await startTracking(contentRef.current);
+      if (success) {
         setWebcamEnabled(true);
       }
     }
