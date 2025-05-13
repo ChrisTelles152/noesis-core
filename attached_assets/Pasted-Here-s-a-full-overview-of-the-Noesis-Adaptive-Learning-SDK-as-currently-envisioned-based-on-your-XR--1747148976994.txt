@@ -1,0 +1,98 @@
+Here’s a full overview of the Noesis Adaptive Learning SDK as currently envisioned based on your XR education stack plans, attention modeling goals, and platform strategy:
+
+⸻
+
+Noesis Adaptive Learning SDK — Overview
+
+1. Purpose
+
+The Noesis SDK is a modular, cross-platform toolkit designed to enable adaptive, attention-aware learning experiences across XR environments. It acts as the middleware and orchestration layer that bridges:
+	•	Real-time biometric/behavioral inputs (eye tracking, head pose, speech, gestures)
+	•	Pedagogical models (spaced repetition, mastery learning, flow-state alignment)
+	•	AI-driven orchestration (LLMs selecting and pacing content dynamically)
+
+Goal: Become the default infrastructure for personalized learning in XR by enabling any developer or educator to integrate adaptive learning intelligence into their content.
+
+⸻
+
+2. Core Modules
+
+A. Input Layer (Multimodal Sensing)
+	•	Eye Tracking Adapter (Quest 3, Vision Pro)
+	•	Head Pose Estimator
+	•	Voice Input + NLP Transcription (Whisper/local model)
+	•	Optional: Pupil dilation proxy, blink rate, facial affect estimation
+
+B. Attention Modeling Engine
+	•	Real-time cognitive load estimation (based on gaze fixations, latency, micro-movements)
+	•	Engagement detection via heuristics and optional ML models
+	•	Dropout prediction for early intervention
+	•	Context-aware task switching suggestions or micro-breaks
+
+C. Learning Orchestration Layer
+	•	LLM interface (e.g., GPT, Claude) to act as:
+	•	Tutor (dynamic explanations)
+	•	Planner (next task recommendation)
+	•	Evaluator (Socratic feedback, memory probing)
+	•	Mastery learning logic:
+	•	Path dependency engine: unlock new modules only after demonstrated competence
+	•	Spaced repetition scheduler: optimize review sessions
+	•	Adaptive difficulty adjustment
+
+D. Developer API
+	•	Unity SDK with clean APIs for:
+	•	Injecting learning content
+	•	Receiving learner state (e.g. attention %, mastery %, frustration flags)
+	•	Customizing thresholds (e.g. minimum attention to mark lesson complete)
+	•	Web Dashboard (admin/instructor tools):
+	•	Learner analytics (heatmaps, attention time per concept, mastery curves)
+	•	A/B testing modules
+	•	Flow-state detection + curriculum feedback
+
+⸻
+
+3. Target Platforms
+	•	Primary XR Headsets: Meta Quest 3, Apple Vision Pro, (optionally Pico or Lynx)
+	•	Development Environment: Unity 6.1 with XR Interaction Toolkit
+	•	Cross-platform support planned via abstraction layers and Unity-compatible plugins
+
+⸻
+
+4. Open Source / Proprietary Strategy
+	•	Core SDK (sensing + orchestration): open source (Noesis Core)
+	•	LLM Tutor Layer: proprietary (Noesis Tutor), possibly hosted
+	•	Attention Models & User Analytics: closed-source IP (Noesis Sense)
+	•	Potential monetization through:
+	•	Enterprise SDK licensing
+	•	Custom XR curriculum design
+	•	White-label deployment for schools or training orgs
+
+⸻
+
+5. Differentiators
+	•	Unlike traditional LMS plugins, Noesis is:
+	•	Attention-first: grounded in real-time biometric engagement
+	•	Modular: can be added to any Unity-based XR app
+	•	LLM-native: designed from the ground up to co-orchestrate with agents
+	•	Flow-aware: not just reactive but proactively modulates pacing for optimal learning
+
+⸻
+
+6. Use Cases
+	•	STEM education in immersive labs
+	•	Technical training (e.g., surgical simulation, mechanical repair)
+	•	Language learning with speech feedback + gaze-triggered comprehension checks
+	•	Corporate onboarding or compliance in high-risk industries (aviation, pharma)
+
+⸻
+
+7. Long-Term Vision
+	•	Position Noesis as the backend standard for adaptive learning across XR platforms
+	•	Expand into:
+	•	Neuroadaptive games (flow-state optimized)
+	•	Cognitive rehab and therapeutic training
+	•	Open educator platform to let teachers create adaptive XR lessons with no code
+
+⸻
+
+Would you like a diagram of the full SDK architecture or a product roadmap next?

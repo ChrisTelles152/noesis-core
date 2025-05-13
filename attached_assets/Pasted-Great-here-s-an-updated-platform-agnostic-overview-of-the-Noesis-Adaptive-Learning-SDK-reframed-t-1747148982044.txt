@@ -1,0 +1,89 @@
+Great — here’s an updated platform-agnostic overview of the Noesis Adaptive Learning SDK, reframed to reflect your ambition for it to become the default learning intelligence layer across all environments (XR, mobile, web, desktop, and beyond):
+
+⸻
+
+Noesis Adaptive Learning SDK — Cross-Platform Core
+
+1. Mission
+
+Create the universal infrastructure layer for adaptive learning. Noesis abstracts the complexity of real-time attention, mastery tracking, and AI-based orchestration into a plug-and-play SDK that developers, educators, and platforms can embed into any learning experience — from immersive XR to mobile apps, LMS-integrated web courses, and interactive desktop software.
+
+⸻
+
+2. System Architecture
+
+A. Input Adapters (Device-Aware Sensing)
+	•	XR: eye tracking, head pose, gesture inputs (Quest, Vision Pro)
+	•	Desktop/Web: webcam-based gaze approximation, mouse tracking, keystroke latency
+	•	Mobile: touch dynamics, accelerometer, audio analysis
+	•	Optional Biometrics: HRV, EDA, facial affect (via API integrations)
+
+B. Unified Attention Engine
+	•	Abstracts all platform-specific signals into a normalized attention score
+	•	Includes:
+	•	Focus stability
+	•	Frustration heuristics
+	•	Cognitive load proxies
+	•	Outputs:
+	•	Engagement %, attention volatility, fatigue risk, dropout risk flags
+
+C. Mastery Learning Kernel
+	•	Modular logic engine to govern:
+	•	Progression rules
+	•	Spaced repetition intervals
+	•	Review injections
+	•	Forgetfulness detection
+	•	Optimized for long-term retention + skill compounding
+
+D. LLM Orchestration Layer (Noesis Tutor)
+	•	API for pluggable large language models to:
+	•	Plan curriculum dynamically
+	•	React to confusion
+	•	Generate Socratic-style feedback
+	•	Inject semantic analogies or examples
+	•	Can work with GPT, Claude, or custom fine-tuned models
+
+E. Developer SDK
+	•	SDKs for Unity, React, Swift, Kotlin, Python, and WebAssembly
+	•	Features:
+	•	Embed adaptive logic with 3 lines of code
+	•	Customize thresholds and feedback styles
+	•	Hook into telemetry, reporting, and alerts
+
+F. Dashboard + Analytics Suite
+	•	For instructors, orgs, researchers:
+	•	Mastery curves, attention heatmaps, drop-off analysis
+	•	Segment by cohort, demographic, device
+	•	Export for A/B testing, impact studies
+
+⸻
+
+3. Platform Targets
+	•	XR: Unity (Quest, Vision Pro, Pico)
+	•	Web: React, Angular, Vue, static HTML via JS SDK
+	•	Mobile: iOS + Android native (Swift/Kotlin)
+	•	Desktop: Electron, native apps, embedded Python
+	•	Embedded Devices: Raspberry Pi, custom training terminals (coming later)
+
+⸻
+
+4. Open Source vs Proprietary
+	•	Noesis Core (SDK + attention logic): Open Source
+	•	Noesis Tutor (LLM orchestration + custom agent layer): Proprietary SaaS
+	•	Noesis Sense (analytics + adaptive model tuning): Enterprise License
+	•	Long-term monetization: usage-based API pricing, enterprise support, curriculum tuning as a service (CTaaS)
+
+⸻
+
+5. Strategic Goals
+	•	Become the “Stripe for adaptive learning” — invisible infra used by thousands of apps
+	•	Power:
+	•	Global edtech platforms
+	•	Enterprise training systems
+	•	Cognitive performance tools
+	•	Government & NGO learning programs
+	•	Seed a global feedback layer that improves over time via open data (privacy-preserving)
+
+⸻
+
+Would you like a visual architecture diagram, business model variants, or API design next?
