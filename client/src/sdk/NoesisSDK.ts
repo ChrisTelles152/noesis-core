@@ -46,7 +46,7 @@ export class NoesisSDK {
   /**
    * Log messages if debug mode is enabled
    */
-  private log(message: string, ...args: any[]): void {
+  private log(message: string, ...args: unknown[]): void {
     if (this.debug) {
       console.log(`[NoesisSDK] ${message}`, ...args);
     }
