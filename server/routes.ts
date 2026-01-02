@@ -3,6 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { z } from "zod";
 import OpenAI from "openai";
+import { getCurrentUserId } from "./auth";
 
 // Response validation schemas for OpenAI responses
 const orchestrationResponseSchema = z.object({
@@ -27,12 +28,16 @@ const learningEventDataSchema = z.object({
   result: z.number().optional(),
 }).catchall(z.union([z.string(), z.number(), z.boolean()]).optional()); // Allow additional primitive fields
 
-// Helper to get user ID from request (supports future auth integration)
+// Helper to get user ID from request (uses auth when available)
 function getUserIdFromRequest(req: Request): number {
-  // When auth is implemented, extract from req.user or session
-  // For now, check if userId is provided in the request body
+  // First try to get authenticated user
+  const authUserId = getCurrentUserId(req);
+  if (authUserId !== null) {
+    return authUserId;
+  }
+  // Fallback to request body for backwards compatibility
   const bodyUserId = (req.body as { userId?: number })?.userId;
-  return bodyUserId ?? 1; // Default to user 1 if not specified
+  return bodyUserId ?? 1; // Default to user 1 if not authenticated
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {

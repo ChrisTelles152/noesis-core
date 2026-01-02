@@ -3,6 +3,7 @@ import cors from "cors";
 import rateLimit from "express-rate-limit";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
+import { setupAuth } from "./auth";
 
 const app = express();
 
@@ -41,6 +42,9 @@ app.use("/api/orchestration/", llmLimiter);
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
+
+// Setup authentication (session + passport)
+setupAuth(app);
 
 // Response logging type
 interface JsonResponseBody {

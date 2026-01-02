@@ -25,6 +25,10 @@ export interface AttentionTrackingOptions {
   onAttentionChange?: AttentionChangeCallback;
   attentionThreshold?: number;
   historySize?: number;
+  /** Enable real gaze tracking using WebGazer.js (requires webcam permission) */
+  useRealGazeTracking?: boolean;
+  /** Show WebGazer calibration/prediction points for debugging */
+  showGazePoints?: boolean;
 }
 
 export interface AttentionData {
