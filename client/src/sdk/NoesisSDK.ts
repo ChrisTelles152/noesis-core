@@ -32,6 +32,20 @@ export class NoesisSDK {
   }
 
   /**
+   * Check if SDK is initialized
+   */
+  isInitialized(): boolean {
+    return true; // SDK is initialized in constructor
+  }
+
+  /**
+   * Get list of active modules
+   */
+  getActiveModules(): ModuleType[] {
+    return Array.from(this.activeModules);
+  }
+
+  /**
    * Check if a specific module is active
    */
   isModuleActive(module: ModuleType): boolean {

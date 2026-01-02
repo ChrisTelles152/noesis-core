@@ -9,6 +9,9 @@ import { logEnvironmentStatus, isProduction } from "./env";
 import { setupHealthRoutes } from "./health";
 import { requestIdMiddleware } from "./middleware/requestId";
 import { sanitizeInput } from "./middleware/sanitize";
+import { initializeWebSocket } from "./websocket";
+import { setupOpenApiRoutes } from "./openapi";
+import { performanceMiddleware, performanceMonitor } from "./performance";
 
 // Validate environment at startup
 const envValid = logEnvironmentStatus(log);
@@ -22,8 +25,20 @@ const app = express();
 // Request ID tracking (before other middleware)
 app.use(requestIdMiddleware);
 
+// Performance monitoring
+app.use(performanceMiddleware);
+
 // Health check routes (before rate limiting)
 setupHealthRoutes(app);
+
+// OpenAPI documentation routes
+setupOpenApiRoutes(app);
+
+// Performance stats endpoint
+app.get('/api/performance/stats', (_req, res) => {
+  const stats = performanceMonitor.getStats();
+  res.json(stats);
+});
 
 // CORS configuration
 const corsOptions: cors.CorsOptions = {
@@ -144,6 +159,9 @@ app.use((req, res, next) => {
     serveStatic(app);
   }
 
+  // Initialize WebSocket server
+  initializeWebSocket(server);
+
   // ALWAYS serve the app on port 5000
   // this serves both the API and the client.
   // It is the only port that is not firewalled.
@@ -154,5 +172,7 @@ app.use((req, res, next) => {
     reusePort: true,
   }, () => {
     log(`serving on port ${port}`);
+    log(`WebSocket server available at ws://localhost:${port}/ws`);
+    log(`API documentation available at http://localhost:${port}/api/docs`);
   });
 })();
