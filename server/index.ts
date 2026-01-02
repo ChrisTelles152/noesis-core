@@ -4,6 +4,15 @@ import rateLimit from "express-rate-limit";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { setupAuth } from "./auth";
+import { csrfProtection, setupCsrfRoutes, shouldEnableCsrf } from "./csrf";
+import { logEnvironmentStatus, isProduction } from "./env";
+
+// Validate environment at startup
+const envValid = logEnvironmentStatus(log);
+if (!envValid && isProduction()) {
+  console.error('Environment validation failed. Exiting.');
+  process.exit(1);
+}
 
 const app = express();
 
@@ -14,7 +23,7 @@ const corsOptions: cors.CorsOptions = {
     : true, // Allow all origins in development
   credentials: true,
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization"],
+  allowedHeaders: ["Content-Type", "Authorization", "x-csrf-token"],
 };
 app.use(cors(corsOptions));
 
@@ -45,6 +54,23 @@ app.use(express.urlencoded({ extended: false }));
 
 // Setup authentication (session + passport)
 setupAuth(app);
+
+// Setup CSRF protection (after auth/session setup)
+const csrfEnabled = shouldEnableCsrf();
+if (csrfEnabled) {
+  setupCsrfRoutes(app);
+  app.use('/api/', csrfProtection({
+    excludePaths: [
+      '/api/csrf-token', // Token endpoint itself
+      '/api/auth/login', // Initial login doesn't have token yet
+      '/api/auth/register', // Initial registration doesn't have token yet
+    ],
+    enabled: csrfEnabled,
+  }));
+  log('CSRF protection enabled');
+} else {
+  log('CSRF protection disabled (development mode)');
+}
 
 // Response logging type
 interface JsonResponseBody {

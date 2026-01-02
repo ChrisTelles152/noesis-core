@@ -86,6 +86,12 @@ export default function Header() {
             {!isLoading && (
               isAuthenticated ? (
                 <div className="flex items-center space-x-3">
+                  <Link
+                    href="/dashboard"
+                    className={`text-sm font-medium transition-colors ${isActive('/dashboard') ? 'text-primary-600' : 'text-slate-600 hover:text-primary-600'}`}
+                  >
+                    Dashboard
+                  </Link>
                   <span className="text-sm text-slate-600">
                     Hi, <strong>{user?.username}</strong>
                   </span>

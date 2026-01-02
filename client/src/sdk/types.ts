@@ -69,6 +69,15 @@ export interface LearningEvent {
   confidence?: number;
 }
 
+// Server-side analytics event type
+export interface AnalyticsEvent {
+  id?: number;
+  userId: number;
+  type: string;
+  data: Record<string, unknown>;
+  timestamp: string | Date;
+}
+
 export type MasteryUpdateCallback = (data: MasteryData) => void;
 
 // Orchestration Types
