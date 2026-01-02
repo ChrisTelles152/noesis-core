@@ -1,13 +1,14 @@
+import bcrypt from "bcrypt";
 import { users, type User, type InsertUser, learningEvents, type LearningEvent, type InsertLearningEvent } from "@shared/schema";
 
-// modify the interface with any CRUD methods
-// you might need
+const SALT_ROUNDS = 12;
 
 export interface IStorage {
   getUser(id: number): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
-  
+  verifyPassword(username: string, password: string): Promise<User | null>;
+
   // Learning events methods
   createLearningEvent(event: InsertLearningEvent): Promise<LearningEvent>;
   getLearningEvent(id: number): Promise<LearningEvent | undefined>;
@@ -20,18 +21,20 @@ export class MemStorage implements IStorage {
   private learningEvents: Map<number, LearningEvent>;
   currentUserId: number;
   currentEventId: number;
+  private initialized: Promise<void>;
 
   constructor() {
     this.users = new Map();
     this.learningEvents = new Map();
     this.currentUserId = 1;
     this.currentEventId = 1;
-    
-    // Create a default user for the demo
-    this.createUser({
-      username: "demo_user",
-      password: "password123"
-    });
+
+    // Initialize asynchronously (demo user creation is optional and deferred)
+    this.initialized = this.init();
+  }
+
+  private async init(): Promise<void> {
+    // No default demo user - users should be created via proper registration
   }
 
   // User methods
@@ -46,10 +49,24 @@ export class MemStorage implements IStorage {
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
+    await this.initialized;
     const id = this.currentUserId++;
-    const user: User = { ...insertUser, id };
+    // Hash the password before storing
+    const hashedPassword = await bcrypt.hash(insertUser.password, SALT_ROUNDS);
+    const user: User = { ...insertUser, id, password: hashedPassword };
     this.users.set(id, user);
+    // Return user without exposing the hashed password in logs
     return user;
+  }
+
+  async verifyPassword(username: string, password: string): Promise<User | null> {
+    await this.initialized;
+    const user = await this.getUserByUsername(username);
+    if (!user) {
+      return null;
+    }
+    const isValid = await bcrypt.compare(password, user.password);
+    return isValid ? user : null;
   }
 
   // Learning events methods

@@ -159,7 +159,7 @@ export class Orchestrator {
   /**
    * Log messages if debug mode is enabled
    */
-  private log(message: string, ...args: any[]): void {
+  private log(message: string, ...args: unknown[]): void {
     if (this.debug) {
       console.log(`[Orchestrator] ${message}`, ...args);
     }

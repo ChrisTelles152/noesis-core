@@ -5,41 +5,57 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+// Gaze data type for attention tracking
+export interface GazePoint {
+  x: number;
+  y: number;
+}
+
+// Face landmark data type for gaze estimation
+export interface FaceLandmarks {
+  leftEye: GazePoint;
+  rightEye: GazePoint;
+}
+
+export interface FaceData {
+  landmarks?: FaceLandmarks;
+}
+
 export const calculateAttentionScore = (
-  gazeData: any,
+  gazeData: GazePoint | null,
   targetElement: HTMLElement | null
 ): number => {
   if (!targetElement || !gazeData) return 0;
-  
+
   // Simple attention calculation based on if gaze is in the element
   const elementRect = targetElement.getBoundingClientRect();
   const { x, y } = gazeData;
-  
-  const isInElement = 
+
+  const isInElement =
     x >= elementRect.left &&
     x <= elementRect.right &&
     y >= elementRect.top &&
     y <= elementRect.bottom;
-  
+
   // Return a score between 0 and 1
   return isInElement ? 0.8 + Math.random() * 0.2 : 0.2 + Math.random() * 0.3;
 };
 
-export const estimateGazeFromFace = (faceData: any): { x: number, y: number } => {
-  // This is a simple approximation - would use more sophisticated 
+export const estimateGazeFromFace = (faceData: FaceData | null): GazePoint => {
+  // This is a simple approximation - would use more sophisticated
   // algorithms in a production system
   if (!faceData || !faceData.landmarks) {
     return { x: window.innerWidth / 2, y: window.innerHeight / 2 };
   }
-  
+
   // Get eye positions
   const leftEye = faceData.landmarks.leftEye;
   const rightEye = faceData.landmarks.rightEye;
-  
+
   // Estimate gaze direction
   const x = (leftEye.x + rightEye.x) / 2;
   const y = (leftEye.y + rightEye.y) / 2;
-  
+
   return { x, y };
 };
 

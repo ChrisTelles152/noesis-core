@@ -10,8 +10,10 @@ export const useNoesisSDK = () => {
   useEffect(() => {
     // Create the SDK instance only once if it doesn't exist
     if (!sdkInstance) {
+      // Only pass API key if it's actually configured
+      const apiKey = import.meta.env.VITE_OPENAI_API_KEY;
       sdkInstance = new NoesisSDK({
-        apiKey: import.meta.env.VITE_OPENAI_API_KEY || "default_key",
+        apiKey: apiKey || undefined, // Don't pass a fake key
         modules: ['attention', 'mastery', 'orchestration'],
         debug: import.meta.env.DEV,
         attentionOptions: {

@@ -1,30 +1,37 @@
-import { 
-  MasteryOptions, 
-  LearningObjective, 
+import {
+  MasteryOptions,
+  LearningObjective,
   MasteryData,
   LearningEvent,
   MasteryUpdateCallback
 } from './types';
 
+// Internal options with required fields (after defaults applied)
+interface ResolvedMasteryOptions {
+  threshold: number;
+  spacingFactor: number;
+  initialObjectives: { id: string; name: string }[];
+}
+
 export class MasteryTracker {
-  private options: MasteryOptions;
+  private options: ResolvedMasteryOptions;
   private debug: boolean;
   private objectives: LearningObjective[] = [];
   private updateCallbacks: MasteryUpdateCallback[] = [];
-  
+
   constructor(options: MasteryOptions = {}, debug: boolean = false) {
     this.options = {
-      threshold: options.threshold || 0.8,
-      spacingFactor: options.spacingFactor || 2.5,
-      initialObjectives: options.initialObjectives || []
+      threshold: options.threshold ?? 0.8,
+      spacingFactor: options.spacingFactor ?? 2.5,
+      initialObjectives: options.initialObjectives ?? []
     };
     this.debug = debug;
-    
+
     // Initialize with any provided objectives
-    if (this.options.initialObjectives && this.options.initialObjectives.length > 0) {
+    if (this.options.initialObjectives.length > 0) {
       this.initialize({ objectives: this.options.initialObjectives });
     }
-    
+
     this.log('MasteryTracker initialized');
   }
 
@@ -195,7 +202,7 @@ export class MasteryTracker {
   /**
    * Log messages if debug mode is enabled
    */
-  private log(message: string, ...args: any[]): void {
+  private log(message: string, ...args: unknown[]): void {
     if (this.debug) {
       console.log(`[MasteryTracker] ${message}`, ...args);
     }

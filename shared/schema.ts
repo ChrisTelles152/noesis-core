@@ -33,10 +33,22 @@ export const insertLearningEventSchema = createInsertSchema(learningEvents).pick
   timestamp: true,
 });
 
+// Learning event data types for type safety
+export interface LearningEventData {
+  context?: string;
+  attentionScore?: number;
+  recommendation?: string;
+  intervention?: string;
+  objectiveId?: string;
+  progress?: number;
+  result?: number;
+  [key: string]: string | number | boolean | undefined;
+}
+
 export type InsertLearningEvent = {
   userId: number;
   type: string;
-  data: Record<string, any>;
+  data: LearningEventData;
   timestamp?: Date;
 };
 
