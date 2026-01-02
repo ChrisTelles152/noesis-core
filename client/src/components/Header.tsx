@@ -1,11 +1,18 @@
 import { useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
+import { useAuthContext } from "@/hooks/useAuth";
 
 export default function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [location] = useLocation();
+  const [location, setLocation] = useLocation();
   const [scrolled, setScrolled] = useState(false);
+  const { user, isAuthenticated, isLoading, logout } = useAuthContext();
+
+  const handleLogout = async () => {
+    await logout();
+    setLocation('/');
+  };
 
   useEffect(() => {
     const handleScroll = () => {
@@ -67,18 +74,36 @@ export default function Header() {
           </nav>
           
           <div className="flex items-center space-x-4">
-            <a 
-              href="https://github.com/noesis-sdk" 
-              target="_blank" 
+            <a
+              href="https://github.com/noesis-sdk"
+              target="_blank"
               rel="noopener noreferrer"
               className="hidden sm:flex items-center text-sm font-medium text-slate-700 hover:text-primary-600 transition-colors"
             >
               <i className="fab fa-github text-lg mr-2"></i>
               <span>Star on GitHub</span>
             </a>
-            <Button asChild>
-              <Link href="/#getstarted">Get Started</Link>
-            </Button>
+            {!isLoading && (
+              isAuthenticated ? (
+                <div className="flex items-center space-x-3">
+                  <span className="text-sm text-slate-600">
+                    Hi, <strong>{user?.username}</strong>
+                  </span>
+                  <Button variant="outline" onClick={handleLogout}>
+                    Logout
+                  </Button>
+                </div>
+              ) : (
+                <div className="flex items-center space-x-2">
+                  <Button variant="ghost" asChild>
+                    <Link href="/login">Sign In</Link>
+                  </Button>
+                  <Button asChild>
+                    <Link href="/register">Get Started</Link>
+                  </Button>
+                </div>
+              )
+            )}
           </div>
           
           <button 
