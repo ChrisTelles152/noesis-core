@@ -6,6 +6,9 @@ import { setupVite, serveStatic, log } from "./vite";
 import { setupAuth } from "./auth";
 import { csrfProtection, setupCsrfRoutes, shouldEnableCsrf } from "./csrf";
 import { logEnvironmentStatus, isProduction } from "./env";
+import { setupHealthRoutes } from "./health";
+import { requestIdMiddleware } from "./middleware/requestId";
+import { sanitizeInput } from "./middleware/sanitize";
 
 // Validate environment at startup
 const envValid = logEnvironmentStatus(log);
@@ -16,6 +19,12 @@ if (!envValid && isProduction()) {
 
 const app = express();
 
+// Request ID tracking (before other middleware)
+app.use(requestIdMiddleware);
+
+// Health check routes (before rate limiting)
+setupHealthRoutes(app);
+
 // CORS configuration
 const corsOptions: cors.CorsOptions = {
   origin: process.env.NODE_ENV === "production"
@@ -23,7 +32,7 @@ const corsOptions: cors.CorsOptions = {
     : true, // Allow all origins in development
   credentials: true,
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization", "x-csrf-token"],
+  allowedHeaders: ["Content-Type", "Authorization", "x-csrf-token", "x-request-id"],
 };
 app.use(cors(corsOptions));
 
@@ -51,6 +60,9 @@ app.use("/api/orchestration/", llmLimiter);
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
+
+// Input sanitization (after body parsing)
+app.use(sanitizeInput);
 
 // Setup authentication (session + passport)
 setupAuth(app);
