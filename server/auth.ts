@@ -1,0 +1,223 @@
+import passport from "passport";
+import { Strategy as LocalStrategy } from "passport-local";
+import { storage } from "./storage";
+import type { User } from "@shared/schema";
+import type { Express, Request, Response, NextFunction } from "express";
+import session from "express-session";
+import createMemoryStore from "memorystore";
+
+// Extend express-session types
+declare module "express-session" {
+  interface SessionData {
+    passport?: {
+      user?: number;
+    };
+  }
+}
+
+// Extend Express Request to include user
+declare global {
+  namespace Express {
+    interface User {
+      id: number;
+      username: string;
+      password: string;
+    }
+  }
+}
+
+// Configure Passport Local Strategy
+passport.use(
+  new LocalStrategy(async (username, password, done) => {
+    try {
+      const user = await storage.verifyPassword(username, password);
+      if (!user) {
+        return done(null, false, { message: "Invalid username or password" });
+      }
+      return done(null, user);
+    } catch (error) {
+      return done(error);
+    }
+  })
+);
+
+// Serialize user to session
+passport.serializeUser((user: Express.User, done) => {
+  done(null, user.id);
+});
+
+// Deserialize user from session
+passport.deserializeUser(async (id: number, done) => {
+  try {
+    const user = await storage.getUser(id);
+    if (!user) {
+      return done(null, false);
+    }
+    done(null, user);
+  } catch (error) {
+    done(error);
+  }
+});
+
+// Setup session and passport middleware
+export function setupAuth(app: Express): void {
+  // Session configuration
+  const MemoryStore = createMemoryStore(session);
+
+  const sessionSettings: session.SessionOptions = {
+    secret: process.env.SESSION_SECRET || "noesis-development-secret-change-in-production",
+    resave: false,
+    saveUninitialized: false,
+    store: new MemoryStore({
+      checkPeriod: 86400000, // Prune expired entries every 24h
+    }),
+    cookie: {
+      secure: process.env.NODE_ENV === "production",
+      httpOnly: true,
+      maxAge: 24 * 60 * 60 * 1000, // 24 hours
+      sameSite: "lax",
+    },
+  };
+
+  // Trust proxy in production (for secure cookies behind reverse proxy)
+  if (process.env.NODE_ENV === "production") {
+    app.set("trust proxy", 1);
+  }
+
+  app.use(session(sessionSettings));
+  app.use(passport.initialize());
+  app.use(passport.session());
+
+  // Register auth routes
+  registerAuthRoutes(app);
+}
+
+// Auth middleware to protect routes
+export function requireAuth(req: Request, res: Response, next: NextFunction): void {
+  if (req.isAuthenticated()) {
+    return next();
+  }
+  res.status(401).json({ error: "Authentication required" });
+}
+
+// Optional auth - attaches user if authenticated but doesn't block
+export function optionalAuth(req: Request, res: Response, next: NextFunction): void {
+  // User is already attached by passport if authenticated
+  next();
+}
+
+// Get current user ID (returns null if not authenticated)
+export function getCurrentUserId(req: Request): number | null {
+  // Check if passport is initialized (isAuthenticated exists) and user is authenticated
+  if (typeof req.isAuthenticated === "function" && req.isAuthenticated() && req.user) {
+    return req.user.id;
+  }
+  return null;
+}
+
+// Register authentication routes
+function registerAuthRoutes(app: Express): void {
+  // Register a new user
+  app.post("/api/auth/register", async (req: Request, res: Response) => {
+    try {
+      const { username, password } = req.body;
+
+      // Validate input
+      if (!username || typeof username !== "string" || username.length < 3) {
+        return res.status(400).json({ error: "Username must be at least 3 characters" });
+      }
+      if (!password || typeof password !== "string" || password.length < 8) {
+        return res.status(400).json({ error: "Password must be at least 8 characters" });
+      }
+
+      // Check if username already exists
+      const existingUser = await storage.getUserByUsername(username);
+      if (existingUser) {
+        return res.status(400).json({ error: "Username already exists" });
+      }
+
+      // Create the user
+      const user = await storage.createUser({ username, password });
+
+      // Log the user in after registration
+      req.login(user, (err) => {
+        if (err) {
+          console.error("Login after registration failed:", err);
+          return res.status(500).json({ error: "Registration successful but login failed" });
+        }
+        // Return user info (without password)
+        res.status(201).json({
+          id: user.id,
+          username: user.username,
+        });
+      });
+    } catch (error) {
+      console.error("Registration error:", error);
+      res.status(500).json({ error: "Registration failed" });
+    }
+  });
+
+  // Login
+  app.post("/api/auth/login", (req: Request, res: Response, next: NextFunction) => {
+    passport.authenticate("local", (err: Error | null, user: User | false, info: { message: string } | undefined) => {
+      if (err) {
+        console.error("Login error:", err);
+        return res.status(500).json({ error: "Login failed" });
+      }
+      if (!user) {
+        return res.status(401).json({ error: info?.message || "Invalid credentials" });
+      }
+      req.login(user, (loginErr) => {
+        if (loginErr) {
+          console.error("Session login error:", loginErr);
+          return res.status(500).json({ error: "Login failed" });
+        }
+        res.json({
+          id: user.id,
+          username: user.username,
+        });
+      });
+    })(req, res, next);
+  });
+
+  // Logout
+  app.post("/api/auth/logout", (req: Request, res: Response) => {
+    req.logout((err) => {
+      if (err) {
+        console.error("Logout error:", err);
+        return res.status(500).json({ error: "Logout failed" });
+      }
+      req.session.destroy((destroyErr) => {
+        if (destroyErr) {
+          console.error("Session destroy error:", destroyErr);
+        }
+        res.clearCookie("connect.sid");
+        res.json({ message: "Logged out successfully" });
+      });
+    });
+  });
+
+  // Get current user
+  app.get("/api/auth/me", (req: Request, res: Response) => {
+    if (req.isAuthenticated() && req.user) {
+      res.json({
+        id: req.user.id,
+        username: req.user.username,
+      });
+    } else {
+      res.status(401).json({ error: "Not authenticated" });
+    }
+  });
+
+  // Check if username is available
+  app.get("/api/auth/check-username/:username", async (req: Request, res: Response) => {
+    try {
+      const { username } = req.params;
+      const existingUser = await storage.getUserByUsername(username);
+      res.json({ available: !existingUser });
+    } catch (error) {
+      console.error("Username check error:", error);
+      res.status(500).json({ error: "Failed to check username" });
+    }
+  });
+}

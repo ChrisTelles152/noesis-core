@@ -1,5 +1,14 @@
 import bcrypt from "bcrypt";
-import { users, type User, type InsertUser, learningEvents, type LearningEvent, type InsertLearningEvent } from "@shared/schema";
+import { eq } from "drizzle-orm";
+import {
+  users,
+  learningEvents,
+  type User,
+  type InsertUser,
+  type LearningEvent,
+  type InsertLearningEvent
+} from "@shared/schema";
+import { db, isDatabaseConfigured } from "./db";
 
 const SALT_ROUNDS = 12;
 
@@ -16,6 +25,7 @@ export interface IStorage {
   getLearningEventsByType(type: string): Promise<LearningEvent[]>;
 }
 
+// In-memory storage implementation (used when DATABASE_URL is not set)
 export class MemStorage implements IStorage {
   private users: Map<number, User>;
   private learningEvents: Map<number, LearningEvent>;
@@ -72,10 +82,10 @@ export class MemStorage implements IStorage {
   // Learning events methods
   async createLearningEvent(insertEvent: InsertLearningEvent): Promise<LearningEvent> {
     const id = this.currentEventId++;
-    const event: LearningEvent = { 
-      ...insertEvent, 
+    const event: LearningEvent = {
+      ...insertEvent,
       id,
-      timestamp: insertEvent.timestamp || new Date() 
+      timestamp: insertEvent.timestamp || new Date()
     };
     this.learningEvents.set(id, event);
     return event;
@@ -98,4 +108,91 @@ export class MemStorage implements IStorage {
   }
 }
 
-export const storage = new MemStorage();
+// PostgreSQL storage implementation (used when DATABASE_URL is set)
+export class DatabaseStorage implements IStorage {
+  // User methods
+  async getUser(id: number): Promise<User | undefined> {
+    if (!db) throw new Error("Database not configured");
+    const [user] = await db.select().from(users).where(eq(users.id, id));
+    return user;
+  }
+
+  async getUserByUsername(username: string): Promise<User | undefined> {
+    if (!db) throw new Error("Database not configured");
+    const [user] = await db.select().from(users).where(eq(users.username, username));
+    return user;
+  }
+
+  async createUser(insertUser: InsertUser): Promise<User> {
+    if (!db) throw new Error("Database not configured");
+    // Hash the password before storing
+    const hashedPassword = await bcrypt.hash(insertUser.password, SALT_ROUNDS);
+    const [user] = await db
+      .insert(users)
+      .values({ ...insertUser, password: hashedPassword })
+      .returning();
+    return user;
+  }
+
+  async verifyPassword(username: string, password: string): Promise<User | null> {
+    const user = await this.getUserByUsername(username);
+    if (!user) {
+      return null;
+    }
+    const isValid = await bcrypt.compare(password, user.password);
+    return isValid ? user : null;
+  }
+
+  // Learning events methods
+  async createLearningEvent(insertEvent: InsertLearningEvent): Promise<LearningEvent> {
+    if (!db) throw new Error("Database not configured");
+    const [event] = await db
+      .insert(learningEvents)
+      .values({
+        userId: insertEvent.userId,
+        type: insertEvent.type,
+        data: insertEvent.data,
+        timestamp: insertEvent.timestamp || new Date(),
+      })
+      .returning();
+    return event;
+  }
+
+  async getLearningEvent(id: number): Promise<LearningEvent | undefined> {
+    if (!db) throw new Error("Database not configured");
+    const [event] = await db
+      .select()
+      .from(learningEvents)
+      .where(eq(learningEvents.id, id));
+    return event;
+  }
+
+  async getLearningEventsByUserId(userId: number): Promise<LearningEvent[]> {
+    if (!db) throw new Error("Database not configured");
+    return db
+      .select()
+      .from(learningEvents)
+      .where(eq(learningEvents.userId, userId));
+  }
+
+  async getLearningEventsByType(type: string): Promise<LearningEvent[]> {
+    if (!db) throw new Error("Database not configured");
+    return db
+      .select()
+      .from(learningEvents)
+      .where(eq(learningEvents.type, type));
+  }
+}
+
+// Export the appropriate storage based on configuration
+function createStorage(): IStorage {
+  if (isDatabaseConfigured) {
+    console.log("[Storage] Using PostgreSQL database storage");
+    return new DatabaseStorage();
+  } else {
+    console.log("[Storage] Using in-memory storage (data will not persist across restarts)");
+    return new MemStorage();
+  }
+}
+
+export const storage = createStorage();

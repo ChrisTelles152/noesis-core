@@ -288,27 +288,27 @@ console.log('Concepts to review:', reviewRecommendations);`}
             <p className="text-slate-700 mb-6">
               Learn how to use the orchestration module to get adaptive learning recommendations from LLMs.
             </p>
-            
+
             <div className="mb-8">
               <h3 className="text-lg font-medium text-slate-900 mb-3">Setting Up LLM Orchestration</h3>
               <p className="text-slate-700 mb-4">
                 Initialize the orchestration module with your API key:
               </p>
-              <CodeBlock 
+              <CodeBlock
                 code={`const noesis = new NoesisSDK({
   apiKey: 'YOUR_API_KEY', // Required for orchestration
   modules: ['attention', 'mastery', 'orchestration']
-});`} 
-                language="javascript" 
+});`}
+                language="javascript"
               />
             </div>
-            
+
             <div className="mb-8">
               <h3 className="text-lg font-medium text-slate-900 mb-3">Getting Adaptive Recommendations</h3>
               <p className="text-slate-700 mb-4">
                 Request personalized learning recommendations based on the learner's state:
               </p>
-              <CodeBlock 
+              <CodeBlock
                 code={`// Get the current learner state
 const learnerState = noesis.getLearnerState();
 
@@ -323,17 +323,17 @@ const response = await noesis.orchestration.getNextStep({
 });
 
 console.log('Suggested next step:', response.suggestion);
-console.log('Explanation:', response.explanation);`} 
-                language="javascript" 
+console.log('Explanation:', response.explanation);`}
+                language="javascript"
               />
             </div>
-            
+
             <div className="mb-8">
               <h3 className="text-lg font-medium text-slate-900 mb-3">Requesting Engagement Interventions</h3>
               <p className="text-slate-700 mb-4">
                 When attention is low, request an engagement intervention:
               </p>
-              <CodeBlock 
+              <CodeBlock
                 code={`noesis.attention.onAttentionChange(data => {
   if (data.score < 0.3) {
     // Request an engagement suggestion
@@ -342,13 +342,272 @@ console.log('Explanation:', response.explanation);`}
         showEngagementPrompt(suggestion.message);
       });
   }
-});`} 
-                language="javascript" 
+});`}
+                language="javascript"
               />
             </div>
           </>
         );
-        
+
+      case "api-reference":
+        return (
+          <>
+            <h2 className="text-2xl font-semibold text-slate-900 mb-4">API Reference</h2>
+            <p className="text-slate-700 mb-6">
+              Complete API documentation for the Noesis SDK classes and methods.
+            </p>
+
+            <div className="mb-8">
+              <h3 className="text-lg font-medium text-slate-900 mb-3">NoesisSDK</h3>
+              <p className="text-slate-700 mb-4">Main SDK class that coordinates all modules.</p>
+              <CodeBlock
+                code={`class NoesisSDK {
+  attention: AttentionTracker;
+  mastery: MasteryTracker;
+  orchestration: Orchestrator;
+
+  constructor(options?: NoesisSDKOptions);
+  getLearnerState(): LearnerState;
+  isModuleActive(module: ModuleType): boolean;
+}`}
+                language="typescript"
+              />
+            </div>
+
+            <div className="mb-8">
+              <h3 className="text-lg font-medium text-slate-900 mb-3">AttentionTracker</h3>
+              <p className="text-slate-700 mb-4">Handles webcam-based attention tracking.</p>
+              <CodeBlock
+                code={`class AttentionTracker {
+  startTracking(targetElement: HTMLElement, options?: AttentionTrackingOptions): Promise<boolean>;
+  stopTracking(): Promise<void>;
+  getCurrentData(): AttentionData;
+  onAttentionChange(callback: AttentionChangeCallback): void;
+}
+
+interface AttentionData {
+  score: number;           // 0-1, overall attention level
+  focusStability: number;  // 0-1, variance-based stability
+  cognitiveLoad: number;   // 0-1, estimated cognitive burden
+  gazePoint: { x: number; y: number };
+  timestamp: number;
+  status: 'inactive' | 'tracking' | 'error';
+}`}
+                language="typescript"
+              />
+            </div>
+
+            <div className="mb-8">
+              <h3 className="text-lg font-medium text-slate-900 mb-3">MasteryTracker</h3>
+              <p className="text-slate-700 mb-4">Implements spaced repetition for learning progress.</p>
+              <CodeBlock
+                code={`class MasteryTracker {
+  initialize(options: MasteryInitOptions): void;
+  recordEvent(event: LearningEvent): void;
+  getMasteryData(): MasteryData;
+  getObjectiveProgress(objectiveId: string): number | null;
+  getReviewRecommendations(): LearningObjective[];
+  onMasteryUpdate(callback: MasteryUpdateCallback): void;
+}
+
+interface LearningObjective {
+  id: string;
+  name: string;
+  progress: number;        // 0-1
+  attempts: number;
+  lastReviewed: number | null;
+  nextReviewDue: number | null;
+  isReviewDue: boolean;
+  status: 'not-started' | 'in-progress' | 'mastered';
+}`}
+                language="typescript"
+              />
+            </div>
+
+            <div className="mb-8">
+              <h3 className="text-lg font-medium text-slate-900 mb-3">Orchestrator</h3>
+              <p className="text-slate-700 mb-4">Provides LLM-powered adaptive recommendations.</p>
+              <CodeBlock
+                code={`class Orchestrator {
+  getNextStep(request: OrchestratorRequest): Promise<OrchestratorResponse>;
+  suggestEngagement(request?: EngagementRequest): Promise<EngagementResponse>;
+}
+
+interface OrchestratorResponse {
+  suggestion: string;
+  explanation?: string;
+  resourceLinks?: string[];
+  type: 'llm-generated' | 'local-fallback';
+}
+
+interface EngagementResponse {
+  message: string;
+  type: 'attention-prompt' | 'interactive-element' | 'modality-change' | 'micro-break' | 'social-engagement';
+  source: 'llm-generated' | 'local-fallback';
+}`}
+                language="typescript"
+              />
+            </div>
+          </>
+        );
+
+      case "examples":
+        return (
+          <>
+            <h2 className="text-2xl font-semibold text-slate-900 mb-4">Examples</h2>
+            <p className="text-slate-700 mb-6">
+              Complete examples showing how to integrate Noesis SDK in real applications.
+            </p>
+
+            <div className="mb-8">
+              <h3 className="text-lg font-medium text-slate-900 mb-3">React Integration</h3>
+              <p className="text-slate-700 mb-4">
+                Using the SDK with React hooks:
+              </p>
+              <CodeBlock
+                code={`import { useEffect, useState, useRef } from 'react';
+import { NoesisSDK, AttentionData, MasteryData } from '@noesis/core';
+
+// Create SDK singleton
+const sdk = new NoesisSDK({
+  modules: ['attention', 'mastery', 'orchestration'],
+  debug: process.env.NODE_ENV === 'development'
+});
+
+function LearningModule() {
+  const contentRef = useRef<HTMLDivElement>(null);
+  const [attention, setAttention] = useState<AttentionData | null>(null);
+  const [mastery, setMastery] = useState<MasteryData>([]);
+
+  useEffect(() => {
+    // Initialize mastery tracking
+    sdk.mastery.initialize({
+      objectives: [
+        { id: 'intro', name: 'Introduction' },
+        { id: 'basics', name: 'Basic Concepts' },
+        { id: 'advanced', name: 'Advanced Topics' }
+      ],
+      onMasteryUpdate: setMastery
+    });
+
+    // Start attention tracking
+    if (contentRef.current) {
+      sdk.attention.startTracking(contentRef.current, {
+        trackingInterval: 500,
+        onAttentionChange: setAttention
+      });
+    }
+
+    return () => {
+      sdk.attention.stopTracking();
+    };
+  }, []);
+
+  return (
+    <div ref={contentRef}>
+      <h1>Learning Content</h1>
+      {attention && (
+        <p>Attention: {Math.round(attention.score * 100)}%</p>
+      )}
+      <ul>
+        {mastery.map(obj => (
+          <li key={obj.id}>
+            {obj.name}: {Math.round(obj.progress * 100)}% mastered
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}`}
+                language="typescript"
+              />
+            </div>
+
+            <div className="mb-8">
+              <h3 className="text-lg font-medium text-slate-900 mb-3">Adaptive Content Switching</h3>
+              <p className="text-slate-700 mb-4">
+                Automatically adapting content based on attention and mastery:
+              </p>
+              <CodeBlock
+                code={`async function adaptContent(sdk: NoesisSDK) {
+  const learnerState = sdk.getLearnerState();
+
+  // Check if attention is low
+  if (learnerState.attention?.score < 0.3) {
+    const engagement = await sdk.orchestration.suggestEngagement({
+      attentionScore: learnerState.attention.score,
+      context: 'reading technical documentation'
+    });
+
+    showNotification(engagement.message);
+    return;
+  }
+
+  // Check for concepts due for review
+  const recommendations = sdk.mastery.getReviewRecommendations();
+  if (recommendations.length > 0 && recommendations[0].isReviewDue) {
+    showReviewCard(recommendations[0]);
+    return;
+  }
+
+  // Get next step recommendation
+  const nextStep = await sdk.orchestration.getNextStep({
+    learnerState,
+    context: 'completed current section'
+  });
+
+  displayRecommendation(nextStep.suggestion);
+}`}
+                language="typescript"
+              />
+            </div>
+
+            <div className="mb-8">
+              <h3 className="text-lg font-medium text-slate-900 mb-3">Quiz Integration</h3>
+              <p className="text-slate-700 mb-4">
+                Recording quiz results for mastery tracking:
+              </p>
+              <CodeBlock
+                code={`function handleQuizSubmit(
+  sdk: NoesisSDK,
+  answers: { questionId: string; correct: boolean; confidence: number }[]
+) {
+  // Group questions by learning objective
+  const byObjective = groupBy(answers, 'questionId');
+
+  for (const [objectiveId, responses] of Object.entries(byObjective)) {
+    // Calculate average result for this objective
+    const correctCount = responses.filter(r => r.correct).length;
+    const result = correctCount / responses.length;
+
+    // Calculate average confidence
+    const avgConfidence = average(responses.map(r => r.confidence));
+
+    // Record the learning event
+    sdk.mastery.recordEvent({
+      objectiveId,
+      result,
+      confidence: avgConfidence
+    });
+  }
+
+  // Check progress and show appropriate feedback
+  const mastery = sdk.mastery.getMasteryData();
+  const masteredCount = mastery.filter(m => m.status === 'mastered').length;
+
+  if (masteredCount === mastery.length) {
+    showCompletionCelebration();
+  } else {
+    const nextToReview = sdk.mastery.getReviewRecommendations()[0];
+    suggestNextLesson(nextToReview);
+  }
+}`}
+                language="typescript"
+              />
+            </div>
+          </>
+        );
+
       default:
         return (
           <div className="p-6 text-center">

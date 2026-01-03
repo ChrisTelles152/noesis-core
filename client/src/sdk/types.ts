@@ -25,6 +25,10 @@ export interface AttentionTrackingOptions {
   onAttentionChange?: AttentionChangeCallback;
   attentionThreshold?: number;
   historySize?: number;
+  /** Enable real gaze tracking using WebGazer.js (requires webcam permission) */
+  useRealGazeTracking?: boolean;
+  /** Show WebGazer calibration/prediction points for debugging */
+  showGazePoints?: boolean;
 }
 
 export interface AttentionData {
@@ -63,6 +67,15 @@ export interface LearningEvent {
   objectiveId: string;
   result: number;
   confidence?: number;
+}
+
+// Server-side analytics event type
+export interface AnalyticsEvent {
+  id?: number;
+  userId: number;
+  type: string;
+  data: Record<string, unknown>;
+  timestamp: string | Date;
 }
 
 export type MasteryUpdateCallback = (data: MasteryData) => void;

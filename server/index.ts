@@ -3,8 +3,42 @@ import cors from "cors";
 import rateLimit from "express-rate-limit";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
+import { setupAuth } from "./auth";
+import { csrfProtection, setupCsrfRoutes, shouldEnableCsrf } from "./csrf";
+import { logEnvironmentStatus, isProduction } from "./env";
+import { setupHealthRoutes } from "./health";
+import { requestIdMiddleware } from "./middleware/requestId";
+import { sanitizeInput } from "./middleware/sanitize";
+import { initializeWebSocket } from "./websocket";
+import { setupOpenApiRoutes } from "./openapi";
+import { performanceMiddleware, performanceMonitor } from "./performance";
+
+// Validate environment at startup
+const envValid = logEnvironmentStatus(log);
+if (!envValid && isProduction()) {
+  console.error('Environment validation failed. Exiting.');
+  process.exit(1);
+}
 
 const app = express();
+
+// Request ID tracking (before other middleware)
+app.use(requestIdMiddleware);
+
+// Performance monitoring
+app.use(performanceMiddleware);
+
+// Health check routes (before rate limiting)
+setupHealthRoutes(app);
+
+// OpenAPI documentation routes
+setupOpenApiRoutes(app);
+
+// Performance stats endpoint
+app.get('/api/performance/stats', (_req, res) => {
+  const stats = performanceMonitor.getStats();
+  res.json(stats);
+});
 
 // CORS configuration
 const corsOptions: cors.CorsOptions = {
@@ -13,7 +47,7 @@ const corsOptions: cors.CorsOptions = {
     : true, // Allow all origins in development
   credentials: true,
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization"],
+  allowedHeaders: ["Content-Type", "Authorization", "x-csrf-token", "x-request-id"],
 };
 app.use(cors(corsOptions));
 
@@ -41,6 +75,29 @@ app.use("/api/orchestration/", llmLimiter);
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
+
+// Input sanitization (after body parsing)
+app.use(sanitizeInput);
+
+// Setup authentication (session + passport)
+setupAuth(app);
+
+// Setup CSRF protection (after auth/session setup)
+const csrfEnabled = shouldEnableCsrf();
+if (csrfEnabled) {
+  setupCsrfRoutes(app);
+  app.use('/api/', csrfProtection({
+    excludePaths: [
+      '/api/csrf-token', // Token endpoint itself
+      '/api/auth/login', // Initial login doesn't have token yet
+      '/api/auth/register', // Initial registration doesn't have token yet
+    ],
+    enabled: csrfEnabled,
+  }));
+  log('CSRF protection enabled');
+} else {
+  log('CSRF protection disabled (development mode)');
+}
 
 // Response logging type
 interface JsonResponseBody {
@@ -102,6 +159,9 @@ app.use((req, res, next) => {
     serveStatic(app);
   }
 
+  // Initialize WebSocket server
+  initializeWebSocket(server);
+
   // ALWAYS serve the app on port 5000
   // this serves both the API and the client.
   // It is the only port that is not firewalled.
@@ -112,5 +172,7 @@ app.use((req, res, next) => {
     reusePort: true,
   }, () => {
     log(`serving on port ${port}`);
+    log(`WebSocket server available at ws://localhost:${port}/ws`);
+    log(`API documentation available at http://localhost:${port}/api/docs`);
   });
 })();

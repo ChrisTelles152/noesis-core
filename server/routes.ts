@@ -2,9 +2,10 @@ import type { Express, Request } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { z } from "zod";
-import OpenAI from "openai";
+import { getCurrentUserId } from "./auth";
+import { getLLMManager } from "./llm";
 
-// Response validation schemas for OpenAI responses
+// Response validation schemas for LLM responses
 const orchestrationResponseSchema = z.object({
   suggestion: z.string(),
   explanation: z.string().optional(),
@@ -25,26 +26,30 @@ const learningEventDataSchema = z.object({
   objectiveId: z.string().optional(),
   progress: z.number().optional(),
   result: z.number().optional(),
-}).catchall(z.union([z.string(), z.number(), z.boolean()]).optional()); // Allow additional primitive fields
+}).catchall(z.union([z.string(), z.number(), z.boolean()]).optional());
 
-// Helper to get user ID from request (supports future auth integration)
+// Helper to get user ID from request (uses auth when available)
 function getUserIdFromRequest(req: Request): number {
-  // When auth is implemented, extract from req.user or session
-  // For now, check if userId is provided in the request body
+  const authUserId = getCurrentUserId(req);
+  if (authUserId !== null) {
+    return authUserId;
+  }
   const bodyUserId = (req.body as { userId?: number })?.userId;
-  return bodyUserId ?? 1; // Default to user 1 if not specified
+  return bodyUserId ?? 1;
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Initialize OpenAI client - require proper configuration
-  const apiKey = process.env.OPENAI_API_KEY;
-  if (!apiKey) {
-    console.warn("OPENAI_API_KEY not configured. LLM features will use fallback responses.");
-  }
-  const openai = new OpenAI({
-    apiKey: apiKey || "sk-placeholder" // OpenAI SDK requires a non-empty string
+  // Initialize LLM Manager (handles multi-provider support)
+  const llm = getLLMManager();
+
+  // LLM status endpoint
+  app.get('/api/llm/status', (req, res) => {
+    res.json({
+      activeProvider: llm.getActiveProvider(),
+      configuredProviders: llm.getConfiguredProviders(),
+      hasLLMProvider: llm.hasLLMProvider(),
+    });
   });
-  const isOpenAIConfigured = !!apiKey;
 
   // Orchestration API routes
   app.post('/api/orchestration/next-step', async (req, res) => {
@@ -72,79 +77,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }).optional()
       });
 
-      // Validate request body
       const validatedData = requestSchema.parse(req.body);
-      
-      // Get attention and mastery data
+
       const attentionScore = validatedData.learnerState.attention?.score || 0.5;
       const masteryData = validatedData.learnerState.mastery || [];
       const context = validatedData.context || 'general learning';
-      
+
+      // Use LLM Manager for recommendation
+      const llmResult = await llm.getRecommendation({
+        attentionScore,
+        masteryData,
+        learningContext: context,
+      });
+
+      // Parse and validate the response
       let response;
+      try {
+        const parsedResult = JSON.parse(llmResult.content);
+        const validatedResult = orchestrationResponseSchema.parse(parsedResult);
 
-      // Call OpenAI for adaptive learning suggestions (only if configured)
-      if (isOpenAIConfigured) {
-        try {
-          // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
-          const completion = await openai.chat.completions.create({
-            model: "gpt-4o",
-            messages: [
-              {
-                role: "system",
-                content: "You are an adaptive learning assistant that provides personalized learning recommendations based on attention data and mastery progress. Respond with JSON in this format: { 'suggestion': string, 'explanation': string, 'resourceLinks': string[] }"
-              },
-              {
-                role: "user",
-                content: `
-                  Learner attention score: ${attentionScore} (0-1 scale)
-                  Context: ${context}
-                  Mastery data: ${JSON.stringify(masteryData)}
-
-                  Based on this data, provide a recommendation for what the learner should do next.
-                  Keep suggestions concise, evidence-based, and personalized to attention level and context.
-                `
-              }
-            ],
-            response_format: { type: "json_object" }
-          });
-
-          const rawContent = completion.choices[0].message.content;
-          if (!rawContent) {
-            throw new Error("Empty response from OpenAI");
-          }
-
-          // Parse and validate the response
-          const parsedResult = JSON.parse(rawContent);
-          const validatedResult = orchestrationResponseSchema.parse(parsedResult);
-
-          response = {
-            suggestion: validatedResult.suggestion,
-            explanation: validatedResult.explanation,
-            resourceLinks: validatedResult.resourceLinks,
-            type: 'llm-generated'
-          };
-        } catch (error) {
-          console.error('Error calling OpenAI:', error);
-
-          // Fallback response if OpenAI call fails
-          response = {
-            suggestion: "Based on your progress, I recommend continuing with the current concept.",
-            explanation: "This recommendation is based on your current attention and mastery levels.",
-            resourceLinks: [],
-            type: 'fallback'
-          };
-        }
-      } else {
-        // No API key configured - use fallback
+        response = {
+          suggestion: validatedResult.suggestion,
+          explanation: validatedResult.explanation,
+          resourceLinks: validatedResult.resourceLinks,
+          type: llmResult.provider === 'fallback' ? 'fallback' : 'llm-generated',
+          provider: llmResult.provider,
+          model: llmResult.model,
+        };
+      } catch (parseError) {
+        console.error('Error parsing LLM response:', parseError);
         response = {
           suggestion: "Based on your progress, I recommend continuing with the current concept.",
           explanation: "This recommendation is based on your current attention and mastery levels.",
           resourceLinks: [],
-          type: 'fallback'
+          type: 'fallback',
+          provider: 'fallback',
+          model: 'error-recovery',
         };
       }
 
-      // Store the recommendation in the learning history
+      // Store the recommendation in learning history
       const userId = getUserIdFromRequest(req);
       await storage.createLearningEvent({
         userId,
@@ -152,7 +124,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         data: {
           context,
           attentionScore,
-          recommendation: response.suggestion
+          recommendation: response.suggestion,
+          provider: response.provider,
         },
         timestamp: new Date()
       });
@@ -160,8 +133,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(response);
     } catch (error) {
       console.error('Error in next-step endpoint:', error);
-      res.status(400).json({ 
-        error: error instanceof Error ? error.message : 'Invalid request' 
+      res.status(400).json({
+        error: error instanceof Error ? error.message : 'Invalid request'
       });
     }
   });
@@ -174,88 +147,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
         previousInterventions: z.array(z.string()).optional()
       });
 
-      // Validate request body
       const validatedData = requestSchema.parse(req.body);
-      
-      const attentionScore = validatedData.attentionScore || 0.3; // Default to low attention
+
+      const attentionScore = validatedData.attentionScore || 0.3;
       const context = validatedData.context || 'general learning';
       const previousInterventions = validatedData.previousInterventions || [];
-      
+
+      // Use LLM Manager for engagement suggestion
+      const llmResult = await llm.getEngagementSuggestion({
+        attentionScore,
+        learningContext: context,
+        previousInterventions,
+      });
+
+      // Parse and validate the response
       let response;
+      try {
+        const parsedResult = JSON.parse(llmResult.content);
+        const validatedResult = engagementResponseSchema.parse(parsedResult);
 
-      // Helper function to get fallback engagement response
-      const getFallbackEngagement = () => {
-        const suggestions = [
-          "Would you like to take a quick 30-second break to refresh?",
-          "Let's try a different approach to this concept. How about a visual example?",
-          "Would it help to see a real-world application of this concept?",
-          "Let's make this more interactive. Can you try solving a simple version of this problem?",
-          "Sometimes a change of pace helps. Would you like to switch to a related topic and come back to this later?"
-        ];
-
-        // Avoid repeating the same suggestion if possible
-        let availableSuggestions = suggestions.filter(s => !previousInterventions.includes(s));
-        if (availableSuggestions.length === 0) {
-          availableSuggestions = suggestions;
-        }
-
-        const randomIndex = Math.floor(Math.random() * availableSuggestions.length);
-
-        return {
-          message: availableSuggestions[randomIndex],
-          type: 'attention-prompt',
-          source: 'fallback'
+        response = {
+          message: validatedResult.message,
+          type: validatedResult.type,
+          source: llmResult.provider === 'fallback' ? 'fallback' : 'llm-generated',
+          provider: llmResult.provider,
+          model: llmResult.model,
         };
-      };
-
-      // Call OpenAI for engagement suggestions (only if configured)
-      if (isOpenAIConfigured) {
-        try {
-          // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
-          const completion = await openai.chat.completions.create({
-            model: "gpt-4o",
-            messages: [
-              {
-                role: "system",
-                content: "You are an adaptive learning assistant focused on maintaining learner engagement. Respond with JSON in this format: { 'message': string, 'type': string }"
-              },
-              {
-                role: "user",
-                content: `
-                  Learner attention score: ${attentionScore} (0-1 scale, lower means less attentive)
-                  Context: ${context}
-                  Previous interventions: ${JSON.stringify(previousInterventions)}
-
-                  The learner's attention appears to be dropping. Suggest a brief intervention to re-engage them.
-                  Keep your suggestion concise, friendly, and immediately actionable. The type should be one of:
-                  attention-prompt, interactive-element, modality-change, micro-break, social-engagement
-                `
-              }
-            ],
-            response_format: { type: "json_object" }
-          });
-
-          const rawContent = completion.choices[0].message.content;
-          if (!rawContent) {
-            throw new Error("Empty response from OpenAI");
-          }
-
-          // Parse and validate the response
-          const parsedResult = JSON.parse(rawContent);
-          const validatedResult = engagementResponseSchema.parse(parsedResult);
-
-          response = {
-            message: validatedResult.message,
-            type: validatedResult.type,
-            source: 'llm-generated'
-          };
-        } catch (error) {
-          console.error('Error calling OpenAI:', error);
-          response = getFallbackEngagement();
-        }
-      } else {
-        // No API key configured - use fallback
-        response = getFallbackEngagement();
+      } catch (parseError) {
+        console.error('Error parsing LLM response:', parseError);
+        response = {
+          message: "Would you like to take a quick break to refresh your focus?",
+          type: 'attention-prompt',
+          source: 'fallback',
+          provider: 'fallback',
+          model: 'error-recovery',
+        };
       }
 
       // Store the engagement intervention in learning history
@@ -266,7 +192,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         data: {
           context,
           attentionScore,
-          intervention: response.message
+          intervention: response.message,
+          provider: response.provider,
         },
         timestamp: new Date()
       });
@@ -274,8 +201,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(response);
     } catch (error) {
       console.error('Error in engagement endpoint:', error);
-      res.status(400).json({ 
-        error: error instanceof Error ? error.message : 'Invalid request' 
+      res.status(400).json({
+        error: error instanceof Error ? error.message : 'Invalid request'
       });
     }
   });
@@ -283,8 +210,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Learning analytics endpoints
   app.get('/api/analytics/attention', async (req, res) => {
     try {
+      const userId = getUserIdFromRequest(req);
       const events = await storage.getLearningEventsByType('attention');
-      res.json(events);
+      // Filter by user if authenticated
+      const userEvents = userId ? events.filter(e => e.userId === userId) : events;
+      res.json(userEvents);
     } catch (error) {
       console.error('Error fetching attention analytics:', error);
       res.status(500).json({ error: 'Failed to fetch attention data' });
@@ -293,11 +223,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get('/api/analytics/mastery', async (req, res) => {
     try {
+      const userId = getUserIdFromRequest(req);
       const events = await storage.getLearningEventsByType('mastery');
-      res.json(events);
+      const userEvents = userId ? events.filter(e => e.userId === userId) : events;
+      res.json(userEvents);
     } catch (error) {
       console.error('Error fetching mastery analytics:', error);
       res.status(500).json({ error: 'Failed to fetch mastery data' });
+    }
+  });
+
+  // Get all analytics for a user
+  app.get('/api/analytics/summary', async (req, res) => {
+    try {
+      const userId = getUserIdFromRequest(req);
+      const allEvents = await storage.getLearningEventsByUserId(userId);
+
+      // Compute summary statistics
+      const attentionEvents = allEvents.filter(e => e.type === 'attention');
+      const masteryEvents = allEvents.filter(e => e.type === 'mastery');
+      const recommendationEvents = allEvents.filter(e => e.type === 'recommendation');
+      const engagementEvents = allEvents.filter(e => e.type === 'engagement');
+
+      // Calculate averages
+      const avgAttention = attentionEvents.length > 0
+        ? attentionEvents.reduce((sum, e) => sum + ((e.data as { attentionScore?: number }).attentionScore || 0), 0) / attentionEvents.length
+        : 0;
+
+      res.json({
+        userId,
+        totalEvents: allEvents.length,
+        eventCounts: {
+          attention: attentionEvents.length,
+          mastery: masteryEvents.length,
+          recommendations: recommendationEvents.length,
+          engagements: engagementEvents.length,
+        },
+        averageAttention: Math.round(avgAttention * 100) / 100,
+        recentEvents: allEvents.slice(-10).reverse(),
+        llmProvider: llm.getActiveProvider(),
+      });
+    } catch (error) {
+      console.error('Error fetching analytics summary:', error);
+      res.status(500).json({ error: 'Failed to fetch analytics summary' });
     }
   });
 
