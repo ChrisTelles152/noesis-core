@@ -18,12 +18,17 @@ export default defineConfig({
   ],
   resolve: {
     alias: {
-      "@": path.resolve(import.meta.dirname, "client", "src"),
+      "@": path.resolve(import.meta.dirname, "apps", "web-demo", "src"),
       "@shared": path.resolve(import.meta.dirname, "shared"),
       "@assets": path.resolve(import.meta.dirname, "attached_assets"),
+      // Package aliases for development
+      "@noesis/core": path.resolve(import.meta.dirname, "packages", "core", "src"),
+      "@noesis/adapters-attention-web": path.resolve(import.meta.dirname, "packages", "adapters-attention-web", "src"),
+      "@noesis/adapters-llm": path.resolve(import.meta.dirname, "packages", "adapters-llm", "src"),
+      "@noesis/sdk-web": path.resolve(import.meta.dirname, "packages", "sdk-web", "src"),
     },
   },
-  root: path.resolve(import.meta.dirname, "client"),
+  root: path.resolve(import.meta.dirname, "apps", "web-demo"),
   build: {
     outDir: path.resolve(import.meta.dirname, "dist/public"),
     emptyOutDir: true,

@@ -9,8 +9,9 @@ export default defineConfig({
     environment: "jsdom",
     setupFiles: ["./test/setup.ts"],
     include: [
-      "client/src/**/*.test.{ts,tsx}",
-      "server/**/*.test.ts",
+      "apps/web-demo/src/**/*.test.{ts,tsx}",
+      "apps/server/**/*.test.ts",
+      "packages/*/src/**/*.test.ts",
       "shared/**/*.test.ts",
       "test/**/*.test.ts",
     ],
@@ -20,17 +21,18 @@ export default defineConfig({
       reporter: ["text", "json", "html"],
       reportsDirectory: "./coverage",
       include: [
-        "client/src/sdk/**/*.ts",
-        "client/src/hooks/**/*.ts",
-        "client/src/lib/**/*.ts",
-        "server/**/*.ts",
+        "apps/web-demo/src/sdk/**/*.ts",
+        "apps/web-demo/src/hooks/**/*.ts",
+        "apps/web-demo/src/lib/**/*.ts",
+        "apps/server/**/*.ts",
+        "packages/*/src/**/*.ts",
         "shared/**/*.ts",
       ],
       exclude: [
         "**/*.test.ts",
         "**/*.test.tsx",
         "**/types.ts",
-        "server/vite.ts",
+        "apps/server/vite.ts",
       ],
       thresholds: {
         lines: 60,
@@ -42,8 +44,12 @@ export default defineConfig({
   },
   resolve: {
     alias: {
-      "@": path.resolve(__dirname, "./client/src"),
+      "@": path.resolve(__dirname, "./apps/web-demo/src"),
       "@shared": path.resolve(__dirname, "./shared"),
+      "@noesis/core": path.resolve(__dirname, "./packages/core/src"),
+      "@noesis/adapters-attention-web": path.resolve(__dirname, "./packages/adapters-attention-web/src"),
+      "@noesis/adapters-llm": path.resolve(__dirname, "./packages/adapters-llm/src"),
+      "@noesis/sdk-web": path.resolve(__dirname, "./packages/sdk-web/src"),
     },
   },
 });

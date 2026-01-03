@@ -1,5 +1,10 @@
 {
-  "include": ["client/src/**/*", "shared/**/*", "server/**/*"],
+  "include": [
+    "apps/web-demo/src/**/*",
+    "apps/server/**/*",
+    "shared/**/*",
+    "packages/*/src/**/*"
+  ],
   "exclude": ["node_modules", "build", "dist", "**/*.test.ts"],
   "compilerOptions": {
     "incremental": true,
@@ -16,8 +21,12 @@
     "baseUrl": ".",
     "types": ["node", "vite/client"],
     "paths": {
-      "@/*": ["./client/src/*"],
-      "@shared/*": ["./shared/*"]
+      "@/*": ["./apps/web-demo/src/*"],
+      "@shared/*": ["./shared/*"],
+      "@noesis/core": ["./packages/core/src"],
+      "@noesis/adapters-attention-web": ["./packages/adapters-attention-web/src"],
+      "@noesis/adapters-llm": ["./packages/adapters-llm/src"],
+      "@noesis/sdk-web": ["./packages/sdk-web/src"]
     }
   }
 }
