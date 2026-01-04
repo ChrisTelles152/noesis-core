@@ -12,13 +12,4 @@ export type {
   SkillGraphError,
 } from '../constitution';
 
-// TODO: Implement SkillGraph class
-// export { createSkillGraph } from './SkillGraphImpl';
-
-/**
- * Placeholder: Create an empty skill graph
- * This will be replaced with the real implementation
- */
-export function createSkillGraph(): import('../constitution').SkillGraph {
-  throw new Error('Not implemented: createSkillGraph - see packages/core/src/graph for TODOs');
-}
+export { SkillGraphImpl, createSkillGraph } from './SkillGraphImpl';

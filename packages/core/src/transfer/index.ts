@@ -10,12 +10,10 @@ export type {
   TransferGate,
 } from '../constitution';
 
-// TODO: Implement TransferGate
-// export { createTransferGate } from './TransferGateImpl';
-
-/**
- * Placeholder: Create a transfer gate
- */
-export function createTransferGate(): import('../constitution').TransferGate {
-  throw new Error('Not implemented: createTransferGate - see packages/core/src/transfer for TODOs');
-}
+export {
+  TransferGateImpl,
+  createTransferGate,
+  DEFAULT_TRANSFER_GATE_CONFIG,
+  type TransferGateConfig,
+  type TransferStatus,
+} from './TransferGateImpl';

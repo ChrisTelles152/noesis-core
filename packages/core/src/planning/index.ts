@@ -10,8 +10,14 @@ export type {
   SessionPlanner,
 } from '../constitution';
 
-// TODO: Implement SessionPlanner
-// export { createSessionPlanner } from './SessionPlannerImpl';
+export {
+  SessionPlannerImpl,
+  createSessionPlanner,
+  DEFAULT_SESSION_PLANNER_CONFIG,
+  type SessionPlannerConfig,
+  type PlannerState,
+  type SessionStats,
+} from './SessionPlannerImpl';
 
 /**
  * Default session configuration
@@ -23,10 +29,3 @@ export const DEFAULT_SESSION_CONFIG: import('../constitution').SessionConfig = {
   enforceSpacedRetrieval: true,
   requireTransferTests: true,
 };
-
-/**
- * Placeholder: Create a session planner
- */
-export function createSessionPlanner(): import('../constitution').SessionPlanner {
-  throw new Error('Not implemented: createSessionPlanner - see packages/core/src/planning for TODOs');
-}
