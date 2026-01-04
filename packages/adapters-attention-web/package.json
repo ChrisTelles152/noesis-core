@@ -1,0 +1,51 @@
+{
+  "name": "@noesis/adapters-attention-web",
+  "version": "0.1.0",
+  "description": "Web-based attention tracking adapter for Noesis SDK",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "src"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "clean": "rm -rf dist",
+    "typecheck": "tsc --noEmit"
+  },
+  "keywords": [
+    "noesis",
+    "attention",
+    "eye-tracking",
+    "webgazer",
+    "learning"
+  ],
+  "author": "Noesis Team",
+  "license": "MIT",
+  "dependencies": {
+    "webgazer": "^3.4.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.3"
+  },
+  "peerDependencies": {
+    "@noesis/core": "workspace:*"
+  },
+  "peerDependenciesMeta": {
+    "@noesis/core": {
+      "optional": true
+    }
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

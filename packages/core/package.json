@@ -1,0 +1,41 @@
+{
+  "name": "@noesis/core",
+  "version": "0.1.0",
+  "description": "Noesis Core SDK - Portable mastery-based learning engine",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "src"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "clean": "rm -rf dist",
+    "typecheck": "tsc --noEmit"
+  },
+  "keywords": [
+    "learning",
+    "education",
+    "mastery",
+    "spaced-repetition",
+    "adaptive-learning",
+    "sdk"
+  ],
+  "author": "Noesis Team",
+  "license": "MIT",
+  "devDependencies": {
+    "typescript": "^5.6.3"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
