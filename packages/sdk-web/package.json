@@ -31,16 +31,9 @@
   "author": "Noesis Team",
   "license": "MIT",
   "dependencies": {
-    "@noesis/adapters-attention-web": "workspace:*",
-    "@noesis/adapters-llm": "workspace:*"
-  },
-  "peerDependencies": {
-    "@noesis/core": "workspace:*"
-  },
-  "peerDependenciesMeta": {
-    "@noesis/core": {
-      "optional": true
-    }
+    "@noesis/adapters-attention-web": "*",
+    "@noesis/adapters-llm": "*",
+    "@noesis/core": "*"
   },
   "devDependencies": {
     "typescript": "^5.6.3"

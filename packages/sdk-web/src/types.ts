@@ -1,6 +1,9 @@
 // SDK Configuration Types
 
-export type ModuleType = 'attention' | 'mastery' | 'orchestration';
+import type { LearnerProgress } from '@noesis/core';
+import type { CoreAdapterConfig } from './core';
+
+export type ModuleType = 'attention' | 'mastery' | 'orchestration' | 'core';
 
 export interface NoesisSDKOptions {
   apiKey?: string;
@@ -8,6 +11,8 @@ export interface NoesisSDKOptions {
   debug?: boolean;
   attentionOptions?: AttentionTrackingOptions;
   masteryOptions?: MasteryOptions;
+  /** Configuration for the core learning engine (optional) */
+  coreConfig?: Omit<CoreAdapterConfig, 'debug'>;
 }
 
 // Attention Tracking Types
@@ -85,6 +90,8 @@ export type MasteryUpdateCallback = (data: MasteryData) => void;
 export interface LearnerState {
   attention?: AttentionData;
   mastery?: MasteryData;
+  /** Progress from the core learning engine (if initialized) */
+  coreProgress?: LearnerProgress;
   timestamp: number;
 }
 

@@ -75,12 +75,14 @@ The Core SDK must support this 8-step loop:
 
 | Module | Purpose | Status |
 |--------|---------|--------|
-| `graph/` | Skill graph DAG representation | Interface defined |
-| `learner/` | BKT-style learner model | Interface defined |
-| `memory/` | FSRS spaced repetition | Interface defined |
-| `planning/` | Session planning, gap targeting | Interface defined |
-| `transfer/` | Transfer test gating | Interface defined |
-| `events/` | Canonical event schema | Implemented |
+| `graph/` | Skill graph DAG representation | ✅ v0.1.0 |
+| `learner/` | BKT-style learner model | ✅ v0.1.0 |
+| `memory/` | FSRS spaced repetition | ✅ v0.1.0 |
+| `planning/` | Session planning, gap targeting | ✅ v0.1.0 |
+| `transfer/` | Transfer test gating | ✅ v0.1.0 |
+| `diagnostic/` | Cold-start assessment | ✅ v0.1.0 |
+| `engine/` | Unified engine with replay | ✅ v0.1.0 |
+| `events/` | Canonical event schema | ✅ v0.1.0 |
 
 ### Key Interfaces
 
@@ -150,21 +152,26 @@ Adapters provide integration points WITHOUT contaminating core:
 
 ## Implementation Priorities
 
-### Phase 1: Core Foundation
-1. SkillGraph implementation with cycle detection
-2. LearnerModelEngine with BKT algorithm
-3. MemoryScheduler with FSRS algorithm
-4. Event schema finalization
+### Phase 1: Core Foundation ✅ Complete (v0.1.0)
+1. ✅ SkillGraph implementation with cycle detection
+2. ✅ LearnerModelEngine with BKT algorithm
+3. ✅ MemoryScheduler with FSRS algorithm
+4. ✅ Event schema finalization
 
-### Phase 2: Planning & Gating
-5. SessionPlanner with deterministic policy
-6. TransferGate implementation
-7. DiagnosticEngine for cold start
+### Phase 2: Planning & Gating ✅ Complete (v0.1.0)
+5. ✅ SessionPlanner with deterministic policy
+6. ✅ TransferGate implementation
+7. ✅ DiagnosticEngine for cold start
 
-### Phase 3: Integration
-8. NoesisCoreEngine as unified interface
-9. Replay/debug tooling
-10. Comprehensive test suite
+### Phase 3: Integration ✅ Complete (v0.1.0)
+8. ✅ NoesisCoreEngine as unified interface
+9. ✅ Replay support with `replayEvents()`
+10. ✅ 46 comprehensive tests including replay determinism
+
+### Phase 4: Ecosystem Integration (Next)
+11. Wire sdk-web to use core engine
+12. Emit canonical core events from sdk-web
+13. Complete end-to-end integration testing
 
 ---
 

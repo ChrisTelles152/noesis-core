@@ -38,7 +38,7 @@
     "typescript": "^5.6.3"
   },
   "peerDependencies": {
-    "@noesis/core": "workspace:*"
+    "@noesis/core": "*"
   },
   "peerDependenciesMeta": {
     "@noesis/core": {
