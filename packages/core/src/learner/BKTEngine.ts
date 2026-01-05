@@ -18,8 +18,8 @@ import type {
   SkillProbability,
   SkillGraph,
   PracticeEvent,
-} from '../constitution';
-import type { ClockFn } from '../events';
+} from '../constitution.js';
+import type { ClockFn } from '../events/index.js';
 
 /**
  * BKT parameters for model initialization

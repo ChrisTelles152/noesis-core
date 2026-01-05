@@ -7,7 +7,7 @@
 export type {
   DiagnosticEngine,
   ItemSkillMapping,
-} from '../constitution';
+} from '../constitution.js';
 
 export {
   DiagnosticEngineImpl,
@@ -15,4 +15,4 @@ export {
   DEFAULT_DIAGNOSTIC_CONFIG,
   type DiagnosticConfig,
   type DiagnosticSummary,
-} from './DiagnosticEngineImpl';
+} from './DiagnosticEngineImpl.js';

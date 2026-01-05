@@ -8,7 +8,7 @@ export type {
   TransferTest,
   TransferTestResult,
   TransferGate,
-} from '../constitution';
+} from '../constitution.js';
 
 export {
   TransferGateImpl,
@@ -16,4 +16,4 @@ export {
   DEFAULT_TRANSFER_GATE_CONFIG,
   type TransferGateConfig,
   type TransferStatus,
-} from './TransferGateImpl';
+} from './TransferGateImpl.js';

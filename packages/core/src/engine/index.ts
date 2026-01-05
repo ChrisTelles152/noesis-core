@@ -6,7 +6,7 @@
 
 export type {
   NoesisCoreEngine,
-} from '../constitution';
+} from '../constitution.js';
 
 export {
   NoesisCoreEngineImpl,
@@ -14,4 +14,4 @@ export {
   createDeterministicEngine,
   type CoreEngineConfig,
   type LearnerProgress,
-} from './NoesisCoreEngineImpl';
+} from './NoesisCoreEngineImpl.js';

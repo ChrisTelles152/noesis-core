@@ -32,14 +32,14 @@ import type {
   TransferTest,
   TransferTestResult,
   ItemSkillMapping,
-} from '../constitution';
+} from '../constitution.js';
 
-import { BKTEngine, createBKTEngine, type BKTParams } from '../learner';
-import { createFSRSScheduler, type FSRSParams } from '../memory';
-import { SessionPlannerImpl, type SessionPlannerConfig } from '../planning';
-import { createTransferGate, type TransferGateConfig } from '../transfer';
-import { createDiagnosticEngine, type DiagnosticConfig } from '../diagnostic';
-import type { ClockFn, IdGeneratorFn } from '../events';
+import { BKTEngine, createBKTEngine, type BKTParams } from '../learner/index.js';
+import { createFSRSScheduler, type FSRSParams } from '../memory/index.js';
+import { SessionPlannerImpl, type SessionPlannerConfig } from '../planning/index.js';
+import { createTransferGate, type TransferGateConfig } from '../transfer/index.js';
+import { createDiagnosticEngine, type DiagnosticConfig } from '../diagnostic/index.js';
+import type { ClockFn, IdGeneratorFn } from '../events/index.js';
 
 /**
  * Core engine configuration

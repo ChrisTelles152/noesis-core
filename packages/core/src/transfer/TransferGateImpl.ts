@@ -17,7 +17,7 @@ import type {
   TransferGate,
   TransferTest,
   TransferTestResult,
-} from '../constitution';
+} from '../constitution.js';
 
 /**
  * Transfer gate configuration

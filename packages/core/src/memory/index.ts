@@ -7,7 +7,7 @@
 export type {
   MemoryState,
   MemoryScheduler,
-} from '../constitution';
+} from '../constitution.js';
 
 export {
   FSRSScheduler,
@@ -15,9 +15,9 @@ export {
   DEFAULT_FSRS_PARAMS,
   type FSRSParams,
   type MemoryStatistics,
-} from './FSRSScheduler';
+} from './FSRSScheduler.js';
 
-export type { ClockFn } from '../events';
+export type { ClockFn } from '../events/index.js';
 
 /**
  * Calculate retention probability using FSRS formula
