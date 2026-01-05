@@ -8,13 +8,13 @@ export type {
   SkillProbability,
   LearnerModel,
   LearnerModelEngine,
-} from '../constitution';
+} from '../constitution.js';
 
 export {
   BKTEngine,
   createBKTEngine,
   DEFAULT_BKT_PARAMS,
   type BKTParams,
-} from './BKTEngine';
+} from './BKTEngine.js';
 
-export type { ClockFn } from '../events';
+export type { ClockFn } from '../events/index.js';

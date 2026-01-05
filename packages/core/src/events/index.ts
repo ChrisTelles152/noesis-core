@@ -15,7 +15,7 @@ import type {
   TransferTestEvent,
   SessionEvent,
   SessionConfig,
-} from '../constitution';
+} from '../constitution.js';
 
 export type {
   BaseEvent,
@@ -24,7 +24,7 @@ export type {
   TransferTestEvent,
   SessionEvent,
   NoesisEvent,
-} from '../constitution';
+} from '../constitution.js';
 
 /**
  * Event schema version for forward compatibility

@@ -25,7 +25,7 @@ import type {
   SessionPlanner,
   TransferTest,
   TransferTestResult,
-} from '../constitution';
+} from '../constitution.js';
 
 /**
  * Extended session configuration with additional planner options

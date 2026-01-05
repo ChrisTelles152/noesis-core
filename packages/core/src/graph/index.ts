@@ -10,6 +10,6 @@ export type {
   SkillGraph,
   SkillGraphValidationResult,
   SkillGraphError,
-} from '../constitution';
+} from '../constitution.js';
 
-export { SkillGraphImpl, createSkillGraph } from './SkillGraphImpl';
+export { SkillGraphImpl, createSkillGraph } from './SkillGraphImpl.js';

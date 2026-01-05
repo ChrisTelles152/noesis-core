@@ -16,17 +16,17 @@
  */
 
 // Export all types from constitution
-export * from './constitution';
+export * from './constitution.js';
 
 // Export from domain modules
-export * from './events';
-export * from './graph';
-export * from './learner';
-export * from './memory';
-export * from './planning';
-export * from './transfer';
-export * from './diagnostic';
-export * from './engine';
+export * from './events/index.js';
+export * from './graph/index.js';
+export * from './learner/index.js';
+export * from './memory/index.js';
+export * from './planning/index.js';
+export * from './transfer/index.js';
+export * from './diagnostic/index.js';
+export * from './engine/index.js';
 
 // Version
 export const VERSION = '0.1.0';

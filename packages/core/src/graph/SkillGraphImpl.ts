@@ -12,7 +12,7 @@ import type {
   SkillGraph,
   SkillGraphValidationResult,
   SkillGraphError,
-} from '../constitution';
+} from '../constitution.js';
 
 /**
  * Concrete implementation of SkillGraph

@@ -19,8 +19,8 @@
  * for the same input. Clock is injected for testability.
  */
 
-import type { MemoryState, MemoryScheduler } from '../constitution';
-import type { ClockFn } from '../events';
+import type { MemoryState, MemoryScheduler } from '../constitution.js';
+import type { ClockFn } from '../events/index.js';
 
 /**
  * FSRS algorithm parameters

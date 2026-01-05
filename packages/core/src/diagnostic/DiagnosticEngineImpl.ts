@@ -17,7 +17,7 @@ import type {
   SkillGraph,
   DiagnosticEngine,
   ItemSkillMapping,
-} from '../constitution';
+} from '../constitution.js';
 
 /**
  * Diagnostic Engine configuration

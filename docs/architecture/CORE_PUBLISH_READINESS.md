@@ -7,6 +7,19 @@ This document provides the exact commands to verify @noesis/core is ready for pu
 
 ---
 
+## Node.js Compatibility
+
+**Supported:** Node.js 18+ (LTS) and Node.js 22+
+
+@noesis/core uses ESM with explicit `.js` extensions in all import specifiers, ensuring native Node.js ESM compatibility without bundlers or loaders.
+
+```bash
+# Verify runtime import works
+node -e "import('@noesis/core').then(m=>console.log('ok', Object.keys(m).slice(0,5)))"
+```
+
+---
+
 ## Fresh Clone Setup
 
 After cloning the repository:
