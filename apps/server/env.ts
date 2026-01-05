@@ -8,6 +8,9 @@ import { z } from 'zod';
 // Default port (5174 avoids macOS AirPlay Receiver conflict on port 5000)
 export const DEFAULT_PORT = 5174;
 
+// Default host (127.0.0.1 is safer; use 0.0.0.0 for external access)
+export const DEFAULT_HOST = '127.0.0.1';
+
 // Environment variable schema
 const envSchema = z.object({
   // Node environment
@@ -15,6 +18,9 @@ const envSchema = z.object({
 
   // Server port (defaults to 5174 to avoid macOS AirPlay conflict on 5000)
   PORT: z.string().transform(v => parseInt(v, 10)).pipe(z.number().min(1).max(65535)).optional(),
+
+  // Server host (defaults to 127.0.0.1)
+  HOST: z.string().optional(),
 
   // LLM Providers (at least one optional)
   OPENAI_API_KEY: z.string().optional(),
@@ -218,4 +224,13 @@ export function getPort(): number {
     }
   }
   return DEFAULT_PORT;
+}
+
+/**
+ * Get the server host from environment or default
+ * Uses DEFAULT_HOST (127.0.0.1) for local-only access
+ * Set HOST=0.0.0.0 for external/container access
+ */
+export function getHost(): string {
+  return process.env.HOST ?? DEFAULT_HOST;
 }

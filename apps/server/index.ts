@@ -5,7 +5,7 @@ import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { setupAuth } from "./auth";
 import { csrfProtection, setupCsrfRoutes, shouldEnableCsrf } from "./csrf";
-import { logEnvironmentStatus, isProduction, getPort } from "./env";
+import { logEnvironmentStatus, isProduction, getPort, getHost } from "./env";
 import { setupHealthRoutes } from "./health";
 import { requestIdMiddleware } from "./middleware/requestId";
 import { sanitizeInput } from "./middleware/sanitize";
@@ -162,17 +162,15 @@ app.use((req, res, next) => {
   // Initialize WebSocket server (attached to HTTP server on /ws path)
   initializeWebSocket(server);
 
-  // Server port configuration
-  // Default: 5174 (avoids macOS AirPlay Receiver conflict on port 5000)
-  // Override with PORT environment variable
+  // Server configuration
+  // Default PORT: 5174 (avoids macOS AirPlay Receiver conflict on port 5000)
+  // Default HOST: 127.0.0.1 (localhost only; use 0.0.0.0 for external access)
+  // Override with PORT and HOST environment variables
   const port = getPort();
-  server.listen({
-    port,
-    host: "0.0.0.0",
-    reusePort: true,
-  }, () => {
-    log(`Server listening on http://0.0.0.0:${port}`);
-    log(`WebSocket attached at ws://localhost:${port}/ws`);
-    log(`API documentation: http://localhost:${port}/api/docs`);
+  const host = getHost();
+  server.listen(port, host, () => {
+    log(`Server listening on http://${host}:${port}`);
+    log(`WebSocket attached at ws://${host}:${port}/ws`);
+    log(`API documentation: http://${host}:${port}/api/docs`);
   });
 })();
