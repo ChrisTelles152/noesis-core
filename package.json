@@ -20,7 +20,11 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
-    "test:ui": "vitest --ui"
+    "test:ui": "vitest --ui",
+    "build:core": "npm run build -w @noesis/core",
+    "test:core": "vitest run packages/core",
+    "smoke:core": "npm run smoke -w @noesis/core",
+    "release:core": "echo 'To release @noesis/core: 1) npm run build:core 2) npm run test:core 3) npm run smoke:core 4) cd packages/core && npm publish'"
   },
   "dependencies": {
     "@fortawesome/fontawesome-svg-core": "^6.7.2",

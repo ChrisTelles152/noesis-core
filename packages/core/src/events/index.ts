@@ -43,11 +43,18 @@ export type IdGeneratorFn = () => string;
 
 /**
  * Default clock using Date.now()
+ *
+ * NOTE: This is a NON-DETERMINISTIC default for convenience.
+ * For deterministic operation (testing, replay), inject a custom clock.
  */
 export const defaultClock: ClockFn = () => Date.now();
 
 /**
  * Default ID generator using UUID v4
+ *
+ * NOTE: This is a NON-DETERMINISTIC default for convenience.
+ * For deterministic operation (testing, replay), use createDeterministicIdGenerator()
+ * or inject a custom ID generator.
  */
 export const defaultIdGenerator: IdGeneratorFn = (): string => {
   // Simple UUID v4 implementation (no dependencies)
@@ -237,19 +244,6 @@ export function createSessionEndEvent(
   };
 }
 
-// Legacy exports for backward compatibility
-export const createEventId = defaultIdGenerator;
-
-export function createBaseEvent(
-  type: string,
-  learnerId: string,
-  sessionId: string
-): BaseEvent {
-  return {
-    id: defaultIdGenerator(),
-    type,
-    learnerId,
-    sessionId,
-    timestamp: defaultClock(),
-  };
-}
+// NOTE: Legacy createEventId and createBaseEvent removed in v0.1.0
+// They were non-deterministic. Use createEventFactoryContext() with
+// injected clock/idGenerator for deterministic event creation.

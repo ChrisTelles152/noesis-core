@@ -257,6 +257,72 @@ const event = createPracticeEvent(
 - **Inspectable** - All internal state can be examined
 - **Research-based** - Implements BKT and FSRS algorithms
 
+## Determinism Guarantee
+
+The core engine is **fully deterministic**: given the same inputs, it produces the same outputs every time. This enables:
+
+- **Replay**: Reproduce any past learning session by replaying events
+- **Testing**: Write predictable unit tests with known outcomes
+- **Debugging**: Compare engine states between runs
+
+### How It Works
+
+All non-deterministic sources (timestamps, IDs) are **injected** rather than called directly:
+
+```typescript
+// For deterministic operation (testing, replay):
+const engine = createDeterministicEngine(graph, config, startTime);
+
+// For production (uses Date.now() and UUID):
+const engine = createNoesisCoreEngine(graph, config);
+```
+
+The defaults (`Date.now()`, `Math.random()`) are only used in factory functions and can always be overridden.
+
+## Development
+
+### Build
+
+```bash
+# From repo root
+npm run build:core
+
+# From packages/core
+npm run build
+```
+
+### Test
+
+```bash
+# From repo root
+npm run test:core
+
+# From packages/core - smoke test
+npm run smoke
+```
+
+### Smoke Test
+
+The smoke test validates the public API works correctly:
+
+```bash
+npm run smoke:core
+```
+
+Expected output:
+```
+🔬 Running @noesis/core smoke test (v0.1.0)
+
+  ✓ Create a skill graph with 3 skills
+  ✓ Create engine and learner model
+  ✓ Process practice events and update model
+  ✓ Get next action from session planner
+  ✓ Deterministic replay produces identical results
+  ✓ Export and import state for persistence
+
+✅ All smoke tests passed! (6/6)
+```
+
 ## What Core Does NOT Include
 
 These belong in adapters or apps, not core:

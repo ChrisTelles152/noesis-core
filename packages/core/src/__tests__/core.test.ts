@@ -49,6 +49,7 @@ import type {
   TransferTestResult,
   ItemSkillMapping,
   PracticeEvent,
+  SessionAction,
 } from '../constitution';
 
 // =============================================================================
@@ -830,6 +831,46 @@ describe('NoesisCoreEngine', () => {
     expect(id1).toMatch(/^evt-\d{6}$/);
     expect(id2).toMatch(/^evt-\d{6}$/);
   });
+
+  it('should produce identical getNextAction sequences on replay', () => {
+    // Scenario: process events, call getNextAction after each, record actions
+    // Replay same events -> actions must match exactly
+
+    const events: PracticeEvent[] = [
+      { id: 'evt1', type: 'practice', learnerId: 'learner1', sessionId: 'session1', timestamp: 1000, skillId: 'arithmetic', itemId: 'item1', correct: true, responseTimeMs: 5000 },
+      { id: 'evt2', type: 'practice', learnerId: 'learner1', sessionId: 'session1', timestamp: 2000, skillId: 'arithmetic', itemId: 'item2', correct: true, responseTimeMs: 4000 },
+      { id: 'evt3', type: 'practice', learnerId: 'learner1', sessionId: 'session1', timestamp: 3000, skillId: 'algebra', itemId: 'item3', correct: false, responseTimeMs: 6000 },
+      { id: 'evt4', type: 'practice', learnerId: 'learner1', sessionId: 'session1', timestamp: 4000, skillId: 'arithmetic', itemId: 'item4', correct: true, responseTimeMs: 3000 },
+      { id: 'evt5', type: 'practice', learnerId: 'learner1', sessionId: 'session1', timestamp: 5000, skillId: 'geometry', itemId: 'item5', correct: true, responseTimeMs: 4500 },
+    ];
+
+    const config = { ...DEFAULT_SESSION_CONFIG, enforceSpacedRetrieval: false };
+
+    // First run: process events and record getNextAction after each
+    const engine1 = createDeterministicEngine(graph, {}, 0);
+    const actions1: SessionAction[] = [];
+    for (const event of events) {
+      engine1.processEvent(event);
+      actions1.push(engine1.getNextAction('learner1', config));
+    }
+
+    // Second run: same events, same clock
+    const engine2 = createDeterministicEngine(graph, {}, 0);
+    const actions2: SessionAction[] = [];
+    for (const event of events) {
+      engine2.processEvent(event);
+      actions2.push(engine2.getNextAction('learner1', config));
+    }
+
+    // Actions must match exactly
+    expect(actions1.length).toBe(actions2.length);
+    for (let i = 0; i < actions1.length; i++) {
+      expect(actions1[i].type).toBe(actions2[i].type);
+      expect(actions1[i].skillId).toBe(actions2[i].skillId);
+      expect(actions1[i].priority).toBe(actions2[i].priority);
+      expect(actions1[i].reason).toBe(actions2[i].reason);
+    }
+  });
 });
 
 // =============================================================================
@@ -969,5 +1010,83 @@ describe('Integration', () => {
 
     // States should be identical
     expect(JSON.parse(state1)).toEqual(JSON.parse(state2));
+  });
+
+  it('should produce identical results across N runs (property-style determinism)', () => {
+    // Property: For any fixed input sequence, N independent runs produce identical output
+    const N_RUNS = 5;
+
+    const skills = createTestSkills();
+    const events: PracticeEvent[] = [];
+
+    // Generate a fixed sequence of events
+    for (let i = 0; i < 15; i++) {
+      events.push({
+        id: `evt-${i}`,
+        type: 'practice',
+        learnerId: 'learner1',
+        sessionId: 'session1',
+        timestamp: i * 1000,
+        skillId: skills[i % skills.length].id,
+        itemId: `item-${i}`,
+        correct: i % 3 !== 0,
+        responseTimeMs: 2000 + (i % 4) * 500,
+      });
+    }
+
+    const config = { ...DEFAULT_SESSION_CONFIG, enforceSpacedRetrieval: false };
+
+    // Run N times and collect results
+    const results: Array<{
+      finalMastery: Map<string, number>;
+      eventLogLength: number;
+      lastAction: string;
+      exportedState: string;
+    }> = [];
+
+    for (let run = 0; run < N_RUNS; run++) {
+      const graph = createSkillGraph(skills);
+      const engine = createDeterministicEngine(graph, {}, 0);
+
+      // Process events
+      engine.replayEvents(events);
+
+      // Get final mastery for each skill
+      const model = engine.getLearnerModel('learner1')!;
+      const finalMastery = new Map<string, number>();
+      for (const [skillId, prob] of model.skillProbabilities) {
+        finalMastery.set(skillId, prob.pMastery);
+      }
+
+      // Get next action
+      const action = engine.getNextAction('learner1', config);
+
+      results.push({
+        finalMastery,
+        eventLogLength: engine.getEventLog().length,
+        lastAction: `${action.type}:${action.skillId}:${action.priority}`,
+        exportedState: engine.exportState(),
+      });
+    }
+
+    // All N runs must produce identical results
+    const reference = results[0];
+    for (let i = 1; i < N_RUNS; i++) {
+      const current = results[i];
+
+      // Event log length must match
+      expect(current.eventLogLength).toBe(reference.eventLogLength);
+
+      // Last action must match exactly
+      expect(current.lastAction).toBe(reference.lastAction);
+
+      // All mastery values must match
+      for (const [skillId, mastery] of reference.finalMastery) {
+        expect(current.finalMastery.get(skillId)).toBe(mastery);
+      }
+
+      // Exported states must be identical
+      expect(JSON.parse(current.exportedState)).toEqual(JSON.parse(reference.exportedState));
+    }
   });
 });
