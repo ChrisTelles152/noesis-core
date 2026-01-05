@@ -7,10 +7,10 @@
  * - Attention tracking (via @noesis/adapters-attention-web)
  * - LLM orchestration (via @noesis/adapters-llm)
  * - Mastery tracking (reference policy implementation)
- * - Core learning engine (via @noesis/core)
+ * - Core learning engine (via @noesis-edu/core)
  *
  * This is a convenience wrapper for web applications. The core learning
- * engine (@noesis/core) can be used directly for more control.
+ * engine (@noesis-edu/core) can be used directly for more control.
  *
  * @packageDocumentation
  */
@@ -37,7 +37,7 @@ export type {
   TransferTestEvent,
   SessionEvent,
   LearnerProgress,
-} from '@noesis/core';
+} from '@noesis-edu/core';
 
 // Re-export types
 export type {

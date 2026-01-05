@@ -1,4 +1,4 @@
-# @noesis/core
+# @noesis-edu/core
 
 **Noesis Core SDK** - A portable, dependency-free learning engine for mastery-based education.
 
@@ -19,7 +19,7 @@
 ## Installation
 
 ```bash
-npm install @noesis/core
+npm install @noesis-edu/core
 ```
 
 ## Quick Start
@@ -30,7 +30,7 @@ import {
   createNoesisCoreEngine,
   type Skill,
   type PracticeEvent,
-} from '@noesis/core';
+} from '@noesis-edu/core';
 
 // 1. Define your skill graph
 const skills: Skill[] = [
@@ -103,7 +103,7 @@ The SDK implements a research-backed learning loop:
 All operations are deterministic - same inputs produce same outputs:
 
 ```typescript
-import { createDeterministicEngine } from '@noesis/core';
+import { createDeterministicEngine } from '@noesis-edu/core';
 
 // Create engine with deterministic clock and ID generator
 const engine = createDeterministicEngine(graph, {}, startTime);
@@ -130,7 +130,7 @@ engine.replayEvents(eventLog);
 ### Skill Graph
 
 ```typescript
-import { createSkillGraph } from '@noesis/core';
+import { createSkillGraph } from '@noesis-edu/core';
 
 const graph = createSkillGraph(skills);
 
@@ -146,7 +146,7 @@ const deps = graph.getDependents('arithmetic'); // ['algebra', 'calculus']
 ### BKT Learner Model
 
 ```typescript
-import { createBKTEngine, DEFAULT_BKT_PARAMS } from '@noesis/core';
+import { createBKTEngine, DEFAULT_BKT_PARAMS } from '@noesis-edu/core';
 
 const bkt = createBKTEngine({
   pInit: 0.3,   // Initial mastery probability
@@ -163,7 +163,7 @@ const mastery = bkt.getPMastery(updated, 'arithmetic'); // 0.69...
 ### FSRS Memory Scheduler
 
 ```typescript
-import { createFSRSScheduler, calculateRetention } from '@noesis/core';
+import { createFSRSScheduler, calculateRetention } from '@noesis-edu/core';
 
 const scheduler = createFSRSScheduler({
   requestedRetention: 0.9, // Target 90% retention
@@ -183,7 +183,7 @@ const retention = calculateRetention(stability, elapsedDays);
 ### Diagnostic Engine
 
 ```typescript
-import { createDiagnosticEngine } from '@noesis/core';
+import { createDiagnosticEngine } from '@noesis-edu/core';
 
 const diagnostic = createDiagnosticEngine({
   minItemsPerSkill: 2,
@@ -201,7 +201,7 @@ const estimates = diagnostic.analyzeResults(graph, itemMappings, responses);
 ### Transfer Gate
 
 ```typescript
-import { createTransferGate } from '@noesis/core';
+import { createTransferGate } from '@noesis-edu/core';
 
 const gate = createTransferGate({
   requireNearTransfer: true,
@@ -215,7 +215,7 @@ const pending = gate.getPendingTests('algebra', testResults, tests);
 ### Session Planner
 
 ```typescript
-import { createSessionPlanner, DEFAULT_SESSION_CONFIG } from '@noesis/core';
+import { createSessionPlanner, DEFAULT_SESSION_CONFIG } from '@noesis-edu/core';
 
 const planner = createSessionPlanner();
 
@@ -237,7 +237,7 @@ import {
   createEventFactoryContext,
   createPracticeEvent,
   createDiagnosticEvent,
-} from '@noesis/core';
+} from '@noesis-edu/core';
 
 const ctx = createEventFactoryContext(
   () => Date.now(),    // clock
@@ -311,7 +311,7 @@ npm run smoke:core
 
 Expected output:
 ```
-🔬 Running @noesis/core smoke test (v0.1.0)
+🔬 Running @noesis-edu/core smoke test (v0.1.0)
 
   ✓ Create a skill graph with 3 skills
   ✓ Create engine and learner model

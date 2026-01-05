@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 /**
- * Smoke Test for @noesis/core
+ * Smoke Test for @noesis-edu/core
  *
- * This script verifies that the published surface of @noesis/core works correctly.
+ * This script verifies that the published surface of @noesis-edu/core works correctly.
  * It uses ONLY the public exports and runs in pure Node.js without any browser or server dependencies.
  *
  * Run with: npx tsx scripts/smoke.mjs
@@ -15,7 +15,7 @@
  */
 
 // Import from source - tsx handles TS resolution
-// A real consumer would: import { ... } from '@noesis/core'
+// A real consumer would: import { ... } from '@noesis-edu/core'
 import {
   createSkillGraph,
   createNoesisCoreEngine,
@@ -26,7 +26,7 @@ import {
   VERSION,
 } from '../src/index.ts';
 
-console.log(`\n🔬 Running @noesis/core smoke test (v${VERSION})\n`);
+console.log(`\n🔬 Running @noesis-edu/core smoke test (v${VERSION})\n`);
 
 let passed = 0;
 let failed = 0;

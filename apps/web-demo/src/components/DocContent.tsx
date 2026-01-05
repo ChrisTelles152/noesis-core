@@ -7,12 +7,12 @@ interface DocContentProps {
 
 export default function DocContent({ activeSection }: DocContentProps) {
   const installCode = `# Using npm
-npm install @noesis/core
+npm install @noesis-edu/core
 
 # Using yarn
-yarn add @noesis/core`;
+yarn add @noesis-edu/core`;
 
-  const basicUsageCode = `import { NoesisSDK } from '@noesis/core';
+  const basicUsageCode = `import { NoesisSDK } from '@noesis-edu/core';
 
 const noesis = new NoesisSDK({
   apiKey: 'YOUR_API_KEY', // Optional for core features
@@ -130,7 +130,7 @@ noesis.mastery.recordEvent({
                 You can also include Noesis SDK directly from a CDN:
               </p>
               <CodeBlock 
-                code={`<script src="https://cdn.jsdelivr.net/npm/@noesis/core@latest/dist/noesis.min.js"></script>`} 
+                code={`<script src="https://cdn.jsdelivr.net/npm/@noesis-edu/core@latest/dist/noesis.min.js"></script>`} 
                 language="html" 
               />
             </div>
@@ -466,7 +466,7 @@ interface EngagementResponse {
               </p>
               <CodeBlock
                 code={`import { useEffect, useState, useRef } from 'react';
-import { NoesisSDK, AttentionData, MasteryData } from '@noesis/core';
+import { NoesisSDK, AttentionData, MasteryData } from '@noesis-edu/core';
 
 // Create SDK singleton
 const sdk = new NoesisSDK({

@@ -1,7 +1,7 @@
 /**
  * Core Engine Adapter
  *
- * Bridges @noesis/core with sdk-web, providing:
+ * Bridges @noesis-edu/core with sdk-web, providing:
  * - Access to the core learning engine
  * - Event emission using canonical core event types
  * - Event log for analysis/replay
@@ -28,7 +28,7 @@ import {
   type ClockFn,
   type IdGeneratorFn,
   type EventFactoryContext,
-} from '@noesis/core';
+} from '@noesis-edu/core';
 
 /**
  * Configuration for the core engine adapter

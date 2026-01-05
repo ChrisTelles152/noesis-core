@@ -193,7 +193,7 @@ Examples:
 
 ## What is Now Cleanly Reusable
 
-### `@noesis/core` (Future)
+### `@noesis-edu/core` (Future)
 
 When implemented, provides:
 - Skill graph validation and traversal

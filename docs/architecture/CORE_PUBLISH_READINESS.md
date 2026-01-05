@@ -1,9 +1,9 @@
-# @noesis/core Publish Readiness Checklist
+# @noesis-edu/core Publish Readiness Checklist
 
 **Version:** 0.1.0
 **Last Verified:** January 2026
 
-This document provides the exact commands to verify @noesis/core is ready for publishing.
+This document provides the exact commands to verify @noesis-edu/core is ready for publishing.
 
 ---
 
@@ -11,11 +11,11 @@ This document provides the exact commands to verify @noesis/core is ready for pu
 
 **Supported:** Node.js 18+ (LTS) and Node.js 22+
 
-@noesis/core uses ESM with explicit `.js` extensions in all import specifiers, ensuring native Node.js ESM compatibility without bundlers or loaders.
+@noesis-edu/core uses ESM with explicit `.js` extensions in all import specifiers, ensuring native Node.js ESM compatibility without bundlers or loaders.
 
 ```bash
 # Verify runtime import works
-node -e "import('@noesis/core').then(m=>console.log('ok', Object.keys(m).slice(0,5)))"
+node -e "import('@noesis-edu/core').then(m=>console.log('ok', Object.keys(m).slice(0,5)))"
 ```
 
 ---
@@ -47,7 +47,7 @@ npm run smoke:core
 ```
 > npm run build:core
 
-> @noesis/core@0.1.0 build
+> @noesis-edu/core@0.1.0 build
 > tsc
 ```
 
@@ -69,7 +69,7 @@ No errors. Output in `packages/core/dist/`.
 ```
 > npm run smoke:core
 
-🔬 Running @noesis/core smoke test (v0.1.0)
+🔬 Running @noesis-edu/core smoke test (v0.1.0)
 
   ✓ Create a skill graph with 3 skills
   ✓ Create engine and learner model
@@ -210,13 +210,13 @@ mkdir /tmp/test-noesis-core && cd /tmp/test-noesis-core
 npm init -y
 
 # Install published package
-npm install @noesis/core
+npm install @noesis-edu/core
 
 # Test import
-echo "import { createSkillGraph, VERSION } from '@noesis/core'; console.log('v' + VERSION);" > test.mjs
+echo "import { createSkillGraph, VERSION } from '@noesis-edu/core'; console.log('v' + VERSION);" > test.mjs
 node test.mjs  # Should print: v0.1.0
 ```
 
 ---
 
-*This checklist ensures @noesis/core is publish-ready with all quality guarantees.*
+*This checklist ensures @noesis-edu/core is publish-ready with all quality guarantees.*

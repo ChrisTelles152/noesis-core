@@ -46,7 +46,7 @@ export default defineConfig({
     alias: {
       "@": path.resolve(__dirname, "./apps/web-demo/src"),
       "@shared": path.resolve(__dirname, "./shared"),
-      "@noesis/core": path.resolve(__dirname, "./packages/core/src"),
+      "@noesis-edu/core": path.resolve(__dirname, "./packages/core/src"),
       "@noesis/adapters-attention-web": path.resolve(__dirname, "./packages/adapters-attention-web/src"),
       "@noesis/adapters-llm": path.resolve(__dirname, "./packages/adapters-llm/src"),
       "@noesis/sdk-web": path.resolve(__dirname, "./packages/sdk-web/src"),

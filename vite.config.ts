@@ -22,7 +22,7 @@ export default defineConfig({
       "@shared": path.resolve(import.meta.dirname, "shared"),
       "@assets": path.resolve(import.meta.dirname, "attached_assets"),
       // Package aliases for development
-      "@noesis/core": path.resolve(import.meta.dirname, "packages", "core", "src"),
+      "@noesis-edu/core": path.resolve(import.meta.dirname, "packages", "core", "src"),
       "@noesis/adapters-attention-web": path.resolve(import.meta.dirname, "packages", "adapters-attention-web", "src"),
       "@noesis/adapters-llm": path.resolve(import.meta.dirname, "packages", "adapters-llm", "src"),
       "@noesis/sdk-web": path.resolve(import.meta.dirname, "packages", "sdk-web", "src"),

@@ -69,7 +69,7 @@ This SDK is a **facade** that wires together multiple adapters:
 └─────────────────────────────────┘
           │
           ▼
-    @noesis/core (future)
+    @noesis-edu/core (future)
     Pure mastery engine
 ```
 
@@ -79,7 +79,7 @@ The `MasteryTracker` in this package is a **reference policy implementation**.
 It provides basic spaced repetition scheduling but does NOT implement the full
 Noesis Core learning loop (skill graph, BKT model, transfer gating).
 
-For the true mastery engine, see `@noesis/core` (under development).
+For the true mastery engine, see `@noesis-edu/core` (under development).
 
 ## License
 

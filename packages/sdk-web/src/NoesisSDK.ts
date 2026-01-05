@@ -2,7 +2,7 @@ import { AttentionTracker } from '@noesis/adapters-attention-web';
 import { Orchestrator } from '@noesis/adapters-llm';
 import { MasteryTracker } from './policies/mastery';
 import { CoreEngineAdapter, type CoreAdapterConfig } from './core';
-import type { Skill, NoesisEvent, SessionAction } from '@noesis/core';
+import type { Skill, NoesisEvent, SessionAction } from '@noesis-edu/core';
 import {
   NoesisSDKOptions,
   LearnerState,
@@ -15,7 +15,7 @@ export class NoesisSDK {
   orchestration: Orchestrator;
 
   /**
-   * Core engine adapter for access to the @noesis/core learning engine.
+   * Core engine adapter for access to the @noesis-edu/core learning engine.
    * Provides deterministic session planning, BKT-based mastery tracking,
    * and canonical event emission.
    */
