@@ -5,7 +5,7 @@ import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { setupAuth } from "./auth";
 import { csrfProtection, setupCsrfRoutes, shouldEnableCsrf } from "./csrf";
-import { logEnvironmentStatus, isProduction } from "./env";
+import { logEnvironmentStatus, isProduction, getPort } from "./env";
 import { setupHealthRoutes } from "./health";
 import { requestIdMiddleware } from "./middleware/requestId";
 import { sanitizeInput } from "./middleware/sanitize";
@@ -159,20 +159,20 @@ app.use((req, res, next) => {
     serveStatic(app);
   }
 
-  // Initialize WebSocket server
+  // Initialize WebSocket server (attached to HTTP server on /ws path)
   initializeWebSocket(server);
 
-  // ALWAYS serve the app on port 5000
-  // this serves both the API and the client.
-  // It is the only port that is not firewalled.
-  const port = 5000;
+  // Server port configuration
+  // Default: 5174 (avoids macOS AirPlay Receiver conflict on port 5000)
+  // Override with PORT environment variable
+  const port = getPort();
   server.listen({
     port,
     host: "0.0.0.0",
     reusePort: true,
   }, () => {
-    log(`serving on port ${port}`);
-    log(`WebSocket server available at ws://localhost:${port}/ws`);
-    log(`API documentation available at http://localhost:${port}/api/docs`);
+    log(`Server listening on http://0.0.0.0:${port}`);
+    log(`WebSocket attached at ws://localhost:${port}/ws`);
+    log(`API documentation: http://localhost:${port}/api/docs`);
   });
 })();

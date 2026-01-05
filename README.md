@@ -46,7 +46,10 @@ cp .env.example .env
 npm run dev
 ```
 
-Open http://localhost:5000 in your browser.
+Open http://localhost:5174 in your browser.
+
+> **Note**: The default port is 5174 to avoid conflicts with macOS AirPlay Receiver on port 5000.
+> Override with `PORT=3000 npm run dev` if needed.
 
 ---
 
@@ -80,6 +83,9 @@ noesis-core/
 Copy `.env.example` to `.env` and configure:
 
 ```bash
+# Optional: Server port (default: 5174, avoids macOS AirPlay conflict on 5000)
+PORT=5174
+
 # Required for LLM features
 OPENAI_API_KEY=sk-your-api-key-here
 
