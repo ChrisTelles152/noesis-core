@@ -5,10 +5,16 @@
 
 import { z } from 'zod';
 
+// Default port (5174 avoids macOS AirPlay Receiver conflict on port 5000)
+export const DEFAULT_PORT = 5174;
+
 // Environment variable schema
 const envSchema = z.object({
   // Node environment
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
+
+  // Server port (defaults to 5174 to avoid macOS AirPlay conflict on 5000)
+  PORT: z.string().transform(v => parseInt(v, 10)).pipe(z.number().min(1).max(65535)).optional(),
 
   // LLM Providers (at least one optional)
   OPENAI_API_KEY: z.string().optional(),
@@ -197,4 +203,19 @@ export function isDevelopment(): boolean {
  */
 export function isTest(): boolean {
   return process.env.NODE_ENV === 'test';
+}
+
+/**
+ * Get the server port from environment or default
+ * Uses DEFAULT_PORT (5174) to avoid macOS AirPlay Receiver conflict on port 5000
+ */
+export function getPort(): number {
+  const portStr = process.env.PORT;
+  if (portStr) {
+    const port = parseInt(portStr, 10);
+    if (!isNaN(port) && port >= 1 && port <= 65535) {
+      return port;
+    }
+  }
+  return DEFAULT_PORT;
 }
