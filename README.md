@@ -48,8 +48,11 @@ npm run dev
 
 Open http://localhost:5174 in your browser.
 
-> **Note**: The default port is 5174 to avoid conflicts with macOS AirPlay Receiver on port 5000.
-> Override with `PORT=3000 npm run dev` if needed.
+> **Note**: Default port is 5174 (avoids macOS AirPlay Receiver conflict on port 5000).
+> Default host is 127.0.0.1 (localhost only). Override with environment variables:
+> ```bash
+> PORT=3000 HOST=0.0.0.0 npm run dev  # Custom port, allow external access
+> ```
 
 ---
 
@@ -85,6 +88,9 @@ Copy `.env.example` to `.env` and configure:
 ```bash
 # Optional: Server port (default: 5174, avoids macOS AirPlay conflict on 5000)
 PORT=5174
+
+# Optional: Server host (default: 127.0.0.1, use 0.0.0.0 for external/container access)
+HOST=127.0.0.1
 
 # Required for LLM features
 OPENAI_API_KEY=sk-your-api-key-here
