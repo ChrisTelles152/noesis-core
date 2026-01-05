@@ -11,16 +11,18 @@ import Documentation from "@/pages/Documentation";
 import Dashboard from "@/pages/Dashboard";
 import Login from "@/pages/Login";
 import Register from "@/pages/Register";
+import CoreSmoke from "@/pages/CoreSmoke";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 
 function Router() {
   const [location] = useLocation();
   const isAuthPage = location === '/login' || location === '/register';
+  const isSmokePage = location === '/core-smoke';
 
   return (
     <>
-      {!isAuthPage && <Header />}
+      {!isAuthPage && !isSmokePage && <Header />}
       <Switch>
         <Route path="/" component={Home} />
         <Route path="/demo" component={Demo} />
@@ -28,9 +30,10 @@ function Router() {
         <Route path="/dashboard" component={Dashboard} />
         <Route path="/login" component={Login} />
         <Route path="/register" component={Register} />
+        <Route path="/core-smoke" component={CoreSmoke} />
         <Route component={NotFound} />
       </Switch>
-      {!isAuthPage && <Footer />}
+      {!isAuthPage && !isSmokePage && <Footer />}
     </>
   );
 }
