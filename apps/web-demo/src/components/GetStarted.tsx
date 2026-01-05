@@ -2,9 +2,9 @@ import { Button } from "@/components/ui/button";
 import CodeBlock from "@/components/CodeBlock";
 
 export default function GetStarted() {
-  const installCode = "npm install @noesis/core";
+  const installCode = "npm install @noesis-edu/core";
   
-  const configCode = `import { NoesisSDK } from '@noesis/core';
+  const configCode = `import { NoesisSDK } from '@noesis-edu/core';
 
 const noesis = new NoesisSDK({
   apiKey: 'YOUR_API_KEY', // Optional for core

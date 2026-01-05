@@ -1,5 +1,5 @@
 {
-  "name": "@noesis/core",
+  "name": "@noesis-edu/core",
   "version": "0.1.0",
   "description": "Noesis Core SDK - Portable, dependency-free, deterministic mastery-based learning engine",
   "type": "module",
@@ -41,12 +41,12 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/noesis/noesis-core.git",
+    "url": "git+https://github.com/ChrisTelles152/noesis-core.git",
     "directory": "packages/core"
   },
-  "homepage": "https://github.com/noesis/noesis-core#readme",
+  "homepage": "https://github.com/ChrisTelles152/noesis-core#readme",
   "bugs": {
-    "url": "https://github.com/noesis/noesis-core/issues"
+    "url": "https://github.com/ChrisTelles152/noesis-core/issues"
   },
   "publishConfig": {
     "access": "public"

@@ -1,7 +1,7 @@
 /**
  * SDK-Web to Core Engine Integration Tests
  *
- * Verifies that sdk-web correctly wires to @noesis/core and:
+ * Verifies that sdk-web correctly wires to @noesis-edu/core and:
  * - Records practice events with canonical format
  * - Stores events in the event log
  * - Provides session planning via getNextAction
@@ -9,7 +9,7 @@
 
 import { describe, it, expect, beforeEach } from 'vitest';
 import { NoesisSDK } from '../NoesisSDK';
-import type { Skill } from '@noesis/core';
+import type { Skill } from '@noesis-edu/core';
 
 // Sample skill graph for testing
 const testSkills: Skill[] = [

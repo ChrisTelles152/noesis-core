@@ -1,6 +1,6 @@
 // SDK Configuration Types
 
-import type { LearnerProgress } from '@noesis/core';
+import type { LearnerProgress } from '@noesis-edu/core';
 import type { CoreAdapterConfig } from './core';
 
 export type ModuleType = 'attention' | 'mastery' | 'orchestration' | 'core';

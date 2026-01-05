@@ -1,7 +1,7 @@
 /**
  * Core Engine Integration
  *
- * Provides access to @noesis/core through sdk-web.
+ * Provides access to @noesis-edu/core through sdk-web.
  */
 
 export {
@@ -23,4 +23,4 @@ export type {
   SessionEvent,
   LearnerModel,
   MemoryState,
-} from '@noesis/core';
+} from '@noesis-edu/core';

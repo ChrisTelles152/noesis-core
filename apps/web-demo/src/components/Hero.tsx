@@ -4,7 +4,7 @@ import CodeBlock from "@/components/CodeBlock";
 
 export default function Hero() {
   const codeExample = `// Initialize Noesis SDK with default configuration
-import { NoesisSDK } from '@noesis/core';
+import { NoesisSDK } from '@noesis-edu/core';
 
 const noesis = new NoesisSDK({
   apiKey: 'YOUR_API_KEY',

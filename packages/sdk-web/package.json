@@ -33,7 +33,7 @@
   "dependencies": {
     "@noesis/adapters-attention-web": "*",
     "@noesis/adapters-llm": "*",
-    "@noesis/core": "*"
+    "@noesis-edu/core": "*"
   },
   "devDependencies": {
     "typescript": "^5.6.3"
