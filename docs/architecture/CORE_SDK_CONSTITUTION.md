@@ -166,12 +166,76 @@ Adapters provide integration points WITHOUT contaminating core:
 ### Phase 3: Integration ✅ Complete (v0.1.0)
 8. ✅ NoesisCoreEngine as unified interface
 9. ✅ Replay support with `replayEvents()`
-10. ✅ 46 comprehensive tests including replay determinism
+10. ✅ 47 comprehensive tests including replay and property-style determinism
 
 ### Phase 4: Ecosystem Integration (Next)
 11. Wire sdk-web to use core engine
 12. Emit canonical core events from sdk-web
 13. Complete end-to-end integration testing
+
+---
+
+## Session Planner Policy Rules (v0.1.0)
+
+The SessionPlanner uses a priority-based policy to determine the next action:
+
+### Action Priority Order (highest to lowest)
+
+1. **Session Complete** (priority: 100) - Session goals met or time expired
+2. **Transfer Test Required** (priority: 95) - Skill mastered, pending transfer test
+3. **Spaced Review Due** (priority: 80-90) - Memory states requiring review
+4. **Error Remediation** (priority: 60-80) - Recently failed items (weighted by failure count)
+5. **Prerequisite Practice** (priority: 50-70) - Skills with unmet prerequisites
+6. **Leverage Gap Practice** (priority: 40) - Highest-impact unmastered skill
+
+### Configuration Options
+
+```typescript
+interface SessionConfig {
+  maxDurationMinutes: number;    // Max session length
+  targetItems: number;           // Target practice items
+  masteryThreshold: number;      // pMastery threshold (default: 0.85)
+  enforceSpacedRetrieval: boolean; // Require spaced review
+  requireTransferTests: boolean;   // Gate on transfer tests
+}
+```
+
+---
+
+## Determinism Requirements
+
+### Non-Deterministic Sources
+
+The following sources of non-determinism are ONLY allowed in:
+- Default parameter values (not called directly by engine)
+- Explicitly named helper functions (e.g., `defaultClock`, `defaultIdGenerator`)
+
+| Source | Usage | Location |
+|--------|-------|----------|
+| `Date.now()` | Timestamp | Default clock param |
+| `Math.random()` | UUID generation | Default ID generator |
+| `new Date()` | Never used | - |
+| `performance.now()` | Never used | - |
+| `crypto.randomUUID()` | Never used | - |
+
+### Injection Points
+
+All timestamps and IDs are injectable:
+
+```typescript
+// Engine constructor accepts clock function
+createNoesisCoreEngine(graph, config, clockFn);
+
+// Event factories accept clock + ID generator
+createEventFactoryContext(clockFn, idGeneratorFn);
+```
+
+### Replay Contract
+
+1. Same event log + same clock + same ID generator = **identical output**
+2. `engine.replayEvents(events)` reproduces exact state
+3. `engine.exportState()` and `engine.importState()` enable persistence
+4. `getNextAction()` returns identical actions for identical inputs
 
 ---
 

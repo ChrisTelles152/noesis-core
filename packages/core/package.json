@@ -14,7 +14,8 @@
   },
   "files": [
     "dist",
-    "README.md"
+    "README.md",
+    "LICENSE"
   ],
   "sideEffects": false,
   "scripts": {
@@ -22,6 +23,7 @@
     "dev": "tsc --watch",
     "clean": "rm -rf dist",
     "typecheck": "tsc --noEmit",
+    "smoke": "npx tsx scripts/smoke.mjs",
     "prepublishOnly": "npm run clean && npm run build"
   },
   "keywords": [

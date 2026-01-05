@@ -1011,4 +1011,82 @@ describe('Integration', () => {
     // States should be identical
     expect(JSON.parse(state1)).toEqual(JSON.parse(state2));
   });
+
+  it('should produce identical results across N runs (property-style determinism)', () => {
+    // Property: For any fixed input sequence, N independent runs produce identical output
+    const N_RUNS = 5;
+
+    const skills = createTestSkills();
+    const events: PracticeEvent[] = [];
+
+    // Generate a fixed sequence of events
+    for (let i = 0; i < 15; i++) {
+      events.push({
+        id: `evt-${i}`,
+        type: 'practice',
+        learnerId: 'learner1',
+        sessionId: 'session1',
+        timestamp: i * 1000,
+        skillId: skills[i % skills.length].id,
+        itemId: `item-${i}`,
+        correct: i % 3 !== 0,
+        responseTimeMs: 2000 + (i % 4) * 500,
+      });
+    }
+
+    const config = { ...DEFAULT_SESSION_CONFIG, enforceSpacedRetrieval: false };
+
+    // Run N times and collect results
+    const results: Array<{
+      finalMastery: Map<string, number>;
+      eventLogLength: number;
+      lastAction: string;
+      exportedState: string;
+    }> = [];
+
+    for (let run = 0; run < N_RUNS; run++) {
+      const graph = createSkillGraph(skills);
+      const engine = createDeterministicEngine(graph, {}, 0);
+
+      // Process events
+      engine.replayEvents(events);
+
+      // Get final mastery for each skill
+      const model = engine.getLearnerModel('learner1')!;
+      const finalMastery = new Map<string, number>();
+      for (const [skillId, prob] of model.skillProbabilities) {
+        finalMastery.set(skillId, prob.pMastery);
+      }
+
+      // Get next action
+      const action = engine.getNextAction('learner1', config);
+
+      results.push({
+        finalMastery,
+        eventLogLength: engine.getEventLog().length,
+        lastAction: `${action.type}:${action.skillId}:${action.priority}`,
+        exportedState: engine.exportState(),
+      });
+    }
+
+    // All N runs must produce identical results
+    const reference = results[0];
+    for (let i = 1; i < N_RUNS; i++) {
+      const current = results[i];
+
+      // Event log length must match
+      expect(current.eventLogLength).toBe(reference.eventLogLength);
+
+      // Last action must match exactly
+      expect(current.lastAction).toBe(reference.lastAction);
+
+      // All mastery values must match
+      for (const [skillId, mastery] of reference.finalMastery) {
+        expect(current.finalMastery.get(skillId)).toBe(mastery);
+      }
+
+      // Exported states must be identical
+      expect(JSON.parse(current.exportedState)).toEqual(JSON.parse(reference.exportedState));
+    }
+  });
 });
