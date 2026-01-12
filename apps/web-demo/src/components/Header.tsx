@@ -57,13 +57,19 @@ export default function Header() {
             >
               Documentation
             </Link>
-            <Link 
-              href="/demo" 
+            <Link
+              href="/demo"
               className={`text-slate-600 hover:text-primary-600 transition-colors text-sm font-medium ${isActive('/demo') ? 'text-primary-600' : ''}`}
             >
               Demo
             </Link>
-            <a 
+            <Link
+              href="/core-smoke"
+              className={`text-slate-600 hover:text-primary-600 transition-colors text-sm font-medium ${isActive('/core-smoke') ? 'text-primary-600' : ''}`}
+            >
+              Core Smoke
+            </Link>
+            <a
               href="https://github.com/noesis-sdk" 
               target="_blank" 
               rel="noopener noreferrer"
@@ -137,13 +143,19 @@ export default function Header() {
           >
             Documentation
           </Link>
-          <Link 
+          <Link
             href="/demo"
             className="block px-3 py-2 text-slate-600 rounded-md hover:bg-slate-100 hover:text-primary-600 transition-colors"
           >
             Demo
           </Link>
-          <a 
+          <Link
+            href="/core-smoke"
+            className="block px-3 py-2 text-slate-600 rounded-md hover:bg-slate-100 hover:text-primary-600 transition-colors"
+          >
+            Core Smoke
+          </Link>
+          <a
             href="https://github.com/noesis-sdk" 
             target="_blank" 
             rel="noopener noreferrer"
