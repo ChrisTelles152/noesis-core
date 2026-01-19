@@ -65,14 +65,10 @@ const event: PracticeEvent = {
 
 engine.processEvent(event);
 
-// 4. Get recommendations
-const nextAction = engine.getNextAction('learner-1', {
-  maxDurationMinutes: 30,
-  targetItems: 20,
-  masteryThreshold: 0.85,
-  enforceSpacedRetrieval: true,
-  requireTransferTests: true,
-});
+// 4. Get recommendations (using default config)
+import { DEFAULT_SESSION_CONFIG } from '@noesis-edu/core';
+
+const nextAction = engine.getNextAction('learner-1', DEFAULT_SESSION_CONFIG);
 
 console.log('Next action:', nextAction);
 // { type: 'practice', skillId: 'arithmetic', reason: '...', priority: 40 }
@@ -81,6 +77,34 @@ console.log('Next action:', nextAction);
 const progress = engine.getLearnerProgress('learner-1');
 console.log('Progress:', progress);
 // { totalSkills: 3, masteredSkills: 0, learningSkills: 1, ... }
+```
+
+## Session Configuration
+
+The SDK provides `DEFAULT_SESSION_CONFIG` with sensible defaults:
+
+```typescript
+import { DEFAULT_SESSION_CONFIG } from '@noesis-edu/core';
+
+// Default values:
+// {
+//   maxDurationMinutes: 30,
+//   targetItems: 20,
+//   masteryThreshold: 0.85,
+//   enforceSpacedRetrieval: true,
+//   requireTransferTests: true,
+// }
+
+// Use directly
+const action = engine.getNextAction(learnerId, DEFAULT_SESSION_CONFIG);
+
+// Or customize
+const customConfig = {
+  ...DEFAULT_SESSION_CONFIG,
+  targetItems: 10,
+  masteryThreshold: 0.9,
+};
+const action = engine.getNextAction(learnerId, customConfig);
 ```
 
 ## Core Concepts
