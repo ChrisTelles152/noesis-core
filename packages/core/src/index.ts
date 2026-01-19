@@ -27,6 +27,10 @@ export * from './planning/index.js';
 export * from './transfer/index.js';
 export * from './diagnostic/index.js';
 export * from './engine/index.js';
+export * from './persistence/index.js';
+
+// Explicit re-export for discoverability
+export { DEFAULT_SESSION_CONFIG } from './planning/index.js';
 
 // Version
 export const VERSION = '0.1.0';

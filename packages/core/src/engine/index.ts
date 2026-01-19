@@ -15,3 +15,9 @@ export {
   type CoreEngineConfig,
   type LearnerProgress,
 } from './NoesisCoreEngineImpl.js';
+
+// Metrics extraction
+export {
+  getLearnerMetrics,
+  type LearnerMetrics,
+} from './metrics.js';

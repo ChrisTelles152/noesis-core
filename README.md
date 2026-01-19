@@ -208,6 +208,24 @@ npm run test:watch
 
 Current test coverage: **115 tests** across 6 test files.
 
+### Core Engine Smoke Test
+
+To test the `@noesis-edu/core` package in-browser:
+
+```bash
+# Terminal 1: Start backend (optional, for full demo)
+npm run dev
+
+# Terminal 2: Start frontend
+npm run dev:web
+```
+
+Open http://localhost:5173/core-smoke in your browser. This page tests:
+- Event generation (practice, session start/end)
+- `getNextAction` sequence
+- JSON export
+- Deterministic replay verification
+
 ---
 
 ## Security Features
