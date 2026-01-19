@@ -27,6 +27,7 @@ export * from './planning/index.js';
 export * from './transfer/index.js';
 export * from './diagnostic/index.js';
 export * from './engine/index.js';
+export * from './persistence/index.js';
 
 // Version
 export const VERSION = '0.1.0';
