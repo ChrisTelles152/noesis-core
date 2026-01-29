@@ -165,37 +165,47 @@ export class SkillGraphImpl implements SkillGraph {
     }
 
     // Start with skills that have no prerequisites (in-degree 0)
-    // Sort for determinism
-    const queue: string[] = [];
+    // Collect all zero-degree skills first
+    const zeroDegreeSkilss: string[] = [];
     for (const [skillId, degree] of inDegree) {
       if (degree === 0) {
-        queue.push(skillId);
+        zeroDegreeSkilss.push(skillId);
       }
     }
-    queue.sort();
+    // Sort once for determinism
+    zeroDegreeSkilss.sort();
 
     const result: string[] = [];
     const processed = new Set<string>();
 
-    while (queue.length > 0) {
-      // Sort queue for deterministic ordering
-      queue.sort();
-      const skillId = queue.shift()!;
+    // Use a sorted approach: process skills in sorted order at each level
+    // Instead of sorting the queue every iteration (O(n² log n)),
+    // we collect all newly-available skills per level and sort once
+    let currentLevel = zeroDegreeSkilss;
 
-      if (processed.has(skillId)) continue;
-      processed.add(skillId);
-      result.push(skillId);
+    while (currentLevel.length > 0) {
+      const nextLevel: string[] = [];
 
-      // Find skills that depend on this one and decrement their in-degree
-      for (const [dependentId, dependent] of this.skills) {
-        if (dependent.prerequisites.includes(skillId)) {
-          const newDegree = (inDegree.get(dependentId) || 0) - 1;
-          inDegree.set(dependentId, newDegree);
-          if (newDegree === 0 && !processed.has(dependentId)) {
-            queue.push(dependentId);
+      for (const skillId of currentLevel) {
+        if (processed.has(skillId)) continue;
+        processed.add(skillId);
+        result.push(skillId);
+
+        // Find skills that depend on this one and decrement their in-degree
+        for (const [dependentId, dependent] of this.skills) {
+          if (dependent.prerequisites.includes(skillId)) {
+            const newDegree = (inDegree.get(dependentId) || 0) - 1;
+            inDegree.set(dependentId, newDegree);
+            if (newDegree === 0 && !processed.has(dependentId)) {
+              nextLevel.push(dependentId);
+            }
           }
         }
       }
+
+      // Sort once per level for determinism (O(k log k) where k is level size)
+      nextLevel.sort();
+      currentLevel = nextLevel;
     }
 
     return result;

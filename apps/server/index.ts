@@ -1,6 +1,7 @@
 import express, { type Request, Response, NextFunction } from "express";
 import cors from "cors";
 import rateLimit from "express-rate-limit";
+import helmet from "helmet";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { setupAuth } from "./auth";
@@ -21,6 +22,30 @@ if (!envValid && isProduction()) {
 }
 
 const app = express();
+
+// Security headers (Helmet - should be first)
+// Configures various HTTP headers for security:
+// - X-Content-Type-Options: nosniff
+// - X-Frame-Options: DENY (prevents clickjacking)
+// - X-XSS-Protection: 0 (disabled, CSP is more effective)
+// - Strict-Transport-Security: enforces HTTPS
+// - Content-Security-Policy: restricts resource loading
+app.use(helmet({
+  contentSecurityPolicy: isProduction() ? {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'", "'unsafe-inline'"], // Needed for Vite in dev
+      styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+      fontSrc: ["'self'", "https://fonts.gstatic.com"],
+      imgSrc: ["'self'", "data:", "blob:"],
+      connectSrc: ["'self'", "wss:", "https://api.openai.com", "https://api.anthropic.com"],
+      frameSrc: ["'none'"],
+      objectSrc: ["'none'"],
+    },
+  } : false, // Disable CSP in development for easier debugging
+  crossOriginEmbedderPolicy: false, // Needed for WebGazer
+  crossOriginOpenerPolicy: { policy: "same-origin-allow-popups" },
+}));
 
 // Request ID tracking (before other middleware)
 app.use(requestIdMiddleware);
@@ -72,6 +97,18 @@ const llmLimiter = rateLimit({
   legacyHeaders: false,
 });
 app.use("/api/orchestration/", llmLimiter);
+
+// Authentication rate limiting to protect against brute force attacks
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 10, // Limit each IP to 10 login/register attempts per 15 minutes
+  message: { error: "Too many authentication attempts. Please try again later." },
+  standardHeaders: true,
+  legacyHeaders: false,
+  skipSuccessfulRequests: true, // Don't count successful logins toward the limit
+});
+app.use("/api/auth/login", authLimiter);
+app.use("/api/auth/register", authLimiter);
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));

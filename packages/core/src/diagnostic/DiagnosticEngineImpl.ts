@@ -31,6 +31,15 @@ export interface DiagnosticConfig {
   masteryThreshold: number;
   /** Weight for difficulty in item selection */
   difficultyWeight: number;
+  /**
+   * Prerequisite boost factor (0-1).
+   * When a skill is mastered, its prerequisites are boosted by this factor.
+   * For example, if a learner masters skill B with estimate 0.8, and
+   * prerequisiteBoostFactor is 0.9, then prerequisite skill A gets
+   * boosted to max(currentEstimate, 0.8 * 0.9) = max(currentEstimate, 0.72).
+   * Default: 0.9
+   */
+  prerequisiteBoostFactor: number;
 }
 
 /**
@@ -41,6 +50,7 @@ export const DEFAULT_DIAGNOSTIC_CONFIG: DiagnosticConfig = {
   maxItemsPerSkill: 5,
   masteryThreshold: 0.7,
   difficultyWeight: 0.3,
+  prerequisiteBoostFactor: 0.9,
 };
 
 /**
@@ -268,7 +278,8 @@ export class DiagnosticEngineImpl implements DiagnosticEngine {
         for (const prereqId of prereqs) {
           const prereqEstimate = result.get(prereqId) || 0.3;
           // Boost prerequisite estimate (learner must have learned it)
-          result.set(prereqId, Math.max(prereqEstimate, estimate * 0.9));
+          // Use configurable boost factor instead of hardcoded 0.9
+          result.set(prereqId, Math.max(prereqEstimate, estimate * this.config.prerequisiteBoostFactor));
         }
       }
     }

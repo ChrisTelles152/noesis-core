@@ -143,13 +143,44 @@ class WebSocketService {
           break;
 
         case 'authenticate':
-          // Client is authenticating
-          const userId = (message.payload as { userId: number }).userId;
-          if (userId) {
-            client.userId = userId;
+          // SECURITY: Client authentication via WebSocket
+          // NOTE: In production, this should verify against a session token or JWT
+          // passed during the WebSocket upgrade request, not trust client-provided userId.
+          // For now, we log a warning and accept it for development purposes only.
+          const providedUserId = (message.payload as { userId?: number; sessionToken?: string }).userId;
+          const sessionToken = (message.payload as { userId?: number; sessionToken?: string }).sessionToken;
+
+          if (sessionToken) {
+            // TODO: Implement proper session token verification
+            // This would verify the token against the session store
+            console.warn('[WebSocket] Session token authentication not yet implemented - falling back to userId');
+          }
+
+          if (providedUserId) {
+            // SECURITY WARNING: This is insecure for production use.
+            // Client-provided userId can be spoofed. In production, always verify
+            // the userId against a signed session token or JWT.
+            if (process.env.NODE_ENV === 'production') {
+              console.error('[WebSocket] SECURITY: Client-provided userId authentication rejected in production');
+              this.sendToClient(socket, {
+                type: 'auth-error',
+                payload: { error: 'Session token required for authentication' },
+                timestamp: Date.now(),
+              });
+              break;
+            }
+
+            console.warn('[WebSocket] DEVELOPMENT ONLY: Accepting client-provided userId without verification');
+            client.userId = providedUserId;
             this.sendToClient(socket, {
               type: 'authenticated',
-              payload: { userId },
+              payload: { userId: providedUserId, warning: 'Development mode - userId not verified' },
+              timestamp: Date.now(),
+            });
+          } else {
+            this.sendToClient(socket, {
+              type: 'auth-error',
+              payload: { error: 'userId or sessionToken required' },
               timestamp: Date.now(),
             });
           }

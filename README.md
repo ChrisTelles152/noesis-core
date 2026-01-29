@@ -58,25 +58,54 @@ Open http://localhost:5174 in your browser.
 
 ## Project Structure
 
+This is a monorepo using npm workspaces with the following structure:
+
 ```
 noesis-core/
-├── client/               # Frontend (React + Vite)
-│   ├── src/
-│   │   ├── sdk/          # Core SDK modules
-│   │   │   ├── attention.ts      # Attention tracking
-│   │   │   ├── mastery.ts        # Spaced repetition
-│   │   │   ├── orchestration.ts  # LLM integration
-│   │   │   └── webgazer-adapter.ts # Real gaze tracking
-│   │   ├── hooks/        # React hooks (useAuth, useAttentionTracking, etc.)
-│   │   ├── pages/        # Page components (Home, Demo, Login, Register)
-│   │   └── components/   # UI components
-├── server/               # Backend (Express)
-│   ├── auth.ts           # Authentication (Passport.js)
-│   ├── routes.ts         # API endpoints
-│   ├── storage.ts        # Data storage (PostgreSQL or in-memory)
-│   └── db.ts             # Database connection
-├── shared/               # Shared types and schemas
-└── .env.example          # Environment configuration template
+├── packages/                      # NPM packages (publishable)
+│   ├── core/                      # @noesis-edu/core - Learning engine (ZERO dependencies)
+│   │   └── src/
+│   │       ├── constitution.ts    # Core interfaces and contracts
+│   │       ├── engine/            # NoesisCoreEngine orchestration
+│   │       ├── learner/           # BKT learner model
+│   │       ├── memory/            # FSRS spaced repetition
+│   │       ├── planning/          # Session planning
+│   │       ├── graph/             # Skill graph (DAG)
+│   │       ├── transfer/          # Transfer testing gates
+│   │       ├── diagnostic/        # Cold-start assessment
+│   │       ├── events/            # Canonical event schema
+│   │       └── persistence/       # Storage adapters
+│   ├── sdk-web/                   # @noesis/sdk-web - Web SDK facade
+│   │   └── src/
+│   │       ├── NoesisSDK.ts       # Unified SDK interface
+│   │       ├── core/              # Core engine adapter
+│   │       └── policies/          # Learning policies
+│   ├── adapters-llm/              # @noesis/adapters-llm - LLM providers
+│   │   └── src/
+│   │       ├── manager.ts         # LLM provider manager
+│   │       ├── orchestration.ts   # Client orchestration
+│   │       └── providers/         # OpenAI, Anthropic, fallback
+│   └── adapters-attention-web/    # @noesis/adapters-attention-web
+│       └── src/
+│           ├── webgazer-adapter.ts # WebGazer.js integration
+│           └── attention.ts       # Attention tracking
+├── apps/                          # Applications
+│   ├── server/                    # Express backend
+│   │   ├── index.ts               # Server entry point
+│   │   ├── routes.ts              # API endpoints
+│   │   ├── auth.ts                # Authentication (Passport.js)
+│   │   ├── storage.ts             # Data storage
+│   │   ├── llm/                   # LLM provider implementations
+│   │   └── middleware/            # Request handling
+│   └── web-demo/                  # React + Vite frontend
+│       └── src/
+│           ├── hooks/             # React hooks
+│           ├── pages/             # Page components
+│           ├── components/        # UI components
+│           └── sdk/               # SDK wrappers
+├── shared/                        # Shared types and schemas
+│   └── schema.ts                  # Drizzle ORM schema
+└── .env.example                   # Environment configuration
 ```
 
 ---

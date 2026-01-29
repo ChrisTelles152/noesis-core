@@ -79,7 +79,7 @@ describe('Auth System', () => {
     it('should register a new user successfully', async () => {
       const response = await request(app)
         .post('/api/auth/register')
-        .send({ username: 'testuser', password: 'password123' });
+        .send({ username: 'testuser', password: 'Password123!' });
 
       expect(response.status).toBe(201);
       expect(response.body).toHaveProperty('id');
@@ -90,7 +90,7 @@ describe('Auth System', () => {
     it('should return 400 for username less than 3 characters', async () => {
       const response = await request(app)
         .post('/api/auth/register')
-        .send({ username: 'ab', password: 'password123' });
+        .send({ username: 'ab', password: 'Password123!' });
 
       expect(response.status).toBe(400);
       expect(response.body).toHaveProperty('error');
@@ -110,7 +110,7 @@ describe('Auth System', () => {
     it('should return 400 for missing username', async () => {
       const response = await request(app)
         .post('/api/auth/register')
-        .send({ password: 'password123' });
+        .send({ password: 'Password123!' });
 
       expect(response.status).toBe(400);
       expect(response.body).toHaveProperty('error');
@@ -125,18 +125,19 @@ describe('Auth System', () => {
       expect(response.body).toHaveProperty('error');
     });
 
-    it('should return 400 for duplicate username', async () => {
+    it('should return 409 for duplicate username', async () => {
       // First registration
       await request(app)
         .post('/api/auth/register')
-        .send({ username: 'existinguser', password: 'password123' });
+        .send({ username: 'existinguser', password: 'Password123!' });
 
       // Duplicate registration
       const response = await request(app)
         .post('/api/auth/register')
-        .send({ username: 'existinguser', password: 'password456' });
+        .send({ username: 'existinguser', password: 'Password456!' });
 
-      expect(response.status).toBe(400);
+      // 409 Conflict is the correct status code for duplicate resource
+      expect(response.status).toBe(409);
       expect(response.body.error).toContain('already exists');
     });
   });
@@ -146,13 +147,13 @@ describe('Auth System', () => {
       // Create a test user first
       await request(app)
         .post('/api/auth/register')
-        .send({ username: 'loginuser', password: 'password123' });
+        .send({ username: 'loginuser', password: 'Password123!' });
     });
 
     it('should login successfully with valid credentials', async () => {
       const response = await request(app)
         .post('/api/auth/login')
-        .send({ username: 'loginuser', password: 'password123' });
+        .send({ username: 'loginuser', password: 'Password123!' });
 
       expect(response.status).toBe(200);
       expect(response.body).toHaveProperty('id');
@@ -171,7 +172,7 @@ describe('Auth System', () => {
     it('should return 401 for non-existent user', async () => {
       const response = await request(app)
         .post('/api/auth/login')
-        .send({ username: 'nonexistent', password: 'password123' });
+        .send({ username: 'nonexistent', password: 'Password123!' });
 
       expect(response.status).toBe(401);
       expect(response.body).toHaveProperty('error');
@@ -185,7 +186,7 @@ describe('Auth System', () => {
       // Register and login first
       await agent
         .post('/api/auth/register')
-        .send({ username: 'logoutuser', password: 'password123' });
+        .send({ username: 'logoutuser', password: 'Password123!' });
 
       const logoutResponse = await agent.post('/api/auth/logout');
 
@@ -202,7 +203,7 @@ describe('Auth System', () => {
       // Register (auto-login)
       await agent
         .post('/api/auth/register')
-        .send({ username: 'meuser', password: 'password123' });
+        .send({ username: 'meuser', password: 'Password123!' });
 
       const response = await agent.get('/api/auth/me');
 
@@ -232,7 +233,7 @@ describe('Auth System', () => {
       // Create a user first
       await request(app)
         .post('/api/auth/register')
-        .send({ username: 'takenuser', password: 'password123' });
+        .send({ username: 'takenuser', password: 'Password123!' });
 
       const response = await request(app)
         .get('/api/auth/check-username/takenuser');
@@ -249,7 +250,7 @@ describe('Auth System', () => {
       // Register (auto-login)
       await agent
         .post('/api/auth/register')
-        .send({ username: 'protecteduser', password: 'password123' });
+        .send({ username: 'protecteduser', password: 'Password123!' });
 
       const response = await agent.get('/api/protected');
 

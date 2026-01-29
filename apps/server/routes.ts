@@ -2,8 +2,9 @@ import type { Express, Request } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { z } from "zod";
-import { getCurrentUserId } from "./auth";
+import { getCurrentUserId, requireAuth } from "./auth";
 import { getLLMManager } from "./llm";
+import { createError, ErrorCodes } from "./errors";
 
 // Response validation schemas for LLM responses
 const orchestrationResponseSchema = z.object({
@@ -28,14 +29,30 @@ const learningEventDataSchema = z.object({
   result: z.number().optional(),
 }).catchall(z.union([z.string(), z.number(), z.boolean()]).optional());
 
-// Helper to get user ID from request (uses auth when available)
+/**
+ * Get authenticated user ID from request.
+ *
+ * SECURITY: For protected endpoints, always use requireAuth middleware first.
+ * This function returns the authenticated user ID or throws if not authenticated.
+ * For unprotected endpoints that optionally track users, use getUserIdFromRequestOptional.
+ */
 function getUserIdFromRequest(req: Request): number {
   const authUserId = getCurrentUserId(req);
   if (authUserId !== null) {
     return authUserId;
   }
-  const bodyUserId = (req.body as { userId?: number })?.userId;
-  return bodyUserId ?? 1;
+  // SECURITY: Do not fall back to a default user ID or accept userId from request body
+  // This was previously falling back to user 1, which is a security vulnerability
+  // If you reach here without authentication, the route should have requireAuth middleware
+  throw new Error('Authentication required - no user ID available');
+}
+
+/**
+ * Optionally get user ID from request for unprotected endpoints.
+ * Returns null if not authenticated (does not throw).
+ */
+function getUserIdFromRequestOptional(req: Request): number | null {
+  return getCurrentUserId(req);
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -51,8 +68,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   });
 
-  // Orchestration API routes
-  app.post('/api/orchestration/next-step', async (req, res) => {
+  // Orchestration API routes - require authentication to personalize and track
+  app.post('/api/orchestration/next-step', requireAuth, async (req, res) => {
     try {
       const requestSchema = z.object({
         learnerState: z.object({
@@ -139,7 +156,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/orchestration/engagement', async (req, res) => {
+  app.post('/api/orchestration/engagement', requireAuth, async (req, res) => {
     try {
       const requestSchema = z.object({
         attentionScore: z.number().min(0).max(1).optional(),
@@ -207,13 +224,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Learning analytics endpoints
-  app.get('/api/analytics/attention', async (req, res) => {
+  // Learning analytics endpoints - require authentication to protect user data
+  app.get('/api/analytics/attention', requireAuth, async (req, res) => {
     try {
       const userId = getUserIdFromRequest(req);
       const events = await storage.getLearningEventsByType('attention');
-      // Filter by user if authenticated
-      const userEvents = userId ? events.filter(e => e.userId === userId) : events;
+      // Filter to only show authenticated user's data
+      const userEvents = events.filter(e => e.userId === userId);
       res.json(userEvents);
     } catch (error) {
       console.error('Error fetching attention analytics:', error);
@@ -221,11 +238,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get('/api/analytics/mastery', async (req, res) => {
+  app.get('/api/analytics/mastery', requireAuth, async (req, res) => {
     try {
       const userId = getUserIdFromRequest(req);
       const events = await storage.getLearningEventsByType('mastery');
-      const userEvents = userId ? events.filter(e => e.userId === userId) : events;
+      // Filter to only show authenticated user's data
+      const userEvents = events.filter(e => e.userId === userId);
       res.json(userEvents);
     } catch (error) {
       console.error('Error fetching mastery analytics:', error);
@@ -233,8 +251,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get all analytics for a user
-  app.get('/api/analytics/summary', async (req, res) => {
+  // Get all analytics for a user - requires authentication
+  app.get('/api/analytics/summary', requireAuth, async (req, res) => {
     try {
       const userId = getUserIdFromRequest(req);
       const allEvents = await storage.getLearningEventsByUserId(userId);
@@ -269,17 +287,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/learning/events', async (req, res) => {
+  // Learning events endpoint - requires authentication to associate with user
+  app.post('/api/learning/events', requireAuth, async (req, res) => {
     try {
       const eventSchema = z.object({
-        userId: z.number().optional(),
         type: z.string(),
         data: learningEventDataSchema,
         timestamp: z.string().datetime().optional().transform(val => val ? new Date(val) : undefined)
       });
 
       const validatedData = eventSchema.parse(req.body);
-      const userId = validatedData.userId ?? getUserIdFromRequest(req);
+      // SECURITY: Always use authenticated user ID, never accept from request body
+      const userId = getUserIdFromRequest(req);
 
       const event = await storage.createLearningEvent({
         userId,

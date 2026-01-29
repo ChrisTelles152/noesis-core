@@ -1,7 +1,9 @@
 import { describe, it, expect, beforeAll, afterAll, vi } from "vitest";
 import express from "express";
+import session from "express-session";
 import request from "supertest";
 import { registerRoutes } from "../routes";
+import { setupAuth } from "../auth";
 
 // Mock OpenAI to avoid API calls in tests
 vi.mock("openai", () => {
@@ -17,14 +19,86 @@ vi.mock("openai", () => {
   };
 });
 
+// Mock storage for user creation
+vi.mock("../storage", () => {
+  const users = new Map<number, { id: number; username: string; password: string }>();
+  const events: Array<{ id: number; userId: number; type: string; data: unknown; timestamp: Date }> = [];
+  let currentUserId = 1;
+  let currentEventId = 1;
+
+  return {
+    storage: {
+      getUserByUsername: vi.fn(async (username: string) => {
+        return Array.from(users.values()).find(u => u.username === username);
+      }),
+      getUser: vi.fn(async (id: number) => {
+        return users.get(id);
+      }),
+      createUser: vi.fn(async (user: { username: string; password: string }) => {
+        const bcrypt = await import('bcrypt');
+        const hashedPassword = await bcrypt.hash(user.password, 10);
+        const newUser = { id: currentUserId++, username: user.username, password: hashedPassword };
+        users.set(newUser.id, newUser);
+        return newUser;
+      }),
+      verifyPassword: vi.fn(async (username: string, password: string) => {
+        const bcrypt = await import('bcrypt');
+        const user = Array.from(users.values()).find(u => u.username === username);
+        if (!user) return null;
+        const isValid = await bcrypt.compare(password, user.password);
+        return isValid ? user : null;
+      }),
+      createLearningEvent: vi.fn(async (event: { userId: number; type: string; data: unknown; timestamp: Date }) => {
+        const newEvent = { id: currentEventId++, ...event };
+        events.push(newEvent);
+        return newEvent;
+      }),
+      getLearningEventsByType: vi.fn(async (type: string) => {
+        return events.filter(e => e.type === type);
+      }),
+      getLearningEventsByUserId: vi.fn(async (userId: number) => {
+        return events.filter(e => e.userId === userId);
+      }),
+      _reset: () => {
+        users.clear();
+        events.length = 0;
+        currentUserId = 1;
+        currentEventId = 1;
+      }
+    }
+  };
+});
+
+import { storage } from "../storage";
+
 describe("API Routes", () => {
   let app: express.Express;
   let server: ReturnType<typeof import("http").createServer>;
+  let agent: ReturnType<typeof request.agent>;
 
   beforeAll(async () => {
+    (storage as any)._reset?.();
+
     app = express();
     app.use(express.json());
+
+    // Setup session for authentication
+    app.use(session({
+      secret: 'test-secret',
+      resave: false,
+      saveUninitialized: false,
+    }));
+
+    // Setup authentication
+    setupAuth(app);
+
     server = await registerRoutes(app);
+    agent = request.agent(app);
+
+    // Register and login a test user
+    await agent
+      .post('/api/auth/register')
+      .send({ username: 'testuser', password: 'TestPass123!' });
   });
 
   afterAll(() => {
@@ -35,7 +109,7 @@ describe("API Routes", () => {
 
   describe("POST /api/orchestration/next-step", () => {
     it("should return 200 with valid request", async () => {
-      const response = await request(app)
+      const response = await agent
         .post("/api/orchestration/next-step")
         .send({
           learnerState: {
@@ -56,7 +130,7 @@ describe("API Routes", () => {
     });
 
     it("should return fallback response when OpenAI fails", async () => {
-      const response = await request(app)
+      const response = await agent
         .post("/api/orchestration/next-step")
         .send({
           learnerState: {
@@ -70,7 +144,7 @@ describe("API Routes", () => {
     });
 
     it("should return 400 for invalid request body", async () => {
-      const response = await request(app)
+      const response = await agent
         .post("/api/orchestration/next-step")
         .send({
           // Missing required learnerState
@@ -82,7 +156,7 @@ describe("API Routes", () => {
     });
 
     it("should validate attention score range", async () => {
-      const response = await request(app)
+      const response = await agent
         .post("/api/orchestration/next-step")
         .send({
           learnerState: {
@@ -97,7 +171,7 @@ describe("API Routes", () => {
     });
 
     it("should accept optional mastery data", async () => {
-      const response = await request(app)
+      const response = await agent
         .post("/api/orchestration/next-step")
         .send({
           learnerState: {
@@ -119,7 +193,7 @@ describe("API Routes", () => {
 
   describe("POST /api/orchestration/engagement", () => {
     it("should return 200 with valid request", async () => {
-      const response = await request(app)
+      const response = await agent
         .post("/api/orchestration/engagement")
         .send({
           attentionScore: 0.2,
@@ -132,7 +206,7 @@ describe("API Routes", () => {
     });
 
     it("should return fallback response", async () => {
-      const response = await request(app)
+      const response = await agent
         .post("/api/orchestration/engagement")
         .send({});
 
@@ -144,7 +218,7 @@ describe("API Routes", () => {
       const previousIntervention =
         "Would you like to take a quick 30-second break to refresh?";
 
-      const response = await request(app)
+      const response = await agent
         .post("/api/orchestration/engagement")
         .send({
           previousInterventions: [previousIntervention],
@@ -156,7 +230,7 @@ describe("API Routes", () => {
     });
 
     it("should validate attentionScore range", async () => {
-      const response = await request(app)
+      const response = await agent
         .post("/api/orchestration/engagement")
         .send({
           attentionScore: -0.5, // Invalid: < 0
@@ -168,7 +242,7 @@ describe("API Routes", () => {
 
   describe("GET /api/analytics/attention", () => {
     it("should return 200 with array", async () => {
-      const response = await request(app).get("/api/analytics/attention");
+      const response = await agent.get("/api/analytics/attention");
 
       expect(response.status).toBe(200);
       expect(Array.isArray(response.body)).toBe(true);
@@ -177,7 +251,7 @@ describe("API Routes", () => {
 
   describe("GET /api/analytics/mastery", () => {
     it("should return 200 with array", async () => {
-      const response = await request(app).get("/api/analytics/mastery");
+      const response = await agent.get("/api/analytics/mastery");
 
       expect(response.status).toBe(200);
       expect(Array.isArray(response.body)).toBe(true);
@@ -186,7 +260,7 @@ describe("API Routes", () => {
 
   describe("POST /api/learning/events", () => {
     it("should create learning event with valid data", async () => {
-      const response = await request(app)
+      const response = await agent
         .post("/api/learning/events")
         .send({
           type: "attention",
@@ -201,11 +275,11 @@ describe("API Routes", () => {
       expect(response.body).toHaveProperty("type", "attention");
     });
 
-    it("should accept optional userId", async () => {
-      const response = await request(app)
+    it("should use authenticated user ID (ignores client-provided userId)", async () => {
+      const response = await agent
         .post("/api/learning/events")
         .send({
-          userId: 5,
+          userId: 999, // This should be ignored - server uses authenticated user
           type: "mastery",
           data: {
             objectiveId: "obj1",
@@ -214,11 +288,12 @@ describe("API Routes", () => {
         });
 
       expect(response.status).toBe(200);
-      expect(response.body.userId).toBe(5);
+      // userId should be the authenticated user (1), not the one sent in request
+      expect(response.body.userId).toBe(1);
     });
 
     it("should return 400 for missing type", async () => {
-      const response = await request(app)
+      const response = await agent
         .post("/api/learning/events")
         .send({
           data: { test: true },
@@ -228,7 +303,7 @@ describe("API Routes", () => {
     });
 
     it("should validate data field types", async () => {
-      const response = await request(app)
+      const response = await agent
         .post("/api/learning/events")
         .send({
           type: "test",
