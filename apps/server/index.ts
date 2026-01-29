@@ -34,8 +34,8 @@ app.use(helmet({
   contentSecurityPolicy: isProduction() ? {
     directives: {
       defaultSrc: ["'self'"],
-      scriptSrc: ["'self'", "'unsafe-inline'"], // Needed for Vite in dev
-      styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+      scriptSrc: ["'self'"], // No unsafe-inline in production - bundled scripts don't need it
+      styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"], // unsafe-inline needed for CSS-in-JS
       fontSrc: ["'self'", "https://fonts.gstatic.com"],
       imgSrc: ["'self'", "data:", "blob:"],
       connectSrc: ["'self'", "wss:", "https://api.openai.com", "https://api.anthropic.com"],
@@ -68,7 +68,7 @@ app.get('/api/performance/stats', (_req, res) => {
 // CORS configuration
 const corsOptions: cors.CorsOptions = {
   origin: process.env.NODE_ENV === "production"
-    ? process.env.ALLOWED_ORIGINS?.split(",") || false
+    ? process.env.ALLOWED_ORIGINS?.split(",").map(o => o.trim()).filter(Boolean) || false
     : true, // Allow all origins in development
   credentials: true,
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
@@ -110,8 +110,8 @@ const authLimiter = rateLimit({
 app.use("/api/auth/login", authLimiter);
 app.use("/api/auth/register", authLimiter);
 
-app.use(express.json());
-app.use(express.urlencoded({ extended: false }));
+app.use(express.json({ limit: '10kb' })); // Limit request body size to prevent DoS
+app.use(express.urlencoded({ extended: false, limit: '10kb' }));
 
 // Input sanitization (after body parsing)
 app.use(sanitizeInput);
@@ -183,8 +183,11 @@ app.use((req, res, next) => {
     const status = err.status || err.statusCode || 500;
     const message = err.message || "Internal Server Error";
 
+    // Log error details server-side only (don't expose to client)
+    log(`Error ${status}: ${err.message}${err.stack ? '\n' + err.stack : ''}`);
+
     res.status(status).json({ message });
-    throw err;
+    // Don't re-throw - that causes crashes after response is sent
   });
 
   // importantly only setup vite in development and after

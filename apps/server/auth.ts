@@ -68,9 +68,9 @@ export function setupAuth(app: Express): void {
   // SECURITY: Validate session secret in production
   const isProduction = process.env.NODE_ENV === "production";
   const defaultSecret = "noesis-development-secret-change-in-production";
-  const sessionSecret = process.env.SESSION_SECRET || defaultSecret;
+  const secret = process.env.SESSION_SECRET || defaultSecret;
 
-  if (isProduction && sessionSecret === defaultSecret) {
+  if (isProduction && secret === defaultSecret) {
     console.error("╔════════════════════════════════════════════════════════════════╗");
     console.error("║  CRITICAL SECURITY ERROR: Default session secret in production ║");
     console.error("║  Set SESSION_SECRET environment variable to a secure value     ║");
@@ -83,13 +83,20 @@ export function setupAuth(app: Express): void {
     console.warn("[AUTH] Warning: Using default session secret. Set SESSION_SECRET in production.");
   }
 
+  // Create session store
+  const memoryStore = new MemoryStore({
+    checkPeriod: 86400000, // Prune expired entries every 24h
+  });
+
+  // Store references for WebSocket session verification
+  sessionStore = memoryStore;
+  sessionSecret = secret;
+
   const sessionSettings: session.SessionOptions = {
-    secret: sessionSecret,
+    secret: secret,
     resave: false,
     saveUninitialized: false,
-    store: new MemoryStore({
-      checkPeriod: 86400000, // Prune expired entries every 24h
-    }),
+    store: memoryStore,
     cookie: {
       secure: isProduction,
       httpOnly: true,
@@ -306,5 +313,69 @@ function registerAuthRoutes(app: Express): void {
       console.error("Username check error:", error);
       res.status(500).json({ error: "Failed to check username" });
     }
+  });
+}
+
+// Session store instance for WebSocket verification
+let sessionStore: session.Store | null = null;
+let sessionSecret: string = "";
+
+/**
+ * Get session configuration for WebSocket verification
+ * Must be called after setupAuth()
+ */
+export function getSessionConfig(): { store: session.Store | null; secret: string } {
+  return { store: sessionStore, secret: sessionSecret };
+}
+
+/**
+ * Parse session ID from cookie header
+ */
+export function parseSessionIdFromCookie(cookieHeader: string | undefined): string | null {
+  if (!cookieHeader) return null;
+
+  // Parse cookies
+  const cookies = cookieHeader.split(';').reduce((acc, cookie) => {
+    const [key, value] = cookie.trim().split('=');
+    if (key && value) {
+      acc[key] = value;
+    }
+    return acc;
+  }, {} as Record<string, string>);
+
+  // Get the connect.sid cookie (URL decode it)
+  const sidCookie = cookies['connect.sid'];
+  if (!sidCookie) return null;
+
+  try {
+    const decoded = decodeURIComponent(sidCookie);
+    // Session ID format: s:<sessionId>.<signature>
+    if (decoded.startsWith('s:')) {
+      const sessionId = decoded.slice(2).split('.')[0];
+      return sessionId;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Verify session and get user ID
+ * Returns user ID if valid session, null otherwise
+ */
+export async function verifySessionAndGetUserId(sessionId: string): Promise<number | null> {
+  if (!sessionStore || !sessionId) return null;
+
+  return new Promise((resolve) => {
+    sessionStore!.get(sessionId, (err, session) => {
+      if (err || !session) {
+        resolve(null);
+        return;
+      }
+
+      const userId = session.passport?.user;
+      resolve(userId ?? null);
+    });
   });
 }
