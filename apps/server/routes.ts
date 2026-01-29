@@ -5,6 +5,7 @@ import { z } from "zod";
 import { getCurrentUserId, requireAuth } from "./auth";
 import { getLLMManager } from "./llm";
 import { createError, ErrorCodes } from "./errors";
+import { logger } from "./logger";
 
 // Response validation schemas for LLM responses
 const orchestrationResponseSchema = z.object({
@@ -122,7 +123,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           model: llmResult.model,
         };
       } catch (parseError) {
-        console.error('Error parsing LLM response:', parseError);
+        logger.error("Error parsing LLM response", { module: "routes", endpoint: "next-step" }, parseError instanceof Error ? parseError : undefined);
         response = {
           suggestion: "Based on your progress, I recommend continuing with the current concept.",
           explanation: "This recommendation is based on your current attention and mastery levels.",
@@ -149,7 +150,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       res.json(response);
     } catch (error) {
-      console.error('Error in next-step endpoint:', error);
+      logger.error("Error in next-step endpoint", { module: "routes" }, error instanceof Error ? error : undefined);
       res.status(400).json({
         error: error instanceof Error ? error.message : 'Invalid request'
       });
@@ -191,7 +192,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           model: llmResult.model,
         };
       } catch (parseError) {
-        console.error('Error parsing LLM response:', parseError);
+        logger.error("Error parsing LLM response", { module: "routes", endpoint: "engagement" }, parseError instanceof Error ? parseError : undefined);
         response = {
           message: "Would you like to take a quick break to refresh your focus?",
           type: 'attention-prompt',
@@ -217,7 +218,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       res.json(response);
     } catch (error) {
-      console.error('Error in engagement endpoint:', error);
+      logger.error("Error in engagement endpoint", { module: "routes" }, error instanceof Error ? error : undefined);
       res.status(400).json({
         error: error instanceof Error ? error.message : 'Invalid request'
       });
@@ -233,7 +234,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userEvents = events.filter(e => e.userId === userId);
       res.json(userEvents);
     } catch (error) {
-      console.error('Error fetching attention analytics:', error);
+      logger.error("Error fetching attention analytics", { module: "routes" }, error instanceof Error ? error : undefined);
       res.status(500).json({ error: 'Failed to fetch attention data' });
     }
   });
@@ -246,7 +247,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userEvents = events.filter(e => e.userId === userId);
       res.json(userEvents);
     } catch (error) {
-      console.error('Error fetching mastery analytics:', error);
+      logger.error("Error fetching mastery analytics", { module: "routes" }, error instanceof Error ? error : undefined);
       res.status(500).json({ error: 'Failed to fetch mastery data' });
     }
   });
@@ -282,7 +283,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         llmProvider: llm.getActiveProvider(),
       });
     } catch (error) {
-      console.error('Error fetching analytics summary:', error);
+      logger.error("Error fetching analytics summary", { module: "routes" }, error instanceof Error ? error : undefined);
       res.status(500).json({ error: 'Failed to fetch analytics summary' });
     }
   });
@@ -308,7 +309,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
       res.json(event);
     } catch (error) {
-      console.error('Error creating learning event:', error);
+      logger.error("Error creating learning event", { module: "routes" }, error instanceof Error ? error : undefined);
       res.status(400).json({
         error: error instanceof Error ? error.message : 'Invalid request'
       });

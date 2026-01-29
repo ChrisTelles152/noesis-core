@@ -7,6 +7,7 @@ import { WebSocketServer, WebSocket } from 'ws';
 import type { Server } from 'http';
 import type { IncomingMessage } from 'http';
 import { parseSessionIdFromCookie, verifySessionAndGetUserId } from './auth';
+import { logger } from './logger';
 
 // Message types
 export interface WSMessage {
@@ -59,7 +60,7 @@ class WebSocketService {
       this.checkHeartbeats();
     }, 30000);
 
-    console.log('[WebSocket] Server initialized on /ws');
+    logger.info("WebSocket server initialized", { module: "websocket", path: "/ws" });
   }
 
   /**
@@ -73,7 +74,7 @@ class WebSocketService {
     };
 
     this.clients.set(socket, client);
-    console.log(`[WebSocket] Client connected. Total clients: ${this.clients.size}`);
+    logger.info("WebSocket client connected", { module: "websocket", totalClients: this.clients.size });
 
     // Try to authenticate from HTTP upgrade request cookies
     const cookieHeader = request.headers.cookie;
@@ -83,7 +84,7 @@ class WebSocketService {
       const userId = await verifySessionAndGetUserId(sessionId);
       if (userId) {
         client.userId = userId;
-        console.log(`[WebSocket] Client auto-authenticated from session: userId=${userId}`);
+        logger.info("WebSocket client auto-authenticated from session", { module: "websocket", userId });
       }
     }
 
@@ -107,12 +108,12 @@ class WebSocketService {
     // Handle client disconnect
     socket.on('close', () => {
       this.clients.delete(socket);
-      console.log(`[WebSocket] Client disconnected. Total clients: ${this.clients.size}`);
+      logger.info("WebSocket client disconnected", { module: "websocket", totalClients: this.clients.size });
     });
 
     // Handle errors
     socket.on('error', (error) => {
-      console.error('[WebSocket] Client error:', error);
+      logger.error("WebSocket client error", { module: "websocket" }, error);
       this.clients.delete(socket);
     });
 
@@ -174,7 +175,7 @@ class WebSocketService {
                 payload: { userId: verifiedUserId, method: 'session' },
                 timestamp: Date.now(),
               });
-              console.log(`[WebSocket] Client authenticated via session: userId=${verifiedUserId}`);
+              logger.info("WebSocket client authenticated via session", { module: "websocket", userId: verifiedUserId });
               break;
             } else {
               this.sendToClient(socket, {
@@ -189,7 +190,7 @@ class WebSocketService {
           // Fall back to userId (development only)
           if (providedUserId) {
             if (process.env.NODE_ENV === 'production') {
-              console.error('[WebSocket] SECURITY: Client-provided userId rejected in production');
+              logger.error("SECURITY: Client-provided userId rejected in production", { module: "websocket" });
               this.sendToClient(socket, {
                 type: 'auth-error',
                 payload: { error: 'Session authentication required in production' },
@@ -198,7 +199,7 @@ class WebSocketService {
               break;
             }
 
-            console.warn('[WebSocket] DEV: Accepting client-provided userId without verification');
+            logger.warn("DEV: Accepting client-provided userId without verification", { module: "websocket" });
             client.userId = providedUserId;
             this.sendToClient(socket, {
               type: 'authenticated',
@@ -215,10 +216,10 @@ class WebSocketService {
           break;
 
         default:
-          console.log(`[WebSocket] Unknown message type: ${message.type}`);
+          logger.debug("Unknown WebSocket message type", { module: "websocket", type: message.type });
       }
     } catch (error) {
-      console.error('[WebSocket] Error parsing message:', error);
+      logger.error("Error parsing WebSocket message", { module: "websocket" }, error instanceof Error ? error : undefined);
     }
   }
 
@@ -340,7 +341,7 @@ class WebSocketService {
 
     Array.from(this.clients.entries()).forEach(([socket, client]) => {
       if (now - client.lastPing > timeout) {
-        console.log('[WebSocket] Client timed out, disconnecting');
+        logger.info("WebSocket client timed out, disconnecting", { module: "websocket" });
         socket.terminate();
         this.clients.delete(socket);
       } else {
@@ -391,7 +392,7 @@ class WebSocketService {
     }
 
     this.clients.clear();
-    console.log('[WebSocket] Server shutdown complete');
+    logger.info("WebSocket server shutdown complete", { module: "websocket" });
   }
 }
 

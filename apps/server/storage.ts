@@ -9,6 +9,7 @@ import {
   type InsertLearningEvent
 } from "@shared/schema";
 import { db, isDatabaseConfigured } from "./db";
+import { logger } from "./logger";
 
 const SALT_ROUNDS = 12;
 
@@ -187,10 +188,10 @@ export class DatabaseStorage implements IStorage {
 // Export the appropriate storage based on configuration
 function createStorage(): IStorage {
   if (isDatabaseConfigured) {
-    console.log("[Storage] Using PostgreSQL database storage");
+    logger.info("Using PostgreSQL database storage", { module: "storage" });
     return new DatabaseStorage();
   } else {
-    console.log("[Storage] Using in-memory storage (data will not persist across restarts)");
+    logger.info("Using in-memory storage (data will not persist across restarts)", { module: "storage" });
     return new MemStorage();
   }
 }

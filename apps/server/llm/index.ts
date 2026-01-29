@@ -7,6 +7,7 @@ import type { LLMProvider, LLMCompletionOptions, LLMCompletionResult, LLMProvide
 import { OpenAIProvider } from './providers/openai';
 import { AnthropicProvider } from './providers/anthropic';
 import { FallbackProvider } from './providers/fallback';
+import { logger } from '../logger';
 
 export * from './types';
 
@@ -25,7 +26,7 @@ export class LLMManager {
     // Determine preferred provider
     this.preferredProvider = preferredProvider || this.detectPreferredProvider();
 
-    console.log(`[LLM] Initialized with preferred provider: ${this.preferredProvider}`);
+    logger.info("LLM Manager initialized", { module: "llm", preferredProvider: this.preferredProvider });
     this.logProviderStatus();
   }
 
@@ -44,8 +45,8 @@ export class LLMManager {
   private logProviderStatus(): void {
     const entries = Array.from(this.providers.entries());
     for (const [name, provider] of entries) {
-      const status = provider.isConfigured() ? '✓ configured' : '✗ not configured';
-      console.log(`[LLM]   ${name}: ${status}`);
+      const configured = provider.isConfigured();
+      logger.info(`LLM provider status: ${name}`, { module: "llm", provider: name, configured });
     }
   }
 
@@ -96,14 +97,14 @@ export class LLMManager {
         const result = await provider.complete(options);
         return result;
       } catch (error) {
-        console.error(`[LLM] ${providerName} failed:`, error);
+        logger.error(`LLM provider failed: ${providerName}`, { module: "llm", provider: providerName }, error instanceof Error ? error : undefined);
         lastError = error instanceof Error ? error : new Error(String(error));
         // Continue to next provider
       }
     }
 
     // All providers failed, use fallback
-    console.warn('[LLM] All providers failed, using fallback');
+    logger.warn("All LLM providers failed, using fallback", { module: "llm" });
     return this.fallbackProvider.complete(options);
   }
 

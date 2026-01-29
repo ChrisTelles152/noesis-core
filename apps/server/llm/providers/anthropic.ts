@@ -1,4 +1,5 @@
 import type { LLMProvider, LLMCompletionOptions, LLMCompletionResult } from '../types';
+import { logger } from '../../logger';
 
 interface AnthropicMessage {
   role: 'user' | 'assistant';
@@ -87,7 +88,7 @@ export class AnthropicProvider implements LLMProvider {
         model: this.model,
       };
     } catch (error) {
-      console.error('[Anthropic] Completion error:', error);
+      logger.error("Anthropic completion error", { module: "llm", provider: "anthropic" }, error instanceof Error ? error : undefined);
       throw error;
     }
   }

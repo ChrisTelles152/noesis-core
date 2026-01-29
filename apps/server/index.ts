@@ -7,7 +7,7 @@ import { setupVite, serveStatic, log } from "./vite";
 import { setupAuth } from "./auth";
 import { csrfProtection, setupCsrfRoutes, shouldEnableCsrf } from "./csrf";
 import { logEnvironmentStatus, isProduction, getPort, getHost } from "./env";
-import { setupHealthRoutes } from "./health";
+import { setupHealthRoutes, requireInternalAccess } from "./health";
 import { requestIdMiddleware } from "./middleware/requestId";
 import { sanitizeInput } from "./middleware/sanitize";
 import { initializeWebSocket } from "./websocket";
@@ -59,8 +59,8 @@ setupHealthRoutes(app);
 // OpenAPI documentation routes
 setupOpenApiRoutes(app);
 
-// Performance stats endpoint
-app.get('/api/performance/stats', (_req, res) => {
+// Performance stats endpoint (restricted to internal access in production)
+app.get('/api/performance/stats', requireInternalAccess, (_req, res) => {
   const stats = performanceMonitor.getStats();
   res.json(stats);
 });

@@ -1,5 +1,6 @@
 import OpenAI from 'openai';
 import type { LLMProvider, LLMCompletionOptions, LLMCompletionResult } from '../types';
+import { logger } from '../../logger';
 
 export class OpenAIProvider implements LLMProvider {
   name = 'openai';
@@ -53,7 +54,7 @@ export class OpenAIProvider implements LLMProvider {
         model: this.model,
       };
     } catch (error) {
-      console.error('[OpenAI] Completion error:', error);
+      logger.error("OpenAI completion error", { module: "llm", provider: "openai" }, error instanceof Error ? error : undefined);
       throw error;
     }
   }

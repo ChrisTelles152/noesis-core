@@ -79,7 +79,7 @@ export function validateEnvironment(): ValidationResult {
 
     // Security warnings for production
     if (env.NODE_ENV === 'production') {
-      if (!env.SESSION_SECRET || env.SESSION_SECRET === 'your-session-secret-here') {
+      if (!env.SESSION_SECRET || env.SESSION_SECRET === 'noesis-development-secret-change-in-production') {
         errors.push(
           'SESSION_SECRET must be set to a secure random value in production.'
         );
@@ -100,7 +100,7 @@ export function validateEnvironment(): ValidationResult {
 
     // Development warnings
     if (env.NODE_ENV === 'development') {
-      if (env.SESSION_SECRET === 'your-session-secret-here') {
+      if (env.SESSION_SECRET === 'noesis-development-secret-change-in-production') {
         warnings.push(
           'Using default SESSION_SECRET. Please set a custom value for better security.'
         );
