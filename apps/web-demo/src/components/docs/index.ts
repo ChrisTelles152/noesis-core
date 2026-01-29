@@ -7,14 +7,27 @@
 
 import type React from 'react';
 
-export { default as GettingStartedSection } from './GettingStartedSection';
-export { default as InstallationSection } from './InstallationSection';
-export { default as BasicUsageSection } from './BasicUsageSection';
-export { default as AttentionTrackingSection } from './AttentionTrackingSection';
-export { default as MasteryLearningSection } from './MasteryLearningSection';
-export { default as LLMIntegrationSection } from './LLMIntegrationSection';
-export { default as APIReferenceSection } from './APIReferenceSection';
-export { default as ExamplesSection } from './ExamplesSection';
+// Import components for local use in sectionComponents map
+import GettingStartedSection from './GettingStartedSection';
+import InstallationSection from './InstallationSection';
+import BasicUsageSection from './BasicUsageSection';
+import AttentionTrackingSection from './AttentionTrackingSection';
+import MasteryLearningSection from './MasteryLearningSection';
+import LLMIntegrationSection from './LLMIntegrationSection';
+import APIReferenceSection from './APIReferenceSection';
+import ExamplesSection from './ExamplesSection';
+
+// Re-export for direct imports
+export {
+  GettingStartedSection,
+  InstallationSection,
+  BasicUsageSection,
+  AttentionTrackingSection,
+  MasteryLearningSection,
+  LLMIntegrationSection,
+  APIReferenceSection,
+  ExamplesSection,
+};
 
 // Map of section IDs to components for dynamic rendering
 export const sectionComponents: Record<string, React.ComponentType> = {

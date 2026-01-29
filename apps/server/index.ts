@@ -98,6 +98,18 @@ const llmLimiter = rateLimit({
 });
 app.use("/api/orchestration/", llmLimiter);
 
+// Authentication rate limiting to protect against brute force attacks
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 10, // Limit each IP to 10 login/register attempts per 15 minutes
+  message: { error: "Too many authentication attempts. Please try again later." },
+  standardHeaders: true,
+  legacyHeaders: false,
+  skipSuccessfulRequests: true, // Don't count successful logins toward the limit
+});
+app.use("/api/auth/login", authLimiter);
+app.use("/api/auth/register", authLimiter);
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
