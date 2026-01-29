@@ -14,6 +14,7 @@ export {
   BKTEngine,
   createBKTEngine,
   DEFAULT_BKT_PARAMS,
+  validateBKTParams,
   type BKTParams,
 } from './BKTEngine.js';
 

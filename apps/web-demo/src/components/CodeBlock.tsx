@@ -1,10 +1,119 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 
 interface CodeBlockProps {
   code: string;
   language: string;
   filename?: string;
+}
+
+/**
+ * Token types for syntax highlighting
+ */
+type TokenType = 'keyword' | 'string' | 'comment' | 'function' | 'property' | 'plain';
+
+interface Token {
+  type: TokenType;
+  text: string;
+}
+
+/**
+ * Tokenize code for safe rendering without dangerouslySetInnerHTML
+ *
+ * SECURITY: This approach avoids XSS by never using innerHTML.
+ * All text content is rendered as React text nodes, which are
+ * automatically escaped by React.
+ */
+function tokenizeCode(code: string, language: string): Token[] {
+  const tokens: Token[] = [];
+
+  // Simple tokenizer - splits code into highlighted segments
+  // For production, consider using a proper lexer like Prism.js or highlight.js
+  switch (language) {
+    case "javascript":
+    case "typescript": {
+      // Pattern to match tokens in order of precedence
+      const patterns: Array<{ type: TokenType; regex: RegExp }> = [
+        { type: 'comment', regex: /^\/\/.*/ },
+        { type: 'string', regex: /^(['"`])(?:(?!\1)[^\\]|\\.)*\1/ },
+        { type: 'keyword', regex: /^(?:import|from|const|let|var|await|async|function|return|if|else|try|catch|new|true|false|export|default|class|extends|interface|type)\b/ },
+        { type: 'function', regex: /^[a-zA-Z_]\w*(?=\s*\()/ },
+        { type: 'property', regex: /^\.[a-zA-Z_]\w*/ },
+        { type: 'plain', regex: /^[^\s]+/ },
+        { type: 'plain', regex: /^\s+/ },
+      ];
+
+      let remaining = code;
+      while (remaining.length > 0) {
+        let matched = false;
+        for (const { type, regex } of patterns) {
+          const match = remaining.match(regex);
+          if (match) {
+            tokens.push({ type, text: match[0] });
+            remaining = remaining.slice(match[0].length);
+            matched = true;
+            break;
+          }
+        }
+        if (!matched) {
+          // Fallback: consume one character
+          tokens.push({ type: 'plain', text: remaining[0] });
+          remaining = remaining.slice(1);
+        }
+      }
+      break;
+    }
+
+    case "bash": {
+      const patterns: Array<{ type: TokenType; regex: RegExp }> = [
+        { type: 'comment', regex: /^#.*/ },
+        { type: 'keyword', regex: /^(?:npm|yarn|git|cd|mkdir|rm|cp|mv|cat|echo|export)\b/ },
+        { type: 'function', regex: /^(?:install|add|init|run|build|test|start)\b/ },
+        { type: 'string', regex: /^@[\w\/-]+/ },
+        { type: 'plain', regex: /^[^\s]+/ },
+        { type: 'plain', regex: /^\s+/ },
+      ];
+
+      let remaining = code;
+      while (remaining.length > 0) {
+        let matched = false;
+        for (const { type, regex } of patterns) {
+          const match = remaining.match(regex);
+          if (match) {
+            tokens.push({ type, text: match[0] });
+            remaining = remaining.slice(match[0].length);
+            matched = true;
+            break;
+          }
+        }
+        if (!matched) {
+          tokens.push({ type: 'plain', text: remaining[0] });
+          remaining = remaining.slice(1);
+        }
+      }
+      break;
+    }
+
+    default:
+      // No highlighting for unknown languages
+      tokens.push({ type: 'plain', text: code });
+  }
+
+  return tokens;
+}
+
+/**
+ * Get CSS class for token type
+ */
+function getTokenClass(type: TokenType): string {
+  switch (type) {
+    case 'keyword': return 'text-purple-400';
+    case 'string': return 'text-green-400';
+    case 'comment': return 'text-slate-500 italic';
+    case 'function': return 'text-blue-400';
+    case 'property': return 'text-cyan-400';
+    default: return '';
+  }
 }
 
 export default function CodeBlock({ code, language, filename }: CodeBlockProps) {
@@ -16,52 +125,8 @@ export default function CodeBlock({ code, language, filename }: CodeBlockProps) 
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const formatCode = (code: string) => {
-    switch (language) {
-      case "javascript":
-        return code
-          .replace(/\/\/(.*)/g, '<span class="syntax-highlight comment">// $1</span>')
-          .replace(/import\s|from\s|const\s|let\s|var\s|await\s|async\s|function\s|return\s|if\s|else\s|try\s|catch\s|new\s|true|false/g, match => 
-            `<span class="syntax-highlight keyword">${match}</span>`)
-          .replace(/('.*?'|".*?"|`.*?`)/g, match => 
-            `<span class="syntax-highlight string">${match}</span>`)
-          .replace(/\b(\w+)\s*(?=\()/g, match => 
-            `<span class="syntax-highlight function">${match}</span>`)
-          .replace(/(\.[a-zA-Z_]\w*)/g, match => 
-            `<span class="syntax-highlight property">${match}</span>`);
-      
-      case "bash":
-        return code
-          .replace(/(#.*)/g, '<span class="syntax-highlight comment">$1</span>')
-          .replace(/npm|yarn/g, match => 
-            `<span class="syntax-highlight keyword">${match}</span>`)
-          .replace(/install|add/g, match => 
-            `<span class="syntax-highlight function">${match}</span>`)
-          .replace(/(@[\w\/-]+)/g, match => 
-            `<span class="syntax-highlight variable">${match}</span>`);
-      
-      case "html":
-        return code
-          .replace(/(&lt;.*?&gt;|<.*?>)/g, match => 
-            `<span class="syntax-highlight keyword">${match}</span>`)
-          .replace(/".*?"/g, match => 
-            `<span class="syntax-highlight string">${match}</span>`)
-          .replace(/(&lt;!--.*?--&gt;|<!--.*?-->)/g, match => 
-            `<span class="syntax-highlight comment">${match}</span>`);
-          
-      default:
-        return code;
-    }
-  };
-
-  // Escape the HTML in the code
-  const escapedCode = code
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;");
-
-  // Then apply syntax highlighting
-  const highlightedCode = formatCode(escapedCode);
+  // Tokenize code for safe rendering (memoized for performance)
+  const tokens = useMemo(() => tokenizeCode(code, language), [code, language]);
 
   return (
     <div className="bg-slate-800 rounded-lg overflow-hidden">
@@ -77,7 +142,13 @@ export default function CodeBlock({ code, language, filename }: CodeBlockProps) 
       )}
       <div className="relative">
         <pre className="p-4 overflow-x-auto text-sm text-slate-300 font-mono hide-scrollbar">
-          <div dangerouslySetInnerHTML={{ __html: highlightedCode }} />
+          <code>
+            {tokens.map((token, index) => (
+              <span key={index} className={getTokenClass(token.type)}>
+                {token.text}
+              </span>
+            ))}
+          </code>
         </pre>
         <div className="absolute top-2 right-2">
           <Button 

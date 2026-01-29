@@ -122,12 +122,38 @@ function registerAuthRoutes(app: Express): void {
     try {
       const { username, password } = req.body;
 
-      // Validate input
+      // Validate username
       if (!username || typeof username !== "string" || username.length < 3) {
         return res.status(400).json({ error: "Username must be at least 3 characters" });
       }
-      if (!password || typeof password !== "string" || password.length < 8) {
+      if (username.length > 50) {
+        return res.status(400).json({ error: "Username must be at most 50 characters" });
+      }
+      if (!/^[a-zA-Z0-9_-]+$/.test(username)) {
+        return res.status(400).json({ error: "Username can only contain letters, numbers, underscores, and hyphens" });
+      }
+
+      // Validate password with complexity requirements
+      if (!password || typeof password !== "string") {
+        return res.status(400).json({ error: "Password is required" });
+      }
+      if (password.length < 8) {
         return res.status(400).json({ error: "Password must be at least 8 characters" });
+      }
+      if (password.length > 128) {
+        return res.status(400).json({ error: "Password must be at most 128 characters" });
+      }
+      // SECURITY: Require password complexity
+      // At least one uppercase, one lowercase, one digit, and one special character
+      const hasUppercase = /[A-Z]/.test(password);
+      const hasLowercase = /[a-z]/.test(password);
+      const hasDigit = /[0-9]/.test(password);
+      const hasSpecial = /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password);
+
+      if (!hasUppercase || !hasLowercase || !hasDigit || !hasSpecial) {
+        return res.status(400).json({
+          error: "Password must contain at least one uppercase letter, one lowercase letter, one digit, and one special character"
+        });
       }
 
       // Check if username already exists

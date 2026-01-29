@@ -20,9 +20,8 @@ export const useAttentionTracking = () => {
   // Start tracking attention
   const startTracking = useCallback(async (targetElement: HTMLElement | null) => {
     try {
-      // First register the callback to ensure we get updates
+      // Register the callback to ensure we get updates
       sdk.attention.onAttentionChange((data) => {
-        console.log('Attention data updated:', data);
         setAttentionData(data);
       });
       

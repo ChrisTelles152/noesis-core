@@ -69,6 +69,66 @@ console.log('Recommendation:', result.content);
 
 The LLM Manager automatically selects providers based on available API keys and falls back gracefully if calls fail.
 
+## Error Handling
+
+The LLM system is designed to fail gracefully:
+
+```typescript
+// All methods return structured responses, never throw
+const result = await llm.getRecommendation({...});
+
+if (result.provider === 'fallback') {
+  // LLM providers unavailable or failed - using rule-based fallback
+  console.log('Using fallback recommendations');
+}
+
+// Check which provider was used
+console.log('Provider:', result.provider); // 'openai', 'anthropic', or 'fallback'
+console.log('Model:', result.model);       // e.g., 'gpt-4o', 'claude-3-5-sonnet'
+```
+
+### Common Error Scenarios
+
+| Scenario | Behavior |
+|----------|----------|
+| No API keys configured | Uses fallback provider |
+| API rate limit exceeded | Falls back to next provider |
+| Network timeout | Falls back to next provider |
+| Invalid API response | Falls back with error recovery message |
+| All providers fail | Returns rule-based fallback response |
+
+### Fallback Provider
+
+The fallback provider returns sensible defaults based on attention and mastery data:
+
+- Low attention → Suggests taking a break or switching topics
+- High mastery → Suggests advancing to new material
+- Low mastery → Suggests review and practice
+- Mixed signals → Provides balanced recommendation
+
+## Configuration
+
+### Environment Variables
+
+```bash
+# OpenAI (optional)
+OPENAI_API_KEY=sk-...
+
+# Anthropic (optional)
+ANTHROPIC_API_KEY=sk-ant-...
+
+# At least one key is recommended for personalized recommendations
+# Without any keys, only the fallback provider is used
+```
+
+### Provider Priority
+
+1. **Anthropic** (if `ANTHROPIC_API_KEY` is set)
+2. **OpenAI** (if `OPENAI_API_KEY` is set)
+3. **Fallback** (always available)
+
+Providers are tried in order. If the first fails, the next is attempted.
+
 ## Why is this an Adapter?
 
 LLM integration depends on:

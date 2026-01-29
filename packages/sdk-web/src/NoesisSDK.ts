@@ -21,6 +21,33 @@ export class NoesisSDK {
    */
   core: CoreEngineAdapter | null = null;
 
+  // =========================================================================
+  // UNIMPLEMENTED: Voice Interface
+  // =========================================================================
+  // Voice interface is planned for future releases. It will provide:
+  // - Voice commands for hands-free learning interaction
+  // - Text-to-speech for audio feedback and content narration
+  // - Speech-to-text for verbal responses in assessments
+  //
+  // Placeholder: voice: VoiceInterface | null = null;
+  //
+  // See: https://github.com/noesis-edu/noesis-core/issues/TBD
+  // =========================================================================
+
+  // =========================================================================
+  // UNIMPLEMENTED: XR Support (Quest/Vision Pro)
+  // =========================================================================
+  // XR support is planned for future releases. It will provide:
+  // - Hand tracking for gesture-based interaction
+  // - Spatial anchoring for 3D learning environments
+  // - Eye tracking integration with XR headsets (Quest Pro, Vision Pro)
+  // - Passthrough mode for AR learning experiences
+  //
+  // Placeholder: xr: XRAdapter | null = null;
+  //
+  // See: https://github.com/noesis-edu/noesis-core/issues/TBD
+  // =========================================================================
+
   private apiKey: string | undefined;
   private debug: boolean;
   private activeModules: Set<ModuleType>;
