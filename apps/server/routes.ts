@@ -4,6 +4,7 @@ import { storage } from "./storage";
 import { z } from "zod";
 import { getCurrentUserId, requireAuth } from "./auth";
 import { getLLMManager } from "./llm";
+import { createError, ErrorCodes } from "./errors";
 
 // Response validation schemas for LLM responses
 const orchestrationResponseSchema = z.object({
