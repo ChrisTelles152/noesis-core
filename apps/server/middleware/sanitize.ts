@@ -39,14 +39,37 @@ export function escapeHtml(input: string): string {
 }
 
 /**
- * Sanitize object recursively
+ * Dangerous keys that could lead to prototype pollution
+ */
+const DANGEROUS_KEYS = ['__proto__', 'constructor', 'prototype'];
+
+/**
+ * Check if a key is safe (not a prototype pollution vector)
+ */
+export function isSafeKey(key: string): boolean {
+  return !DANGEROUS_KEYS.includes(key);
+}
+
+/**
+ * Sanitize object recursively with prototype pollution protection
  */
 export function sanitizeObject<T extends Record<string, unknown>>(obj: T): T {
-  const result: Record<string, unknown> = {};
+  // Create a null-prototype object to prevent prototype pollution
+  const result: Record<string, unknown> = Object.create(null);
 
   for (const [key, value] of Object.entries(obj)) {
+    // SECURITY: Skip dangerous keys to prevent prototype pollution
+    if (!isSafeKey(key)) {
+      continue;
+    }
+
     // Sanitize key
     const sanitizedKey = sanitizeString(key);
+
+    // Double-check sanitized key is also safe
+    if (!isSafeKey(sanitizedKey)) {
+      continue;
+    }
 
     if (typeof value === 'string') {
       result[sanitizedKey] = sanitizeString(value);

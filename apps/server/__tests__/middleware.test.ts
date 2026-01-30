@@ -11,6 +11,7 @@ import {
   sanitizeUsername,
   isValidEmail,
   redactSensitiveFields,
+  isSafeKey,
 } from '../middleware/sanitize';
 
 // Mock request/response/next for middleware testing
@@ -306,6 +307,187 @@ describe('Sanitization Middleware', () => {
 
       expect(req.body.name).toBe('Body');
       expect(req.query.q).toBe('Query');
+      expect(mockNext).toHaveBeenCalled();
+    });
+  });
+});
+
+describe('Security - Prototype Pollution Protection', () => {
+  describe('isSafeKey', () => {
+    it('should return false for __proto__', () => {
+      expect(isSafeKey('__proto__')).toBe(false);
+    });
+
+    it('should return false for constructor', () => {
+      expect(isSafeKey('constructor')).toBe(false);
+    });
+
+    it('should return false for prototype', () => {
+      expect(isSafeKey('prototype')).toBe(false);
+    });
+
+    it('should return true for normal keys', () => {
+      expect(isSafeKey('name')).toBe(true);
+      expect(isSafeKey('email')).toBe(true);
+      expect(isSafeKey('data')).toBe(true);
+      expect(isSafeKey('__data__')).toBe(true);
+      expect(isSafeKey('myPrototype')).toBe(true);
+    });
+
+    it('should be case-sensitive', () => {
+      // These are dangerous and should be blocked
+      expect(isSafeKey('__proto__')).toBe(false);
+      // These variations are safe
+      expect(isSafeKey('__PROTO__')).toBe(true);
+      expect(isSafeKey('Constructor')).toBe(true);
+      expect(isSafeKey('PROTOTYPE')).toBe(true);
+    });
+  });
+
+  describe('sanitizeObject - prototype pollution prevention', () => {
+    it('should strip __proto__ key from objects', () => {
+      // Using Object.create to set up the test without triggering actual pollution
+      const maliciousInput = JSON.parse('{"__proto__": {"polluted": true}, "safe": "value"}');
+      const result = sanitizeObject(maliciousInput);
+
+      expect(result.safe).toBe('value');
+      expect(result.__proto__).toBeUndefined();
+      expect(({} as any).polluted).toBeUndefined();
+    });
+
+    it('should strip constructor key from objects', () => {
+      const maliciousInput = JSON.parse('{"constructor": {"prototype": {"polluted": true}}, "safe": "value"}');
+      const result = sanitizeObject(maliciousInput);
+
+      expect(result.safe).toBe('value');
+      expect(result.constructor).toBeUndefined();
+    });
+
+    it('should strip prototype key from objects', () => {
+      const maliciousInput = JSON.parse('{"prototype": {"polluted": true}, "safe": "value"}');
+      const result = sanitizeObject(maliciousInput);
+
+      expect(result.safe).toBe('value');
+      expect(result.prototype).toBeUndefined();
+    });
+
+    it('should strip dangerous keys from nested objects', () => {
+      const maliciousInput = JSON.parse(`{
+        "user": {
+          "__proto__": {"polluted": true},
+          "name": "test"
+        },
+        "data": {
+          "nested": {
+            "constructor": {"bad": true},
+            "value": "good"
+          }
+        }
+      }`);
+      const result = sanitizeObject(maliciousInput);
+
+      expect(result.user.name).toBe('test');
+      expect((result.user as any).__proto__).toBeUndefined();
+      expect(result.data.nested.value).toBe('good');
+      expect((result.data.nested as any).constructor).toBeUndefined();
+    });
+
+    it('should strip dangerous keys from objects in arrays', () => {
+      const maliciousInput = JSON.parse(`{
+        "items": [
+          {"__proto__": {"polluted": true}, "name": "item1"},
+          {"constructor": {"bad": true}, "name": "item2"}
+        ]
+      }`);
+      const result = sanitizeObject(maliciousInput);
+
+      expect(result.items[0].name).toBe('item1');
+      expect(result.items[1].name).toBe('item2');
+      expect((result.items[0] as any).__proto__).toBeUndefined();
+      expect((result.items[1] as any).constructor).toBeUndefined();
+    });
+
+    it('should create null-prototype object to prevent pollution', () => {
+      const input = { name: 'test' };
+      const result = sanitizeObject(input);
+
+      // The result should have a null prototype
+      expect(Object.getPrototypeOf(result)).toBeNull();
+    });
+
+    it('should handle deeply nested pollution attempts', () => {
+      const maliciousInput = JSON.parse(`{
+        "level1": {
+          "level2": {
+            "level3": {
+              "__proto__": {"deep": true},
+              "safe": "value"
+            }
+          }
+        }
+      }`);
+      const result = sanitizeObject(maliciousInput);
+
+      expect(result.level1.level2.level3.safe).toBe('value');
+      expect((result.level1.level2.level3 as any).__proto__).toBeUndefined();
+      expect(({} as any).deep).toBeUndefined();
+    });
+
+    it('should handle multiple dangerous keys in same object', () => {
+      const maliciousInput = JSON.parse(`{
+        "__proto__": {"a": 1},
+        "constructor": {"b": 2},
+        "prototype": {"c": 3},
+        "safeKey": "safeValue"
+      }`);
+      const result = sanitizeObject(maliciousInput);
+
+      expect(result.safeKey).toBe('safeValue');
+      expect(Object.keys(result)).toEqual(['safeKey']);
+    });
+
+    it('should not modify the original Object prototype', () => {
+      const originalProto = Object.prototype;
+      const maliciousInput = JSON.parse('{"__proto__": {"injected": true}}');
+
+      sanitizeObject(maliciousInput);
+
+      expect(Object.prototype).toBe(originalProto);
+      expect(({} as any).injected).toBeUndefined();
+    });
+  });
+
+  describe('sanitizeBody - prototype pollution prevention', () => {
+    let mockNext: ReturnType<typeof vi.fn>;
+
+    beforeEach(() => {
+      mockNext = vi.fn();
+    });
+
+    it('should prevent prototype pollution via request body', () => {
+      const maliciousBody = JSON.parse('{"__proto__": {"polluted": true}, "name": "test"}');
+      const req = createMockRequest({ body: maliciousBody });
+      const res = createMockResponse();
+
+      sanitizeBody(req, res, mockNext);
+
+      expect(req.body.name).toBe('test');
+      expect(req.body.__proto__).toBeUndefined();
+      expect(({} as any).polluted).toBeUndefined();
+      expect(mockNext).toHaveBeenCalled();
+    });
+
+    it('should prevent nested prototype pollution via request body', () => {
+      const maliciousBody = JSON.parse(`{
+        "user": {"__proto__": {"admin": true}, "name": "attacker"}
+      }`);
+      const req = createMockRequest({ body: maliciousBody });
+      const res = createMockResponse();
+
+      sanitizeBody(req, res, mockNext);
+
+      expect(req.body.user.name).toBe('attacker');
+      expect(({} as any).admin).toBeUndefined();
       expect(mockNext).toHaveBeenCalled();
     });
   });

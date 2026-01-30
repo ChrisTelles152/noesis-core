@@ -110,6 +110,16 @@ const authLimiter = rateLimit({
 app.use("/api/auth/login", authLimiter);
 app.use("/api/auth/register", authLimiter);
 
+// Username enumeration protection - stricter rate limiting
+const usernameCheckLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1 minute
+  max: 10, // Limit each IP to 10 username checks per minute
+  message: { error: "Too many username checks. Please try again later." },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+app.use("/api/auth/check-username", usernameCheckLimiter);
+
 app.use(express.json({ limit: '10kb' })); // Limit request body size to prevent DoS
 app.use(express.urlencoded({ extended: false, limit: '10kb' }));
 
