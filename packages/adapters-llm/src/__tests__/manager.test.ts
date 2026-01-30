@@ -53,9 +53,26 @@ describe('LLMManager', () => {
     it('should use specified preferred provider', async () => {
       const { LLMManager, resetLLMManager } = await import('../manager');
       resetLLMManager();
-      const manager = new LLMManager('anthropic');
+      const manager = new LLMManager({ preferredProvider: 'anthropic' });
 
       expect(manager.getActiveProvider()).toBe('anthropic');
+    });
+
+    it('should use custom logger when provided', async () => {
+      const { LLMManager, resetLLMManager } = await import('../manager');
+      resetLLMManager();
+
+      const customLogger = {
+        info: vi.fn(),
+        warn: vi.fn(),
+        error: vi.fn(),
+      };
+
+      const manager = new LLMManager({ logger: customLogger });
+
+      // Logger should have been called during initialization
+      expect(customLogger.info).toHaveBeenCalled();
+      expect(manager.getActiveProvider()).toBe('fallback');
     });
 
     it('should log provider status on initialization', async () => {
@@ -208,6 +225,24 @@ describe('LLMManager', () => {
       const manager2 = getLLMManager();
 
       expect(manager1).not.toBe(manager2);
+    });
+
+    it('should use configured options with configureLLMManager', async () => {
+      const { getLLMManager, resetLLMManager, configureLLMManager } = await import('../manager');
+
+      const customLogger = {
+        info: vi.fn(),
+        warn: vi.fn(),
+        error: vi.fn(),
+      };
+
+      resetLLMManager();
+      configureLLMManager({ logger: customLogger });
+      const manager = getLLMManager();
+
+      // Custom logger should have been used
+      expect(customLogger.info).toHaveBeenCalled();
+      expect(manager.getActiveProvider()).toBe('fallback');
     });
   });
 });

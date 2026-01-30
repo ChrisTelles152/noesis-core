@@ -3,9 +3,17 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { z } from "zod";
 import { getCurrentUserId, requireAuth } from "./auth";
-import { getLLMManager } from "./llm";
+import { getLLMManager, configureLLMManager, type LLMLogger } from "@noesis/adapters-llm";
 import { createError, ErrorCodes } from "./errors";
 import { logger } from "./logger";
+
+// Configure the LLM Manager with the server's structured logger
+const llmLogger: LLMLogger = {
+  info: (message, meta) => logger.info(message, { module: "llm", ...meta }),
+  warn: (message, meta) => logger.warn(message, { module: "llm", ...meta }),
+  error: (message, meta, error) => logger.error(message, { module: "llm", ...meta }, error),
+};
+configureLLMManager({ logger: llmLogger });
 
 // Response validation schemas for LLM responses
 const orchestrationResponseSchema = z.object({

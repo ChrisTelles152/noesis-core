@@ -3,11 +3,12 @@ import express from 'express';
 import request from 'supertest';
 
 // Mock the LLM module
-vi.mock('../llm', () => ({
+vi.mock('@noesis/adapters-llm', () => ({
   getLLMManager: vi.fn(() => ({
     hasLLMProvider: vi.fn(() => true),
     getActiveProvider: vi.fn(() => 'openai'),
   })),
+  configureLLMManager: vi.fn(),
 }));
 
 import { setupHealthRoutes, requireInternalAccess } from '../health';

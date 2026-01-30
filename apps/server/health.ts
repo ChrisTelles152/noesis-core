@@ -4,7 +4,7 @@
  */
 
 import type { Express, Request, Response, NextFunction } from 'express';
-import { getLLMManager } from './llm';
+import { getLLMManager } from '@noesis/adapters-llm';
 
 /**
  * Middleware to restrict access to sensitive endpoints in production.

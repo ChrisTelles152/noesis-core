@@ -50,3 +50,22 @@ export interface LLMConfig {
     model?: string;
   };
 }
+
+/**
+ * Logger interface for LLM providers
+ * Allows custom logging integration (e.g., structured logging)
+ */
+export interface LLMLogger {
+  info(message: string, meta?: Record<string, unknown>): void;
+  warn(message: string, meta?: Record<string, unknown>): void;
+  error(message: string, meta?: Record<string, unknown>, error?: Error): void;
+}
+
+/**
+ * Default console logger
+ */
+export const defaultLogger: LLMLogger = {
+  info: (message, meta) => console.log(`[LLM] ${message}`, meta ? JSON.stringify(meta) : ''),
+  warn: (message, meta) => console.warn(`[LLM] ${message}`, meta ? JSON.stringify(meta) : ''),
+  error: (message, meta, error) => console.error(`[LLM] ${message}`, meta ? JSON.stringify(meta) : '', error || ''),
+};
