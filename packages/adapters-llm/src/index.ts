@@ -18,12 +18,13 @@
 export { Orchestrator } from './orchestration';
 
 // Server-side LLM manager and providers
-export { LLMManager, getLLMManager, resetLLMManager } from './manager';
+export { LLMManager, getLLMManager, resetLLMManager, configureLLMManager } from './manager';
+export type { LLMManagerOptions } from './manager';
 export { OpenAIProvider } from './providers/openai';
 export { AnthropicProvider } from './providers/anthropic';
 export { FallbackProvider } from './providers/fallback';
 
-// Types
+// Types and utilities
 export type {
   LLMMessage,
   LLMCompletionOptions,
@@ -31,7 +32,9 @@ export type {
   LLMProvider,
   LLMProviderType,
   LLMConfig,
+  LLMLogger,
 } from './types';
+export { defaultLogger } from './types';
 
 // Re-export orchestration types for convenience
 export type {

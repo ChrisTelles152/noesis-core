@@ -5,6 +5,7 @@
 
 import crypto from 'crypto';
 import type { Request, Response, NextFunction, Express } from 'express';
+import { logger } from './logger';
 
 // Extend Express session to include CSRF secret
 declare module 'express-session' {
@@ -160,7 +161,12 @@ export function setupCsrfRoutes(app: Express): void {
 export function shouldEnableCsrf(): boolean {
   // In development, CSRF can be disabled for easier testing
   if (process.env.DISABLE_CSRF === 'true') {
-    console.warn('[CSRF] CSRF protection is disabled via DISABLE_CSRF environment variable');
+    if (process.env.NODE_ENV === 'production') {
+      // This should never happen as env.ts blocks it, but log as error for defense in depth
+      logger.error("CRITICAL: CSRF protection disabled in PRODUCTION - this is a security vulnerability!", { module: "csrf" });
+    } else {
+      logger.warn("CSRF protection is disabled via DISABLE_CSRF environment variable", { module: "csrf" });
+    }
     return false;
   }
 

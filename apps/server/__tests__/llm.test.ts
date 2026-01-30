@@ -4,7 +4,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { FallbackProvider } from '../llm/providers/fallback';
+import { FallbackProvider } from '@noesis/adapters-llm';
 
 describe('LLM Provider System', () => {
   beforeEach(() => {

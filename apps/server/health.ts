@@ -3,8 +3,40 @@
  * Provides endpoints for monitoring application health
  */
 
-import type { Express, Request, Response } from 'express';
-import { getLLMManager } from './llm';
+import type { Express, Request, Response, NextFunction } from 'express';
+import { getLLMManager } from '@noesis/adapters-llm';
+
+/**
+ * Middleware to restrict access to sensitive endpoints in production.
+ * Allows access from localhost or configurable internal IPs.
+ */
+function requireInternalAccess(req: Request, res: Response, next: NextFunction): void {
+  // Always allow in development
+  if (process.env.NODE_ENV !== 'production') {
+    return next();
+  }
+
+  // Get client IP (handle proxies)
+  const clientIp = req.ip || req.socket.remoteAddress || '';
+
+  // Allow localhost/loopback addresses
+  const localhostPatterns = ['127.0.0.1', '::1', '::ffff:127.0.0.1', 'localhost'];
+  if (localhostPatterns.some(pattern => clientIp.includes(pattern))) {
+    return next();
+  }
+
+  // Allow configurable internal IPs (comma-separated)
+  const allowedIps = process.env.INTERNAL_IPS?.split(',').map(ip => ip.trim()) || [];
+  if (allowedIps.some(ip => clientIp.includes(ip))) {
+    return next();
+  }
+
+  // Deny access
+  res.status(403).json({
+    error: 'Forbidden',
+    message: 'This endpoint is restricted to internal access only',
+  });
+}
 
 interface HealthStatus {
   status: 'healthy' | 'degraded' | 'unhealthy';
@@ -130,9 +162,9 @@ export function setupHealthRoutes(app: Express): void {
 
   /**
    * Full health check - detailed system status
-   * Use this for monitoring dashboards
+   * Use this for monitoring dashboards (restricted to internal access in production)
    */
-  app.get('/health', async (_req: Request, res: Response) => {
+  app.get('/health', requireInternalAccess, async (_req: Request, res: Response) => {
     const startCheck = Date.now();
 
     const [llmCheck, memoryCheck, eventLoopCheck] = await Promise.all([
@@ -172,8 +204,9 @@ export function setupHealthRoutes(app: Express): void {
 
   /**
    * Metrics endpoint - basic metrics for monitoring
+   * Restricted to internal access in production
    */
-  app.get('/health/metrics', (_req: Request, res: Response) => {
+  app.get('/health/metrics', requireInternalAccess, (_req: Request, res: Response) => {
     const memory = process.memoryUsage();
     const cpu = process.cpuUsage();
 
@@ -198,3 +231,6 @@ export function setupHealthRoutes(app: Express): void {
     });
   });
 }
+
+// Export middleware for use in other routes
+export { requireInternalAccess };

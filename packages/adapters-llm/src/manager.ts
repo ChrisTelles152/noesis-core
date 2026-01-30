@@ -3,19 +3,28 @@
  * Handles multi-provider support with automatic fallback
  */
 
-import type { LLMProvider, LLMCompletionOptions, LLMCompletionResult, LLMProviderType } from './types';
+import type { LLMProvider, LLMCompletionOptions, LLMCompletionResult, LLMProviderType, LLMLogger } from './types';
+import { defaultLogger } from './types';
 import { OpenAIProvider } from './providers/openai';
 import { AnthropicProvider } from './providers/anthropic';
 import { FallbackProvider } from './providers/fallback';
 
 export * from './types';
 
+export interface LLMManagerOptions {
+  preferredProvider?: LLMProviderType;
+  logger?: LLMLogger;
+}
+
 export class LLMManager {
   private providers: Map<LLMProviderType, LLMProvider> = new Map();
   private preferredProvider: LLMProviderType;
   private fallbackProvider: FallbackProvider;
+  private logger: LLMLogger;
 
-  constructor(preferredProvider?: LLMProviderType) {
+  constructor(options: LLMManagerOptions = {}) {
+    this.logger = options.logger || defaultLogger;
+
     // Initialize all providers
     this.providers.set('openai', new OpenAIProvider());
     this.providers.set('anthropic', new AnthropicProvider());
@@ -23,9 +32,9 @@ export class LLMManager {
     this.providers.set('fallback', this.fallbackProvider);
 
     // Determine preferred provider
-    this.preferredProvider = preferredProvider || this.detectPreferredProvider();
+    this.preferredProvider = options.preferredProvider || this.detectPreferredProvider();
 
-    console.log(`[LLM] Initialized with preferred provider: ${this.preferredProvider}`);
+    this.logger.info('LLM Manager initialized', { preferredProvider: this.preferredProvider });
     this.logProviderStatus();
   }
 
@@ -44,8 +53,8 @@ export class LLMManager {
   private logProviderStatus(): void {
     const entries = Array.from(this.providers.entries());
     for (const [name, provider] of entries) {
-      const status = provider.isConfigured() ? '✓ configured' : '✗ not configured';
-      console.log(`[LLM]   ${name}: ${status}`);
+      const configured = provider.isConfigured();
+      this.logger.info(`Provider status: ${name}`, { provider: name, configured });
     }
   }
 
@@ -96,14 +105,15 @@ export class LLMManager {
         const result = await provider.complete(options);
         return result;
       } catch (error) {
-        console.error(`[LLM] ${providerName} failed:`, error);
-        lastError = error instanceof Error ? error : new Error(String(error));
+        const err = error instanceof Error ? error : new Error(String(error));
+        this.logger.error(`Provider failed: ${providerName}`, { provider: providerName }, err);
+        lastError = err;
         // Continue to next provider
       }
     }
 
     // All providers failed, use fallback
-    console.warn('[LLM] All providers failed, using fallback');
+    this.logger.warn('All providers failed, using fallback');
     return this.fallbackProvider.complete(options);
   }
 
@@ -165,12 +175,23 @@ attention-prompt, interactive-element, modality-change, micro-break, social-enga
   }
 }
 
-// Singleton instance
+// Singleton instance and configuration
 let llmManager: LLMManager | null = null;
+let singletonOptions: LLMManagerOptions = {};
+
+/**
+ * Configure the singleton LLM Manager options
+ * Call this before getLLMManager() to customize the manager
+ */
+export function configureLLMManager(options: LLMManagerOptions): void {
+  singletonOptions = options;
+  // Reset the manager so it's recreated with new options
+  llmManager = null;
+}
 
 export function getLLMManager(): LLMManager {
   if (!llmManager) {
-    llmManager = new LLMManager();
+    llmManager = new LLMManager(singletonOptions);
   }
   return llmManager;
 }

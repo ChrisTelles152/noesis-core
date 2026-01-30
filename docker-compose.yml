@@ -1,0 +1,89 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  db:
+    image: postgres:16-alpine
+    container_name: noesis-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: noesis
+      POSTGRES_PASSWORD: noesis_dev_password
+      POSTGRES_DB: noesis
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U noesis -d noesis"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Noesis Server (Development)
+  server:
+    build:
+      context: .
+      target: builder
+    container_name: noesis-server
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      NODE_ENV: development
+      PORT: 5000
+      DATABASE_URL: postgres://noesis:noesis_dev_password@db:5432/noesis
+      SESSION_SECRET: development-secret-change-in-production
+      CORS_ALLOWED_ORIGINS: http://localhost:5000,http://localhost:5173
+      # Add your API keys here or via .env file
+      # OPENAI_API_KEY: ${OPENAI_API_KEY}
+      # ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
+    ports:
+      - "5000:5000"
+    volumes:
+      # Mount source code for hot reload in development
+      - ./apps:/app/apps
+      - ./packages:/app/packages
+      - ./shared:/app/shared
+      - /app/node_modules
+    command: npm run dev
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:5000/health"]
+      interval: 30s
+      timeout: 10s
+      start_period: 10s
+      retries: 3
+
+  # Production build (optional, for testing production builds locally)
+  server-prod:
+    build:
+      context: .
+      target: production
+    container_name: noesis-server-prod
+    profiles:
+      - production
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      PORT: 5000
+      DATABASE_URL: postgres://noesis:noesis_dev_password@db:5432/noesis
+      SESSION_SECRET: ${SESSION_SECRET:-change-this-in-production}
+    ports:
+      - "5001:5000"
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:5000/health"]
+      interval: 30s
+      timeout: 10s
+      start_period: 5s
+      retries: 3
+
+volumes:
+  postgres_data:
+    driver: local
+
+networks:
+  default:
+    name: noesis-network

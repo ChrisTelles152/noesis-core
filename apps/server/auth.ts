@@ -6,6 +6,7 @@ import type { Express, Request, Response, NextFunction } from "express";
 import session from "express-session";
 import createMemoryStore from "memorystore";
 import { createError, ErrorCodes } from "./errors";
+import { logger } from "./logger";
 
 // Extend express-session types
 declare module "express-session" {
@@ -68,9 +69,9 @@ export function setupAuth(app: Express): void {
   // SECURITY: Validate session secret in production
   const isProduction = process.env.NODE_ENV === "production";
   const defaultSecret = "noesis-development-secret-change-in-production";
-  const sessionSecret = process.env.SESSION_SECRET || defaultSecret;
+  const secret = process.env.SESSION_SECRET || defaultSecret;
 
-  if (isProduction && sessionSecret === defaultSecret) {
+  if (isProduction && secret === defaultSecret) {
     console.error("╔════════════════════════════════════════════════════════════════╗");
     console.error("║  CRITICAL SECURITY ERROR: Default session secret in production ║");
     console.error("║  Set SESSION_SECRET environment variable to a secure value     ║");
@@ -80,16 +81,23 @@ export function setupAuth(app: Express): void {
   }
 
   if (!process.env.SESSION_SECRET) {
-    console.warn("[AUTH] Warning: Using default session secret. Set SESSION_SECRET in production.");
+    logger.warn("Using default session secret - set SESSION_SECRET in production", { module: "auth" });
   }
 
+  // Create session store
+  const memoryStore = new MemoryStore({
+    checkPeriod: 86400000, // Prune expired entries every 24h
+  });
+
+  // Store references for WebSocket session verification
+  sessionStore = memoryStore;
+  sessionSecret = secret;
+
   const sessionSettings: session.SessionOptions = {
-    secret: sessionSecret,
+    secret: secret,
     resave: false,
     saveUninitialized: false,
-    store: new MemoryStore({
-      checkPeriod: 86400000, // Prune expired entries every 24h
-    }),
+    store: memoryStore,
     cookie: {
       secure: isProduction,
       httpOnly: true,
@@ -226,7 +234,7 @@ function registerAuthRoutes(app: Express): void {
       // Log the user in after registration
       req.login(user, (err) => {
         if (err) {
-          console.error("Login after registration failed:", err);
+          logger.error("Login after registration failed", { module: "auth", username }, err);
           return res.status(500).json({ error: "Registration successful but login failed" });
         }
         // Return user info (without password)
@@ -236,7 +244,7 @@ function registerAuthRoutes(app: Express): void {
         });
       });
     } catch (error) {
-      console.error("Registration error:", error);
+      logger.error("Registration error", { module: "auth" }, error instanceof Error ? error : undefined);
       res.status(500).json({ error: "Registration failed" });
     }
   });
@@ -245,7 +253,7 @@ function registerAuthRoutes(app: Express): void {
   app.post("/api/auth/login", (req: Request, res: Response, next: NextFunction) => {
     passport.authenticate("local", (err: Error | null, user: User | false, info: { message: string } | undefined) => {
       if (err) {
-        console.error("Login error:", err);
+        logger.error("Login error", { module: "auth" }, err);
         return res.status(500).json(createError("Login failed", ErrorCodes.INTERNAL_ERROR));
       }
       if (!user) {
@@ -256,7 +264,7 @@ function registerAuthRoutes(app: Express): void {
       }
       req.login(user, (loginErr) => {
         if (loginErr) {
-          console.error("Session login error:", loginErr);
+          logger.error("Session login error", { module: "auth" }, loginErr);
           return res.status(500).json({ error: "Login failed" });
         }
         res.json({
@@ -271,12 +279,12 @@ function registerAuthRoutes(app: Express): void {
   app.post("/api/auth/logout", (req: Request, res: Response) => {
     req.logout((err) => {
       if (err) {
-        console.error("Logout error:", err);
+        logger.error("Logout error", { module: "auth" }, err);
         return res.status(500).json({ error: "Logout failed" });
       }
       req.session.destroy((destroyErr) => {
         if (destroyErr) {
-          console.error("Session destroy error:", destroyErr);
+          logger.error("Session destroy error", { module: "auth" }, destroyErr);
         }
         res.clearCookie("connect.sid");
         res.json({ message: "Logged out successfully" });
@@ -303,8 +311,72 @@ function registerAuthRoutes(app: Express): void {
       const existingUser = await storage.getUserByUsername(username);
       res.json({ available: !existingUser });
     } catch (error) {
-      console.error("Username check error:", error);
+      logger.error("Username check error", { module: "auth" }, error instanceof Error ? error : undefined);
       res.status(500).json({ error: "Failed to check username" });
     }
+  });
+}
+
+// Session store instance for WebSocket verification
+let sessionStore: session.Store | null = null;
+let sessionSecret: string = "";
+
+/**
+ * Get session configuration for WebSocket verification
+ * Must be called after setupAuth()
+ */
+export function getSessionConfig(): { store: session.Store | null; secret: string } {
+  return { store: sessionStore, secret: sessionSecret };
+}
+
+/**
+ * Parse session ID from cookie header
+ */
+export function parseSessionIdFromCookie(cookieHeader: string | undefined): string | null {
+  if (!cookieHeader) return null;
+
+  // Parse cookies
+  const cookies = cookieHeader.split(';').reduce((acc, cookie) => {
+    const [key, value] = cookie.trim().split('=');
+    if (key && value) {
+      acc[key] = value;
+    }
+    return acc;
+  }, {} as Record<string, string>);
+
+  // Get the connect.sid cookie (URL decode it)
+  const sidCookie = cookies['connect.sid'];
+  if (!sidCookie) return null;
+
+  try {
+    const decoded = decodeURIComponent(sidCookie);
+    // Session ID format: s:<sessionId>.<signature>
+    if (decoded.startsWith('s:')) {
+      const sessionId = decoded.slice(2).split('.')[0];
+      return sessionId;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Verify session and get user ID
+ * Returns user ID if valid session, null otherwise
+ */
+export async function verifySessionAndGetUserId(sessionId: string): Promise<number | null> {
+  if (!sessionStore || !sessionId) return null;
+
+  return new Promise((resolve) => {
+    sessionStore!.get(sessionId, (err, session) => {
+      if (err || !session) {
+        resolve(null);
+        return;
+      }
+
+      const userId = session.passport?.user;
+      resolve(userId ?? null);
+    });
   });
 }

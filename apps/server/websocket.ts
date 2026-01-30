@@ -6,6 +6,8 @@
 import { WebSocketServer, WebSocket } from 'ws';
 import type { Server } from 'http';
 import type { IncomingMessage } from 'http';
+import { parseSessionIdFromCookie, verifySessionAndGetUserId } from './auth';
+import { logger } from './logger';
 
 // Message types
 export interface WSMessage {
@@ -35,6 +37,9 @@ interface WSClient {
   lastPing: number;
 }
 
+// Maximum concurrent WebSocket connections to prevent memory exhaustion
+const MAX_CLIENTS = 1000;
+
 class WebSocketService {
   private wss: WebSocketServer | null = null;
   private clients: Map<WebSocket, WSClient> = new Map();
@@ -58,13 +63,24 @@ class WebSocketService {
       this.checkHeartbeats();
     }, 30000);
 
-    console.log('[WebSocket] Server initialized on /ws');
+    logger.info("WebSocket server initialized", { module: "websocket", path: "/ws" });
   }
 
   /**
    * Handle new WebSocket connection
    */
-  private handleConnection(socket: WebSocket, request: IncomingMessage): void {
+  private async handleConnection(socket: WebSocket, request: IncomingMessage): Promise<void> {
+    // Reject if we have too many clients (DoS protection)
+    if (this.clients.size >= MAX_CLIENTS) {
+      logger.warn("WebSocket connection rejected - max clients reached", {
+        module: "websocket",
+        maxClients: MAX_CLIENTS,
+        currentClients: this.clients.size,
+      });
+      socket.close(1013, 'Server too busy');
+      return;
+    }
+
     const client: WSClient = {
       socket,
       subscriptions: new Set(['attention', 'learning-events']),
@@ -72,7 +88,19 @@ class WebSocketService {
     };
 
     this.clients.set(socket, client);
-    console.log(`[WebSocket] Client connected. Total clients: ${this.clients.size}`);
+    logger.info("WebSocket client connected", { module: "websocket", totalClients: this.clients.size });
+
+    // Try to authenticate from HTTP upgrade request cookies
+    const cookieHeader = request.headers.cookie;
+    const sessionId = parseSessionIdFromCookie(cookieHeader);
+
+    if (sessionId) {
+      const userId = await verifySessionAndGetUserId(sessionId);
+      if (userId) {
+        client.userId = userId;
+        logger.info("WebSocket client auto-authenticated from session", { module: "websocket", userId });
+      }
+    }
 
     // Send welcome message
     this.sendToClient(socket, {
@@ -80,6 +108,8 @@ class WebSocketService {
       payload: {
         message: 'Connected to Noesis WebSocket server',
         subscriptions: Array.from(client.subscriptions),
+        authenticated: client.userId !== undefined,
+        userId: client.userId,
       },
       timestamp: Date.now(),
     });
@@ -92,12 +122,12 @@ class WebSocketService {
     // Handle client disconnect
     socket.on('close', () => {
       this.clients.delete(socket);
-      console.log(`[WebSocket] Client disconnected. Total clients: ${this.clients.size}`);
+      logger.info("WebSocket client disconnected", { module: "websocket", totalClients: this.clients.size });
     });
 
     // Handle errors
     socket.on('error', (error) => {
-      console.error('[WebSocket] Client error:', error);
+      logger.error("WebSocket client error", { module: "websocket" }, error);
       this.clients.delete(socket);
     });
 
@@ -113,7 +143,7 @@ class WebSocketService {
   /**
    * Handle incoming message from client
    */
-  private handleMessage(socket: WebSocket, data: Buffer): void {
+  private async handleMessage(socket: WebSocket, data: Buffer): Promise<void> {
     try {
       const message = JSON.parse(data.toString()) as WSMessage;
       const client = this.clients.get(socket);
@@ -144,53 +174,66 @@ class WebSocketService {
 
         case 'authenticate':
           // SECURITY: Client authentication via WebSocket
-          // NOTE: In production, this should verify against a session token or JWT
-          // passed during the WebSocket upgrade request, not trust client-provided userId.
-          // For now, we log a warning and accept it for development purposes only.
-          const providedUserId = (message.payload as { userId?: number; sessionToken?: string }).userId;
-          const sessionToken = (message.payload as { userId?: number; sessionToken?: string }).sessionToken;
+          // Supports session ID verification (secure) or userId (dev only)
+          const payload = message.payload as { userId?: number; sessionId?: string };
+          const providedSessionId = payload.sessionId;
+          const providedUserId = payload.userId;
 
-          if (sessionToken) {
-            // TODO: Implement proper session token verification
-            // This would verify the token against the session store
-            console.warn('[WebSocket] Session token authentication not yet implemented - falling back to userId');
-          }
-
-          if (providedUserId) {
-            // SECURITY WARNING: This is insecure for production use.
-            // Client-provided userId can be spoofed. In production, always verify
-            // the userId against a signed session token or JWT.
-            if (process.env.NODE_ENV === 'production') {
-              console.error('[WebSocket] SECURITY: Client-provided userId authentication rejected in production');
+          // Try session-based authentication first (secure)
+          if (providedSessionId) {
+            const verifiedUserId = await verifySessionAndGetUserId(providedSessionId);
+            if (verifiedUserId) {
+              client.userId = verifiedUserId;
+              this.sendToClient(socket, {
+                type: 'authenticated',
+                payload: { userId: verifiedUserId, method: 'session' },
+                timestamp: Date.now(),
+              });
+              logger.info("WebSocket client authenticated via session", { module: "websocket", userId: verifiedUserId });
+              break;
+            } else {
               this.sendToClient(socket, {
                 type: 'auth-error',
-                payload: { error: 'Session token required for authentication' },
+                payload: { error: 'Invalid or expired session' },
+                timestamp: Date.now(),
+              });
+              break;
+            }
+          }
+
+          // Fall back to userId (development only)
+          if (providedUserId) {
+            if (process.env.NODE_ENV === 'production') {
+              logger.error("SECURITY: Client-provided userId rejected in production", { module: "websocket" });
+              this.sendToClient(socket, {
+                type: 'auth-error',
+                payload: { error: 'Session authentication required in production' },
                 timestamp: Date.now(),
               });
               break;
             }
 
-            console.warn('[WebSocket] DEVELOPMENT ONLY: Accepting client-provided userId without verification');
+            logger.warn("DEV: Accepting client-provided userId without verification", { module: "websocket" });
             client.userId = providedUserId;
             this.sendToClient(socket, {
               type: 'authenticated',
-              payload: { userId: providedUserId, warning: 'Development mode - userId not verified' },
+              payload: { userId: providedUserId, method: 'dev-userId', warning: 'Development mode only' },
               timestamp: Date.now(),
             });
           } else {
             this.sendToClient(socket, {
               type: 'auth-error',
-              payload: { error: 'userId or sessionToken required' },
+              payload: { error: 'sessionId or userId (dev only) required' },
               timestamp: Date.now(),
             });
           }
           break;
 
         default:
-          console.log(`[WebSocket] Unknown message type: ${message.type}`);
+          logger.debug("Unknown WebSocket message type", { module: "websocket", type: message.type });
       }
     } catch (error) {
-      console.error('[WebSocket] Error parsing message:', error);
+      logger.error("Error parsing WebSocket message", { module: "websocket" }, error instanceof Error ? error : undefined);
     }
   }
 
@@ -312,7 +355,7 @@ class WebSocketService {
 
     Array.from(this.clients.entries()).forEach(([socket, client]) => {
       if (now - client.lastPing > timeout) {
-        console.log('[WebSocket] Client timed out, disconnecting');
+        logger.info("WebSocket client timed out, disconnecting", { module: "websocket" });
         socket.terminate();
         this.clients.delete(socket);
       } else {
@@ -363,7 +406,7 @@ class WebSocketService {
     }
 
     this.clients.clear();
-    console.log('[WebSocket] Server shutdown complete');
+    logger.info("WebSocket server shutdown complete", { module: "websocket" });
   }
 }
 

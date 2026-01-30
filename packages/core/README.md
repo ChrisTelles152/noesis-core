@@ -358,6 +358,57 @@ These belong in adapters or apps, not core:
 - LLM integration → `@noesis/adapters-llm`
 - Browser APIs → Adapters
 
+## Integration Contract
+
+If you want **proof verification** of learning outcomes, your app must:
+
+### 1. Export EventFile Format
+
+```typescript
+interface EventFile {
+  _meta: {
+    version: string;      // Must match EVENT_SCHEMA_VERSION
+    exportedAt: number;   // Export timestamp
+    learnerId: string;
+    sessionCount: number;
+    eventCount: number;
+  };
+  events: NoesisEvent[];  // Canonical events only
+}
+```
+
+### 2. Include Required Events
+
+Every verifiable session must contain:
+- `session_start` - With session configuration
+- `practice` - At least one practice event
+- `session_end` - With session summary
+
+### 3. Strip Extensions Before Export
+
+Apps may add metadata (e.g., `_eng` for attention data), but must strip it for proof:
+
+```typescript
+// App event with extensions
+const appEvent = { ...canonicalEvent, _eng: { attentionScore: 0.85 } };
+
+// Export strips extensions
+const proofEvent = stripExtensions(appEvent); // Only canonical fields
+```
+
+### 4. Replay Through Core
+
+```typescript
+import { createDeterministicEngine } from '@noesis-edu/core';
+
+const engine = createDeterministicEngine(graph, config, startTime);
+engine.replayEvents(eventFile.events);
+
+// Verify: engine state matches original session
+```
+
+See [Engineering Proof Compatibility](../../docs/architecture/ENG_PROOF_CORE_COMPAT.md) for full details.
+
 ## Contributing
 
 See the [Core SDK Constitution](./src/constitution.ts) for the canonical interface definitions.
