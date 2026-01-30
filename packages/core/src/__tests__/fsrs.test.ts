@@ -459,5 +459,30 @@ describe('FSRSScheduler', () => {
       // Default uses Good rating (index 2) for initial stability
       expect(state.stability).toBe(1.0);
     });
+
+    it('should return immediate review (interval 0) for 100% retention', () => {
+      // requestedRetention = 1.0 means "perfect retention" = review immediately
+      const perfectRetentionScheduler = createFSRSScheduler({ requestedRetention: 1.0 }, mockClock);
+
+      let state = perfectRetentionScheduler.createState('skill-a');
+      state = perfectRetentionScheduler.scheduleReview(state, true, 3);
+
+      // With 100% retention requested, interval should be 0 (review immediately)
+      const interval = state.nextReview - currentTime;
+      expect(interval).toBe(0);
+    });
+
+    it('should handle retention values at boundary (0.99)', () => {
+      const nearPerfectScheduler = createFSRSScheduler({ requestedRetention: 0.99 }, mockClock);
+
+      let state = nearPerfectScheduler.createState('skill-a');
+      state = nearPerfectScheduler.scheduleReview(state, true, 3);
+
+      // Should still calculate interval (not 0, not stability fallback)
+      const interval = state.nextReview - currentTime;
+      expect(interval).toBeGreaterThan(0);
+      // Very high retention = very short interval
+      expect(interval).toBeLessThan(MS_PER_DAY); // Less than 1 day
+    });
   });
 });

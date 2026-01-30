@@ -212,10 +212,19 @@ export class FSRSScheduler implements MemoryScheduler {
    *
    * Given target retention R and stability S:
    * interval = S * 9 * (1/R - 1)
+   *
+   * Edge cases:
+   * - R >= 1.0: Perfect retention requested, review immediately (interval = 0)
+   * - R <= 0: Invalid, use stability as fallback
    */
   private calculateInterval(stability: number, requestedRetention: number): number {
-    if (requestedRetention <= 0 || requestedRetention >= 1) {
-      return stability; // Fallback
+    // Perfect retention (100%) means review immediately
+    if (requestedRetention >= 1) {
+      return 0;
+    }
+    // Invalid retention value, use stability as fallback
+    if (requestedRetention <= 0) {
+      return stability;
     }
     return stability * 9 * (1 / requestedRetention - 1);
   }
