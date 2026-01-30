@@ -37,6 +37,9 @@ interface WSClient {
   lastPing: number;
 }
 
+// Maximum concurrent WebSocket connections to prevent memory exhaustion
+const MAX_CLIENTS = 1000;
+
 class WebSocketService {
   private wss: WebSocketServer | null = null;
   private clients: Map<WebSocket, WSClient> = new Map();
@@ -67,6 +70,17 @@ class WebSocketService {
    * Handle new WebSocket connection
    */
   private async handleConnection(socket: WebSocket, request: IncomingMessage): Promise<void> {
+    // Reject if we have too many clients (DoS protection)
+    if (this.clients.size >= MAX_CLIENTS) {
+      logger.warn("WebSocket connection rejected - max clients reached", {
+        module: "websocket",
+        maxClients: MAX_CLIENTS,
+        currentClients: this.clients.size,
+      });
+      socket.close(1013, 'Server too busy');
+      return;
+    }
+
     const client: WSClient = {
       socket,
       subscriptions: new Set(['attention', 'learning-events']),

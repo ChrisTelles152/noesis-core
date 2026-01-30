@@ -122,14 +122,42 @@ export class AttentionTracker {
     this.attentionData.status = 'inactive';
     this.lastRealGaze = null;
 
+    // Clear callbacks to prevent memory leaks
+    this.changeCallbacks = [];
+
     this.log('Attention tracking stopped');
   }
 
   /**
    * Register a callback for attention data changes
+   * @returns A function to unsubscribe the callback
    */
-  onAttentionChange(callback: AttentionChangeCallback): void {
+  onAttentionChange(callback: AttentionChangeCallback): () => void {
     this.changeCallbacks.push(callback);
+
+    // Return unsubscribe function for cleanup
+    return () => {
+      this.offAttentionChange(callback);
+    };
+  }
+
+  /**
+   * Unregister a callback for attention data changes
+   * Call this when unmounting components to prevent memory leaks
+   */
+  offAttentionChange(callback: AttentionChangeCallback): void {
+    const index = this.changeCallbacks.indexOf(callback);
+    if (index !== -1) {
+      this.changeCallbacks.splice(index, 1);
+    }
+  }
+
+  /**
+   * Remove all registered callbacks
+   * Useful when cleaning up the tracker entirely
+   */
+  removeAllCallbacks(): void {
+    this.changeCallbacks = [];
   }
 
   /**
