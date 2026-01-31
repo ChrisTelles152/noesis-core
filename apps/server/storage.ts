@@ -1,3 +1,14 @@
+/**
+ * Storage Layer
+ * Provides data persistence abstraction with support for both
+ * in-memory (development) and PostgreSQL (production) backends.
+ *
+ * Uses dependency injection pattern:
+ * - Configure with configureStorage() before first use
+ * - Access via getStorage() for DI-friendly code
+ * - Direct import of `storage` still works for convenience
+ */
+
 import bcrypt from "bcrypt";
 import { eq } from "drizzle-orm";
 import {
@@ -9,7 +20,7 @@ import {
   type InsertLearningEvent
 } from "@shared/schema";
 import { db, isDatabaseConfigured } from "./db";
-import { logger } from "./logger";
+import { getLogger, type Logger } from "./logger";
 
 const SALT_ROUNDS = 12;
 
@@ -185,15 +196,69 @@ export class DatabaseStorage implements IStorage {
   }
 }
 
-// Export the appropriate storage based on configuration
-function createStorage(): IStorage {
-  if (isDatabaseConfigured) {
-    logger.info("Using PostgreSQL database storage", { module: "storage" });
+/**
+ * Storage configuration options
+ */
+export interface StorageOptions {
+  /** Logger instance (default: uses getLogger()) */
+  logger?: Logger;
+  /** Force in-memory storage even if database is configured (for testing) */
+  forceMemory?: boolean;
+}
+
+// Storage factory with options
+function createStorage(options: StorageOptions = {}): IStorage {
+  const log = options.logger ?? getLogger();
+  const useDatabase = isDatabaseConfigured && !options.forceMemory;
+
+  if (useDatabase) {
+    log.info("Using PostgreSQL database storage", { module: "storage" });
     return new DatabaseStorage();
   } else {
-    logger.info("Using in-memory storage (data will not persist across restarts)", { module: "storage" });
+    log.info("Using in-memory storage (data will not persist across restarts)", { module: "storage" });
     return new MemStorage();
   }
 }
 
-export const storage = createStorage();
+// Singleton management
+let storageInstance: IStorage | null = null;
+let storageOptions: StorageOptions = {};
+
+/**
+ * Configure storage before first access.
+ */
+export function configureStorage(options: StorageOptions): void {
+  storageOptions = options;
+  storageInstance = null;
+}
+
+/**
+ * Get the storage instance (creates on first access).
+ */
+export function getStorage(): IStorage {
+  if (!storageInstance) {
+    storageInstance = createStorage(storageOptions);
+  }
+  return storageInstance;
+}
+
+/**
+ * Reset the storage singleton (for testing)
+ */
+export function resetStorage(): void {
+  storageInstance = null;
+  storageOptions = {};
+}
+
+// Default instance for convenience (uses getter internally)
+export const storage = new Proxy({} as IStorage, {
+  get(_target, prop) {
+    const instance = getStorage();
+    const value = (instance as unknown as Record<string | symbol, unknown>)[prop];
+    // Bind methods to preserve 'this' context
+    if (typeof value === 'function') {
+      return value.bind(instance);
+    }
+    return value;
+  },
+});

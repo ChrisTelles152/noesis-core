@@ -18,14 +18,24 @@ vi.mock('../auth', () => ({
 }));
 
 // Mock logger
-vi.mock('../logger', () => ({
-  logger: {
+vi.mock('../logger', () => {
+  const mockLoggerInstance = {
     info: vi.fn(),
     warn: vi.fn(),
     error: vi.fn(),
     debug: vi.fn(),
-  },
-}));
+  };
+  return {
+    logger: mockLoggerInstance,
+    getLogger: () => mockLoggerInstance,
+    Logger: class {
+      info = vi.fn();
+      warn = vi.fn();
+      error = vi.fn();
+      debug = vi.fn();
+    },
+  };
+});
 
 import { wsService, initializeWebSocket } from '../websocket';
 import { verifySessionAndGetUserId } from '../auth';

@@ -9,8 +9,7 @@ vi.mock('../storage', () => {
   const users = new Map<number, { id: number; username: string; password: string }>();
   let currentId = 1;
 
-  return {
-    storage: {
+  const mockStorage = {
       getUserByUsername: vi.fn(async (username: string) => {
         return Array.from(users.values()).find(u => u.username === username);
       }),
@@ -31,13 +30,17 @@ vi.mock('../storage', () => {
         const isValid = await bcrypt.compare(password, user.password);
         return isValid ? user : null;
       }),
-      // Reset for tests
-      _reset: () => {
-        users.clear();
-        currentId = 1;
-      },
-      _getUsers: () => users
-    }
+    // Reset for tests
+    _reset: () => {
+      users.clear();
+      currentId = 1;
+    },
+    _getUsers: () => users
+  };
+
+  return {
+    storage: mockStorage,
+    getStorage: () => mockStorage,
   };
 });
 
