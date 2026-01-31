@@ -111,6 +111,7 @@ export class Logger {
     switch (level) {
       case 'debug':
       case 'info':
+        // eslint-disable-next-line no-console
         console.log(formatted);
         break;
       case 'warn':
@@ -226,7 +227,7 @@ export function createErrorHandler() {
     err: Error & { status?: number; statusCode?: number },
     req: { method: string; path: string; ip?: string },
     res: { status: (code: number) => { json: (body: unknown) => void }; headersSent: boolean },
-    next: (err?: Error) => void
+    _next: (err?: Error) => void
   ) => {
     const status = err.status || err.statusCode || 500;
     const isServerError = status >= 500;

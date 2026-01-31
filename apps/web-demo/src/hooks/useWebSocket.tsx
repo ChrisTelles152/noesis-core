@@ -91,6 +91,7 @@ export function useWebSocket(options: UseWebSocketOptions = {}): UseWebSocketRet
         if (reconnectCountRef.current < reconnectAttempts) {
           reconnectTimeoutRef.current = setTimeout(() => {
             reconnectCountRef.current++;
+            // eslint-disable-next-line no-console
             console.log(`[WebSocket] Reconnecting... (attempt ${reconnectCountRef.current})`);
             connect();
           }, reconnectInterval);

@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from 'react';
-import { LearningObjective, MasteryData } from '@/sdk/types';
+import { MasteryData } from '@/sdk/types';
 import { useNoesisSDK } from './useNoesisSDK';
 
 export const useMasteryTracking = (initialObjectives: { id: string, name: string, progress: number }[] = []) => {

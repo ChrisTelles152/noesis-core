@@ -38,14 +38,14 @@ vi.mock('../logger', () => {
 });
 
 import { wsService, initializeWebSocket } from '../websocket';
-import { verifySessionAndGetUserId } from '../auth';
+import { verifySessionAndGetUserId as _verifySessionAndGetUserId } from '../auth';
 
 describe('WebSocket Service', () => {
   let server: Server;
   let wsUrl: string;
   const originalEnv = process.env.NODE_ENV;
 
-  beforeEach((context) => {
+  beforeEach((_context) => {
     return new Promise<void>((resolve) => {
       const app = express();
       server = createServer(app);

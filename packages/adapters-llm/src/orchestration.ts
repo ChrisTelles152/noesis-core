@@ -160,6 +160,7 @@ export class Orchestrator {
    */
   private log(message: string, ...args: unknown[]): void {
     if (this.debug) {
+      // eslint-disable-next-line no-console
       console.log(`[Orchestrator] ${message}`, ...args);
     }
   }

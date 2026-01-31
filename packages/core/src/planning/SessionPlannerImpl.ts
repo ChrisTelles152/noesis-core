@@ -455,7 +455,7 @@ export class SessionPlannerImpl implements SessionPlanner {
     };
 
     const uniqueSkills = new Set(
-      actions.filter(a => a.skillId).map(a => a.skillId!)
+      actions.filter(a => a.skillId).map(a => a.skillId as string)
     );
 
     return {

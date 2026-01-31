@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import express from 'express';
 import request from 'supertest';
 import session from 'express-session';
@@ -152,7 +152,7 @@ describe('Security Tests', () => {
       const malicious = JSON.parse(`{
         "a": {"b": {"c": {"__proto__": {"deep": true}}}}
       }`);
-      const result = sanitizeObject(malicious);
+      const _result = sanitizeObject(malicious);
 
       expect(({} as any).deep).toBeUndefined();
     });
@@ -299,7 +299,7 @@ describe('Security Tests', () => {
 
     it('should require special characters', () => {
       const noSpecial = 'Password123';
-      expect(/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(noSpecial)).toBe(false);
+      expect(/[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/.test(noSpecial)).toBe(false);
     });
 
     it('should accept valid complex passwords', () => {
@@ -307,7 +307,7 @@ describe('Security Tests', () => {
       const hasUppercase = /[A-Z]/.test(validPassword);
       const hasLowercase = /[a-z]/.test(validPassword);
       const hasDigit = /[0-9]/.test(validPassword);
-      const hasSpecial = /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(validPassword);
+      const hasSpecial = /[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/.test(validPassword);
 
       expect(hasUppercase).toBe(true);
       expect(hasLowercase).toBe(true);

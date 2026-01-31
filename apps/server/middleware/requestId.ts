@@ -8,6 +8,7 @@ import type { Request, Response, NextFunction } from 'express';
 
 // Extend Express Request type to include requestId
 declare global {
+  // eslint-disable-next-line @typescript-eslint/no-namespace
   namespace Express {
     interface Request {
       requestId?: string;

@@ -276,6 +276,7 @@ export class NoesisCoreEngineImpl implements NoesisCoreEngine {
     this.transferTests = tests;
 
     // Re-create session planner with updated tests
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (this as any).sessionPlanner = new SessionPlannerImpl(
       {},
       this.transferTests,
@@ -497,7 +498,7 @@ export function createDeterministicEngine(
   config: CoreEngineConfig = {},
   startTime: number = 0
 ): NoesisCoreEngineImpl {
-  let currentTime = startTime;
+  const currentTime = startTime;
   let eventCounter = 0;
 
   const deterministicClock: ClockFn = () => currentTime;

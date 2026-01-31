@@ -425,6 +425,7 @@ export class AttentionTracker {
    */
   private log(message: string, ...args: unknown[]): void {
     if (this.debug) {
+      // eslint-disable-next-line no-console
       console.log(`[AttentionTracker] ${message}`, ...args);
     }
   }

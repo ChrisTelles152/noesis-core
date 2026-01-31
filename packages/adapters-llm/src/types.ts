@@ -65,6 +65,7 @@ export interface LLMLogger {
  * Default console logger
  */
 export const defaultLogger: LLMLogger = {
+  // eslint-disable-next-line no-console
   info: (message, meta) => console.log(`[LLM] ${message}`, meta ? JSON.stringify(meta) : ''),
   warn: (message, meta) => console.warn(`[LLM] ${message}`, meta ? JSON.stringify(meta) : ''),
   error: (message, meta, error) => console.error(`[LLM] ${message}`, meta ? JSON.stringify(meta) : '', error || ''),

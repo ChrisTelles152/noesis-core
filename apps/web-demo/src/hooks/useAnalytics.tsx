@@ -3,7 +3,7 @@
  * Provides access to learning analytics data from the backend
  */
 
-import { useState, useCallback, useEffect } from 'react';
+import { useCallback } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { AnalyticsEvent } from '@/sdk/types';
 

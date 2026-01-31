@@ -1,4 +1,4 @@
-import { Card, CardContent } from "@/components/ui/card";
+import {} from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 
 export default function Architecture() {

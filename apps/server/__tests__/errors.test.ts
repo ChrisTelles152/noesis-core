@@ -4,7 +4,7 @@ import {
   createError,
   getStatusForCode,
   type ErrorCode,
-  type APIError,
+  type _APIError,
 } from '../errors';
 
 describe('Error Codes', () => {

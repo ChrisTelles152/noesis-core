@@ -36,14 +36,11 @@ import {
   createEventFactoryContext,
   createDeterministicIdGenerator,
   createPracticeEvent,
-  createDiagnosticEvent,
-  createTransferTestEvent,
 } from '../events';
 
 // Types
 import type {
   SkillGraph,
-  LearnerModel,
   MemoryState,
   TransferTest,
   TransferTestResult,
@@ -368,7 +365,7 @@ describe('BKTEngine', () => {
 // =============================================================================
 
 describe('FSRSScheduler', () => {
-  const MS_PER_DAY = 24 * 60 * 60 * 1000;
+  const _MS_PER_DAY = 24 * 60 * 60 * 1000;
   let currentTime = 0;
   const testClock = () => currentTime;
   let scheduler: ReturnType<typeof createFSRSScheduler>;
@@ -587,14 +584,14 @@ describe('TransferGate', () => {
 describe('SessionPlanner', () => {
   let graph: SkillGraph;
   let bktEngine: ReturnType<typeof createBKTEngine>;
-  let memoryScheduler: ReturnType<typeof createFSRSScheduler>;
+  let _memoryScheduler: ReturnType<typeof createFSRSScheduler>;
   let sessionPlanner: ReturnType<typeof createSessionPlanner>;
   const fixedClock = () => 1000000;
 
   beforeEach(() => {
     graph = createSkillGraph(createTestSkills());
     bktEngine = createBKTEngine({}, fixedClock);
-    memoryScheduler = createFSRSScheduler({}, fixedClock);
+    _memoryScheduler = createFSRSScheduler({}, fixedClock);
     sessionPlanner = createSessionPlanner();
   });
 

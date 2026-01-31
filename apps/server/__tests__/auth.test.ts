@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import express from 'express';
 import request from 'supertest';
 import session from 'express-session';
-import passport from 'passport';
+import _passport from 'passport';
 
 // Mock the storage module
 vi.mock('../storage', () => {

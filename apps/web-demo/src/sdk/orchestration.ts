@@ -3,7 +3,6 @@ import {
   OrchestratorResponse,
   EngagementRequest,
   EngagementResponse,
-  LearnerState 
 } from './types';
 
 export class Orchestrator {
@@ -161,6 +160,7 @@ export class Orchestrator {
    */
   private log(message: string, ...args: unknown[]): void {
     if (this.debug) {
+      // eslint-disable-next-line no-console
       console.log(`[Orchestrator] ${message}`, ...args);
     }
   }

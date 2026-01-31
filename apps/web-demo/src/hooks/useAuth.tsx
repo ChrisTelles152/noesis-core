@@ -38,6 +38,7 @@ export function useAuth(): UseAuthReturn {
   // Check if user is already authenticated on mount
   useEffect(() => {
     checkAuthStatus();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const checkAuthStatus = useCallback(async () => {
@@ -62,7 +63,7 @@ export function useAuth(): UseAuthReturn {
           error: null,
         });
       }
-    } catch (error) {
+    } catch {
       setState({
         user: null,
         isLoading: false,
@@ -101,7 +102,7 @@ export function useAuth(): UseAuthReturn {
         }));
         return false;
       }
-    } catch (error) {
+    } catch {
       setState(prev => ({
         ...prev,
         isLoading: false,
@@ -140,7 +141,7 @@ export function useAuth(): UseAuthReturn {
         }));
         return false;
       }
-    } catch (error) {
+    } catch {
       setState(prev => ({
         ...prev,
         isLoading: false,
@@ -158,7 +159,7 @@ export function useAuth(): UseAuthReturn {
         method: 'POST',
         credentials: 'include',
       });
-    } catch (error) {
+    } catch {
       // Ignore logout errors
     }
 
@@ -181,7 +182,7 @@ export function useAuth(): UseAuthReturn {
         return data.available;
       }
       return false;
-    } catch (error) {
+    } catch {
       return false;
     }
   }, []);
@@ -201,7 +202,7 @@ export function useAuth(): UseAuthReturn {
 }
 
 // Context for providing auth state throughout the app
-interface AuthContextType extends UseAuthReturn {}
+type AuthContextType = UseAuthReturn;
 
 const AuthContext = createContext<AuthContextType | null>(null);
 

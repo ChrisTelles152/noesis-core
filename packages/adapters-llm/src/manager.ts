@@ -92,7 +92,7 @@ export class LLMManager {
         .filter(p => p !== this.preferredProvider),
     ];
 
-    let lastError: Error | null = null;
+    let _lastError: Error | null = null;
 
     for (const providerName of providersToTry) {
       const provider = this.providers.get(providerName);
@@ -107,7 +107,7 @@ export class LLMManager {
       } catch (error) {
         const err = error instanceof Error ? error : new Error(String(error));
         this.logger.error(`Provider failed: ${providerName}`, { provider: providerName }, err);
-        lastError = err;
+        _lastError = err;
         // Continue to next provider
       }
     }

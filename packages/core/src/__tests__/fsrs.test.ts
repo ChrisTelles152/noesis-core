@@ -80,7 +80,7 @@ describe('FSRSScheduler', () => {
 
     it('should increase stability on successful recall', () => {
       let state = scheduler.createState('skill-a');
-      const initialStability = state.stability;
+      const _initialStability = state.stability;
 
       // Good recall
       state = scheduler.scheduleReview(state, true, 3);

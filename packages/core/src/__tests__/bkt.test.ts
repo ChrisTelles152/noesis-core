@@ -10,7 +10,7 @@ import {
   createBKTEngine,
   DEFAULT_BKT_PARAMS,
   validateBKTParams,
-  type BKTParams,
+  type _BKTParams,
 } from '../learner/BKTEngine.js';
 import type { SkillGraph, PracticeEvent } from '../constitution.js';
 

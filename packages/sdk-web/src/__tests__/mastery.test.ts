@@ -143,7 +143,7 @@ describe('MasteryTracker', () => {
 
     it('should consider confidence in weight', () => {
       tracker.recordEvent({ objectiveId: 'obj-1', result: 1.0 });
-      const highConfProgress = tracker.getObjectiveProgress('obj-1');
+      const _highConfProgress = tracker.getObjectiveProgress('obj-1');
 
       // Reset and try with low confidence
       tracker.initialize({

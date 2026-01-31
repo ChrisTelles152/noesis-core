@@ -194,7 +194,7 @@ export class WebSocketService {
           this.broadcastAttentionUpdate(message.payload as AttentionUpdate, client.userId);
           break;
 
-        case 'authenticate':
+        case 'authenticate': {
           // SECURITY: Client authentication via WebSocket
           // Supports session ID verification (secure) or userId (dev only)
           const payload = message.payload as { userId?: number; sessionId?: string };
@@ -250,6 +250,7 @@ export class WebSocketService {
             });
           }
           break;
+        }
 
         default:
           this.logger.debug("Unknown WebSocket message type", { module: "websocket", type: message.type });

@@ -69,7 +69,7 @@ function tokenizeCode(code: string, language: string): Token[] {
         { type: 'comment', regex: /^#.*/ },
         { type: 'keyword', regex: /^(?:npm|yarn|git|cd|mkdir|rm|cp|mv|cat|echo|export)\b/ },
         { type: 'function', regex: /^(?:install|add|init|run|build|test|start)\b/ },
-        { type: 'string', regex: /^@[\w\/-]+/ },
+        { type: 'string', regex: /^@[\w/-]+/ },
         { type: 'plain', regex: /^[^\s]+/ },
         { type: 'plain', regex: /^\s+/ },
       ];

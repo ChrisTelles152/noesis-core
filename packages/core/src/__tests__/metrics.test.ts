@@ -4,9 +4,9 @@
  * Tests for the getLearnerMetrics proof extraction function.
  */
 
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect } from 'vitest';
 
-import { getLearnerMetrics, type LearnerMetrics } from '../engine/metrics';
+import { getLearnerMetrics } from '../engine/metrics';
 import { createSkillGraph, type Skill } from '../graph';
 import { createDeterministicEngine } from '../engine';
 import {

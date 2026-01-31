@@ -469,7 +469,7 @@ describe('TransferGateImpl', () => {
         createTest('near-A1', 'skillA', 'near'),
         createTest('far-A', 'skillA', 'far'),
       ];
-      const results = [createResult('near-A1', true, 0.8)];
+      const _results = [createResult('near-A1', true, 0.8)];
 
       const required1 = gate.getRequiredTests('skillA', tests);
       const required2 = gate.getRequiredTests('skillA', tests);

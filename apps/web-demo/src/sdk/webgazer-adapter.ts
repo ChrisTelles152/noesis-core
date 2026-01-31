@@ -92,7 +92,7 @@ export class WebGazerAdapter {
       await this.webgazer.begin();
 
       // Set up gaze listener
-      this.webgazer.setGazeListener((data: WebGazerPrediction | null, elapsedTime: number) => {
+      this.webgazer.setGazeListener((data: WebGazerPrediction | null, _elapsedTime: number) => {
         if (data) {
           this.predictionCount++;
           const gazeData: GazeData = {
@@ -225,6 +225,7 @@ export class WebGazerAdapter {
 
   private log(message: string, ...args: unknown[]): void {
     if (this.debug) {
+      // eslint-disable-next-line no-console
       console.log(`[WebGazerAdapter] ${message}`, ...args);
     }
   }

@@ -4,7 +4,7 @@ import { storage } from "./storage";
 import { z } from "zod";
 import { getCurrentUserId, requireAuth } from "./auth";
 import { getLLMManager, configureLLMManager, type LLMLogger } from "@noesis/adapters-llm";
-import { createError, ErrorCodes } from "./errors";
+import { createError as _createError, ErrorCodes as _ErrorCodes } from "./errors";
 import { logger } from "./logger";
 
 // Configure the LLM Manager with the server's structured logger
@@ -60,7 +60,7 @@ function getUserIdFromRequest(req: Request): number {
  * Optionally get user ID from request for unprotected endpoints.
  * Returns null if not authenticated (does not throw).
  */
-function getUserIdFromRequestOptional(req: Request): number | null {
+function _getUserIdFromRequestOptional(req: Request): number | null {
   return getCurrentUserId(req);
 }
 

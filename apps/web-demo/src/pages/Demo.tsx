@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from "react";
-import { Card, CardContent } from "@/components/ui/card";
+import {} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { formatAttentionFeedback, getFocusStabilityLabel, getCognitiveLoadLabel } from "@/lib/utils";
@@ -88,7 +88,7 @@ export default function Demo() {
       
       // Record progress for binary search concept
       recordProgress('binary_search', 0.1);
-    } catch (error) {
+    } catch {
       setLlmSuggestion("I couldn't load the example at this time. Would you like to try a different explanation instead?");
     }
   };
