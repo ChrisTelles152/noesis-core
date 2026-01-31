@@ -5,10 +5,14 @@ FROM node:20-alpine AS builder
 
 WORKDIR /app
 
-# Copy package files
+# Copy root package files
 COPY package*.json ./
-COPY packages/*/package*.json ./packages/
-COPY apps/*/package*.json ./apps/
+
+# Copy package files with structure preserved
+COPY packages/adapters-attention-web/package*.json ./packages/adapters-attention-web/
+COPY packages/adapters-llm/package*.json ./packages/adapters-llm/
+COPY packages/core/package*.json ./packages/core/
+COPY packages/sdk-web/package*.json ./packages/sdk-web/
 
 # Install dependencies
 RUN npm ci
@@ -28,14 +32,24 @@ WORKDIR /app
 RUN addgroup -g 1001 -S nodejs && \
     adduser -S nodejs -u 1001
 
-# Copy package files and install production dependencies only
+# Copy root package files
 COPY package*.json ./
-COPY packages/*/package*.json ./packages/
+
+# Copy package files with structure preserved
+COPY packages/adapters-attention-web/package*.json ./packages/adapters-attention-web/
+COPY packages/adapters-llm/package*.json ./packages/adapters-llm/
+COPY packages/core/package*.json ./packages/core/
+COPY packages/sdk-web/package*.json ./packages/sdk-web/
+
+# Install production dependencies only
 RUN npm ci --omit=dev
 
 # Copy built files from builder stage
 COPY --from=builder /app/dist ./dist
-COPY --from=builder /app/packages/*/dist ./packages/
+COPY --from=builder /app/packages/adapters-attention-web/dist ./packages/adapters-attention-web/dist
+COPY --from=builder /app/packages/adapters-llm/dist ./packages/adapters-llm/dist
+COPY --from=builder /app/packages/core/dist ./packages/core/dist
+COPY --from=builder /app/packages/sdk-web/dist ./packages/sdk-web/dist
 
 # Set ownership to non-root user
 RUN chown -R nodejs:nodejs /app
