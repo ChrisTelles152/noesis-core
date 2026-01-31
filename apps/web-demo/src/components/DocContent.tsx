@@ -1,5 +1,5 @@
-import { Button } from "@/components/ui/button";
-import { sectionComponents } from "@/components/docs";
+import { Button } from '@/components/ui/button';
+import { sectionComponents } from '@/components/docs';
 
 interface DocContentProps {
   activeSection: string;
@@ -26,10 +26,18 @@ export default function DocContent({ activeSection }: DocContentProps) {
         {renderContent()}
 
         <div className="flex justify-between mt-8 pt-4 border-t border-slate-200">
-          <Button variant="ghost" className="text-primary-600 hover:text-primary-700 font-medium text-sm" asChild>
+          <Button
+            variant="ghost"
+            className="text-primary-600 hover:text-primary-700 font-medium text-sm"
+            asChild
+          >
             <a href="#">← Installation</a>
           </Button>
-          <Button variant="ghost" className="text-primary-600 hover:text-primary-700 font-medium text-sm" asChild>
+          <Button
+            variant="ghost"
+            className="text-primary-600 hover:text-primary-700 font-medium text-sm"
+            asChild
+          >
             <a href="#">LLM Integration →</a>
           </Button>
         </div>

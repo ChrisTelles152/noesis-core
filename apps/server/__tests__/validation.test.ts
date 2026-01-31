@@ -7,7 +7,12 @@
 import { describe, it, expect, vi } from 'vitest';
 import { Request, Response } from 'express';
 import { z } from 'zod';
-import { validateBody, validateQuery, validateParams, commonSchemas } from '../middleware/validation';
+import {
+  validateBody,
+  validateQuery,
+  validateParams,
+  commonSchemas,
+} from '../middleware/validation';
 
 // Helper to create mock Express objects
 function createMockReq(data: Partial<Request> = {}): Request {
@@ -90,7 +95,7 @@ describe('validateBody', () => {
 
     expect(res.statusCode).toBe(400);
     const details = (res.jsonData as { details: Array<{ path: string; message: string }> }).details;
-    expect(details.some(d => d.path === 'age')).toBe(true);
+    expect(details.some((d) => d.path === 'age')).toBe(true);
   });
 
   it('should handle missing required fields', async () => {
@@ -102,8 +107,8 @@ describe('validateBody', () => {
 
     expect(res.statusCode).toBe(400);
     const details = (res.jsonData as { details: Array<{ path: string }> }).details;
-    expect(details.some(d => d.path === 'name')).toBe(true);
-    expect(details.some(d => d.path === 'age')).toBe(true);
+    expect(details.some((d) => d.path === 'name')).toBe(true);
+    expect(details.some((d) => d.path === 'age')).toBe(true);
   });
 
   it('should handle nested object validation', async () => {
@@ -125,7 +130,7 @@ describe('validateBody', () => {
 
     expect(res.statusCode).toBe(400);
     const details = (res.jsonData as { details: Array<{ path: string }> }).details;
-    expect(details.some(d => d.path === 'user.profile.bio')).toBe(true);
+    expect(details.some((d) => d.path === 'user.profile.bio')).toBe(true);
   });
 });
 

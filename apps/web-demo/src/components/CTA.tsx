@@ -1,4 +1,4 @@
-import { Button } from "@/components/ui/button";
+import { Button } from '@/components/ui/button';
 
 export default function CTA() {
   return (
@@ -9,12 +9,17 @@ export default function CTA() {
           <p className="mt-4 text-xl text-primary-100">
             Join our community or get in touch for enterprise solutions
           </p>
-          
+
           <div className="mt-10 flex flex-col sm:flex-row items-center justify-center space-y-4 sm:space-y-0 sm:space-x-6">
-            <Button variant="secondary" size="lg" className="w-full sm:w-auto text-primary-800" asChild>
-              <a 
-                href="https://github.com/noesis-sdk" 
-                target="_blank" 
+            <Button
+              variant="secondary"
+              size="lg"
+              className="w-full sm:w-auto text-primary-800"
+              asChild
+            >
+              <a
+                href="https://github.com/noesis-sdk"
+                target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center"
               >
@@ -22,10 +27,10 @@ export default function CTA() {
                 Star on GitHub
               </a>
             </Button>
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               size="lg"
-              className="w-full sm:w-auto border-primary-300 text-white hover:bg-primary-700" 
+              className="w-full sm:w-auto border-primary-300 text-white hover:bg-primary-700"
               asChild
             >
               <a href="mailto:contact@noesis-sdk.dev" className="inline-flex items-center">
@@ -34,17 +39,32 @@ export default function CTA() {
               </a>
             </Button>
           </div>
-          
+
           <div className="mt-8 flex items-center justify-center space-x-6">
-            <a href="https://twitter.com/noesis_sdk" target="_blank" rel="noopener noreferrer" className="text-primary-200 hover:text-white">
+            <a
+              href="https://twitter.com/noesis_sdk"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-primary-200 hover:text-white"
+            >
               <i className="fab fa-twitter text-xl"></i>
               <span className="sr-only">Twitter</span>
             </a>
-            <a href="https://discord.gg/noesis-sdk" target="_blank" rel="noopener noreferrer" className="text-primary-200 hover:text-white">
+            <a
+              href="https://discord.gg/noesis-sdk"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-primary-200 hover:text-white"
+            >
               <i className="fab fa-discord text-xl"></i>
               <span className="sr-only">Discord</span>
             </a>
-            <a href="https://linkedin.com/company/noesis-sdk" target="_blank" rel="noopener noreferrer" className="text-primary-200 hover:text-white">
+            <a
+              href="https://linkedin.com/company/noesis-sdk"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-primary-200 hover:text-white"
+            >
               <i className="fab fa-linkedin text-xl"></i>
               <span className="sr-only">LinkedIn</span>
             </a>

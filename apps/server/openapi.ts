@@ -13,7 +13,8 @@ export const openApiSpec = {
   info: {
     title: 'Noesis SDK API',
     version: API_VERSION,
-    description: 'Adaptive learning API with attention tracking, mastery learning, and LLM-powered orchestration.',
+    description:
+      'Adaptive learning API with attention tracking, mastery learning, and LLM-powered orchestration.',
     contact: {
       name: 'Noesis SDK Support',
       url: 'https://github.com/noesis-sdk',
@@ -133,10 +134,7 @@ export const openApiSpec = {
                   type: 'object',
                   properties: {
                     user: {
-                      oneOf: [
-                        { $ref: '#/components/schemas/User' },
-                        { type: 'null' },
-                      ],
+                      oneOf: [{ $ref: '#/components/schemas/User' }, { type: 'null' }],
                     },
                   },
                 },
@@ -150,7 +148,8 @@ export const openApiSpec = {
       post: {
         tags: ['Orchestration'],
         summary: 'Get personalized learning recommendation',
-        description: 'Uses LLM to generate a learning recommendation based on attention and mastery data.',
+        description:
+          'Uses LLM to generate a learning recommendation based on attention and mastery data.',
         requestBody: {
           required: true,
           content: {

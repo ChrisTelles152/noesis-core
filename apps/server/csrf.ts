@@ -30,10 +30,7 @@ function generateSecret(): string {
  */
 function generateToken(secret: string): string {
   const salt = crypto.randomBytes(8).toString('hex');
-  const hash = crypto
-    .createHmac('sha256', secret)
-    .update(salt)
-    .digest('hex');
+  const hash = crypto.createHmac('sha256', secret).update(salt).digest('hex');
   return `${salt}.${hash}`;
 }
 
@@ -46,17 +43,11 @@ function verifyToken(token: string, secret: string): boolean {
     return false;
   }
 
-  const expectedHash = crypto
-    .createHmac('sha256', secret)
-    .update(salt)
-    .digest('hex');
+  const expectedHash = crypto.createHmac('sha256', secret).update(salt).digest('hex');
 
   // Use timing-safe comparison to prevent timing attacks
   try {
-    return crypto.timingSafeEqual(
-      Buffer.from(hash, 'hex'),
-      Buffer.from(expectedHash, 'hex')
-    );
+    return crypto.timingSafeEqual(Buffer.from(hash, 'hex'), Buffer.from(expectedHash, 'hex'));
   } catch {
     return false;
   }
@@ -72,10 +63,12 @@ function isSafeMethod(method: string): boolean {
 /**
  * CSRF protection middleware
  */
-export function csrfProtection(options: {
-  excludePaths?: string[];
-  enabled?: boolean;
-} = {}) {
+export function csrfProtection(
+  options: {
+    excludePaths?: string[];
+    enabled?: boolean;
+  } = {}
+) {
   const { excludePaths = [], enabled = true } = options;
 
   return (req: Request, res: Response, next: NextFunction) => {
@@ -85,7 +78,7 @@ export function csrfProtection(options: {
     }
 
     // Skip for excluded paths
-    if (excludePaths.some(path => req.path.startsWith(path))) {
+    if (excludePaths.some((path) => req.path.startsWith(path))) {
       return next();
     }
 
@@ -114,21 +107,20 @@ export function csrfProtection(options: {
 
     // Verify token for state-changing requests
     if (!isSafeMethod(req.method)) {
-      const clientToken = req.headers[CSRF_HEADER] as string ||
-                          req.body?._csrf ||
-                          req.query?._csrf as string;
+      const clientToken =
+        (req.headers[CSRF_HEADER] as string) || req.body?._csrf || (req.query?._csrf as string);
 
       if (!clientToken) {
         return res.status(403).json({
           error: 'CSRF token missing',
-          message: 'Request must include a valid CSRF token'
+          message: 'Request must include a valid CSRF token',
         });
       }
 
       if (!verifyToken(clientToken, secret)) {
         return res.status(403).json({
           error: 'CSRF token invalid',
-          message: 'The CSRF token is invalid or has expired'
+          message: 'The CSRF token is invalid or has expired',
         });
       }
     }
@@ -163,9 +155,14 @@ export function shouldEnableCsrf(): boolean {
   if (process.env.DISABLE_CSRF === 'true') {
     if (process.env.NODE_ENV === 'production') {
       // This should never happen as env.ts blocks it, but log as error for defense in depth
-      logger.error("CRITICAL: CSRF protection disabled in PRODUCTION - this is a security vulnerability!", { module: "csrf" });
+      logger.error(
+        'CRITICAL: CSRF protection disabled in PRODUCTION - this is a security vulnerability!',
+        { module: 'csrf' }
+      );
     } else {
-      logger.warn("CSRF protection is disabled via DISABLE_CSRF environment variable", { module: "csrf" });
+      logger.warn('CSRF protection is disabled via DISABLE_CSRF environment variable', {
+        module: 'csrf',
+      });
     }
     return false;
   }

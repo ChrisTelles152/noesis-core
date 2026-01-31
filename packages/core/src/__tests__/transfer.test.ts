@@ -83,10 +83,7 @@ describe('TransferGateImpl', () => {
     });
 
     it('should ignore far transfer tests by default', () => {
-      const tests = [
-        createTest('near-A', 'skillA', 'near'),
-        createTest('far-A', 'skillA', 'far'),
-      ];
+      const tests = [createTest('near-A', 'skillA', 'near'), createTest('far-A', 'skillA', 'far')];
       const results = [createResult('near-A', true, 0.8)];
 
       // Only near transfer required by default
@@ -99,20 +96,14 @@ describe('TransferGateImpl', () => {
         requireFarTransfer: true,
       });
 
-      const tests = [
-        createTest('near-A', 'skillA', 'near'),
-        createTest('far-A', 'skillA', 'far'),
-      ];
+      const tests = [createTest('near-A', 'skillA', 'near'), createTest('far-A', 'skillA', 'far')];
 
       // Only near passed
       const nearOnly = [createResult('near-A', true, 0.8)];
       expect(gateWithFar.isSkillUnlocked('skillA', nearOnly, tests)).toBe(false);
 
       // Both passed
-      const bothPassed = [
-        createResult('near-A', true, 0.8),
-        createResult('far-A', true, 0.75),
-      ];
+      const bothPassed = [createResult('near-A', true, 0.8), createResult('far-A', true, 0.75)];
       expect(gateWithFar.isSkillUnlocked('skillA', bothPassed, tests)).toBe(true);
     });
 
@@ -130,10 +121,7 @@ describe('TransferGateImpl', () => {
 
   describe('getRequiredTests', () => {
     it('should return only near tests by default', () => {
-      const tests = [
-        createTest('near-A', 'skillA', 'near'),
-        createTest('far-A', 'skillA', 'far'),
-      ];
+      const tests = [createTest('near-A', 'skillA', 'near'), createTest('far-A', 'skillA', 'far')];
 
       const required = gate.getRequiredTests('skillA', tests);
 
@@ -147,16 +135,13 @@ describe('TransferGateImpl', () => {
         requireFarTransfer: true,
       });
 
-      const tests = [
-        createTest('near-A', 'skillA', 'near'),
-        createTest('far-A', 'skillA', 'far'),
-      ];
+      const tests = [createTest('near-A', 'skillA', 'near'), createTest('far-A', 'skillA', 'far')];
 
       const required = gateWithFar.getRequiredTests('skillA', tests);
 
       expect(required.length).toBe(2);
-      expect(required.some(t => t.transferType === 'near')).toBe(true);
-      expect(required.some(t => t.transferType === 'far')).toBe(true);
+      expect(required.some((t) => t.transferType === 'near')).toBe(true);
+      expect(required.some((t) => t.transferType === 'far')).toBe(true);
     });
 
     it('should return empty array when no tests for skill', () => {
@@ -218,10 +203,7 @@ describe('TransferGateImpl', () => {
         requireFarTransfer: true,
       });
 
-      const tests = [
-        createTest('near-A', 'skillA', 'near'),
-        createTest('far-A', 'skillA', 'far'),
-      ];
+      const tests = [createTest('near-A', 'skillA', 'near'), createTest('far-A', 'skillA', 'far')];
       const results = [createResult('near-A', true, 0.8)];
 
       const pending = gateWithFar.getPendingTests('skillA', results, tests);
@@ -238,10 +220,7 @@ describe('TransferGateImpl', () => {
         requireFarTransfer: true,
       });
 
-      const tests = [
-        createTest('far-A', 'skillA', 'far'),
-        createTest('near-A', 'skillA', 'near'),
-      ];
+      const tests = [createTest('far-A', 'skillA', 'far'), createTest('near-A', 'skillA', 'near')];
       const results: TransferTestResult[] = [];
 
       const next = gateWithFar.getNextTest('skillA', results, tests);
@@ -255,10 +234,7 @@ describe('TransferGateImpl', () => {
         requireFarTransfer: true,
       });
 
-      const tests = [
-        createTest('near-A', 'skillA', 'near'),
-        createTest('far-A', 'skillA', 'far'),
-      ];
+      const tests = [createTest('near-A', 'skillA', 'near'), createTest('far-A', 'skillA', 'far')];
       const results = [createResult('near-A', true, 0.8)];
 
       const next = gateWithFar.getNextTest('skillA', results, tests);
@@ -338,10 +314,7 @@ describe('TransferGateImpl', () => {
         requireFarTransfer: true,
       });
 
-      const tests = [
-        createTest('near-A', 'skillA', 'near'),
-        createTest('far-A', 'skillA', 'far'),
-      ];
+      const tests = [createTest('near-A', 'skillA', 'near'), createTest('far-A', 'skillA', 'far')];
       const results = [createResult('near-A', true, 0.8)];
 
       const status = gateWithFar.getTransferStatus(results, tests, ['skillA']);
@@ -405,10 +378,7 @@ describe('TransferGateImpl', () => {
         requireFarTransfer: true,
       });
 
-      const tests = [
-        createTest('near-A', 'skillA', 'near'),
-        createTest('far-A', 'skillA', 'far'),
-      ];
+      const tests = [createTest('near-A', 'skillA', 'near'), createTest('far-A', 'skillA', 'far')];
 
       // Step 1: No tests completed
       let results: TransferTestResult[] = [];
@@ -421,10 +391,7 @@ describe('TransferGateImpl', () => {
       expect(gateWithFar.getNextTest('skillA', results, tests)?.transferType).toBe('far');
 
       // Step 3: Far test passed
-      results = [
-        createResult('near-A', true, 0.8),
-        createResult('far-A', true, 0.75),
-      ];
+      results = [createResult('near-A', true, 0.8), createResult('far-A', true, 0.75)];
       expect(gateWithFar.isSkillUnlocked('skillA', results, tests)).toBe(true);
       expect(gateWithFar.getNextTest('skillA', results, tests)).toBeUndefined();
     });
@@ -435,10 +402,7 @@ describe('TransferGateImpl', () => {
         requireFarTransfer: true,
       });
 
-      const tests = [
-        createTest('near-A', 'skillA', 'near'),
-        createTest('far-A', 'skillA', 'far'),
-      ];
+      const tests = [createTest('near-A', 'skillA', 'near'), createTest('far-A', 'skillA', 'far')];
 
       const results = [createResult('far-A', true, 0.8)];
 
@@ -451,10 +415,7 @@ describe('TransferGateImpl', () => {
         requireFarTransfer: false,
       });
 
-      const tests = [
-        createTest('near-A', 'skillA', 'near'),
-        createTest('far-A', 'skillA', 'far'),
-      ];
+      const tests = [createTest('near-A', 'skillA', 'near'), createTest('far-A', 'skillA', 'far')];
 
       const results: TransferTestResult[] = [];
 

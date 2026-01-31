@@ -13,11 +13,7 @@
  * for the same input.
  */
 
-import type {
-  TransferGate,
-  TransferTest,
-  TransferTestResult,
-} from '../constitution.js';
+import type { TransferGate, TransferTest, TransferTestResult } from '../constitution.js';
 
 /**
  * Transfer gate configuration
@@ -70,14 +66,10 @@ export class TransferGateImpl implements TransferGate {
       return true;
     }
 
-    const passedTestIds = new Set(
-      testResults
-        .filter(r => r.passed)
-        .map(r => r.testId)
-    );
+    const passedTestIds = new Set(testResults.filter((r) => r.passed).map((r) => r.testId));
 
     // Check if all required tests are passed
-    return requiredTests.every(test => passedTestIds.has(test.id));
+    return requiredTests.every((test) => passedTestIds.has(test.id));
   }
 
   /**
@@ -88,11 +80,11 @@ export class TransferGateImpl implements TransferGate {
    * @returns Array of required TransferTest objects
    */
   getRequiredTests(skillId: string, tests: TransferTest[]): TransferTest[] {
-    const skillTests = tests.filter(t => t.skillId === skillId);
+    const skillTests = tests.filter((t) => t.skillId === skillId);
     const required: TransferTest[] = [];
 
     if (this.config.requireNearTransfer) {
-      const nearTests = skillTests.filter(t => t.transferType === 'near');
+      const nearTests = skillTests.filter((t) => t.transferType === 'near');
       // Sort for determinism
       nearTests.sort((a, b) => a.id.localeCompare(b.id));
       if (nearTests.length > 0) {
@@ -101,7 +93,7 @@ export class TransferGateImpl implements TransferGate {
     }
 
     if (this.config.requireFarTransfer) {
-      const farTests = skillTests.filter(t => t.transferType === 'far');
+      const farTests = skillTests.filter((t) => t.transferType === 'far');
       // Sort for determinism
       farTests.sort((a, b) => a.id.localeCompare(b.id));
       if (farTests.length > 0) {
@@ -126,13 +118,9 @@ export class TransferGateImpl implements TransferGate {
     tests: TransferTest[]
   ): TransferTest[] {
     const requiredTests = this.getRequiredTests(skillId, tests);
-    const passedTestIds = new Set(
-      testResults
-        .filter(r => r.passed)
-        .map(r => r.testId)
-    );
+    const passedTestIds = new Set(testResults.filter((r) => r.passed).map((r) => r.testId));
 
-    return requiredTests.filter(test => !passedTestIds.has(test.id));
+    return requiredTests.filter((test) => !passedTestIds.has(test.id));
   }
 
   /**
@@ -157,7 +145,7 @@ export class TransferGateImpl implements TransferGate {
     }
 
     // Prioritize near transfer first
-    const nearPending = pending.filter(t => t.transferType === 'near');
+    const nearPending = pending.filter((t) => t.transferType === 'near');
     if (nearPending.length > 0) {
       return nearPending[0];
     }
@@ -173,11 +161,7 @@ export class TransferGateImpl implements TransferGate {
    * @param timestamp - When the test was taken
    * @returns TransferTestResult
    */
-  evaluateAttempt(
-    test: TransferTest,
-    score: number,
-    timestamp: number
-  ): TransferTestResult {
+  evaluateAttempt(test: TransferTest, score: number, timestamp: number): TransferTestResult {
     return {
       testId: test.id,
       passed: score >= test.passingScore,
@@ -205,7 +189,7 @@ export class TransferGateImpl implements TransferGate {
       const required = this.getRequiredTests(skillId, tests);
       const pending = this.getPendingTests(skillId, testResults, tests);
       const skillResults = testResults.filter(
-        r => tests.find(t => t.id === r.testId)?.skillId === skillId
+        (r) => tests.find((t) => t.id === r.testId)?.skillId === skillId
       );
 
       result.set(skillId, {
@@ -215,9 +199,8 @@ export class TransferGateImpl implements TransferGate {
         passedTests: required.length - pending.length,
         pendingTests: pending.length,
         attempts: skillResults.length,
-        lastAttempt: skillResults.length > 0
-          ? Math.max(...skillResults.map(r => r.timestamp))
-          : undefined,
+        lastAttempt:
+          skillResults.length > 0 ? Math.max(...skillResults.map((r) => r.timestamp)) : undefined,
       });
     }
 
@@ -260,8 +243,6 @@ export interface TransferStatus {
 /**
  * Factory function to create a TransferGate
  */
-export function createTransferGate(
-  config: Partial<TransferGateConfig> = {}
-): TransferGateImpl {
+export function createTransferGate(config: Partial<TransferGateConfig> = {}): TransferGateImpl {
   return new TransferGateImpl(config);
 }

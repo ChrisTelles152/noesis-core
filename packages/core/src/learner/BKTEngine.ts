@@ -80,7 +80,9 @@ export function validateBKTParams(params: BKTParams): void {
   // Additional constraint: pSlip + pGuess < 1 for model identifiability
   // If pSlip + pGuess >= 1, the model becomes degenerate
   if (pSlip + pGuess >= 1) {
-    throw new Error(`BKT pSlip + pGuess must be less than 1 for model identifiability, got ${pSlip + pGuess}`);
+    throw new Error(
+      `BKT pSlip + pGuess must be less than 1 for model identifiability, got ${pSlip + pGuess}`
+    );
   }
 }
 
@@ -91,10 +93,7 @@ export class BKTEngine implements LearnerModelEngine {
   private readonly defaultParams: BKTParams;
   private readonly clock: ClockFn;
 
-  constructor(
-    params: Partial<BKTParams> = {},
-    clock: ClockFn = () => Date.now()
-  ) {
+  constructor(params: Partial<BKTParams> = {}, clock: ClockFn = () => Date.now()) {
     this.defaultParams = { ...DEFAULT_BKT_PARAMS, ...params };
     // Validate parameters to catch invalid configurations early
     validateBKTParams(this.defaultParams);

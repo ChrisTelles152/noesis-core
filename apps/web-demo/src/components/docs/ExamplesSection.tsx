@@ -1,4 +1,4 @@
-import CodeBlock from "@/components/CodeBlock";
+import CodeBlock from '@/components/CodeBlock';
 
 export default function ExamplesSection() {
   return (
@@ -10,9 +10,7 @@ export default function ExamplesSection() {
 
       <div className="mb-8">
         <h3 className="text-lg font-medium text-slate-900 mb-3">React Integration</h3>
-        <p className="text-slate-700 mb-4">
-          Using the SDK with React hooks:
-        </p>
+        <p className="text-slate-700 mb-4">Using the SDK with React hooks:</p>
         <CodeBlock
           code={`import { useEffect, useState, useRef } from 'react';
 import { NoesisSDK, AttentionData, MasteryData } from '@noesis-edu/core';
@@ -113,9 +111,7 @@ function LearningModule() {
 
       <div className="mb-8">
         <h3 className="text-lg font-medium text-slate-900 mb-3">Quiz Integration</h3>
-        <p className="text-slate-700 mb-4">
-          Recording quiz results for mastery tracking:
-        </p>
+        <p className="text-slate-700 mb-4">Recording quiz results for mastery tracking:</p>
         <CodeBlock
           code={`function handleQuizSubmit(
   sdk: NoesisSDK,

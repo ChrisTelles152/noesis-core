@@ -4,11 +4,7 @@
  * Provides BKT-style learner modeling with inspectable probability estimates.
  */
 
-export type {
-  SkillProbability,
-  LearnerModel,
-  LearnerModelEngine,
-} from '../constitution.js';
+export type { SkillProbability, LearnerModel, LearnerModelEngine } from '../constitution.js';
 
 export {
   BKTEngine,

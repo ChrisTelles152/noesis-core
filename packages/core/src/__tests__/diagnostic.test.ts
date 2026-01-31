@@ -13,8 +13,13 @@ import {
 import type { SkillGraph, ItemSkillMapping } from '../constitution.js';
 
 // Mock SkillGraph implementation
-function createMockSkillGraph(skills: string[], prereqs: Record<string, string[]> = {}): SkillGraph {
-  const skillMap = new Map(skills.map(s => [s, { id: s, name: s, prerequisites: prereqs[s] || [] }]));
+function createMockSkillGraph(
+  skills: string[],
+  prereqs: Record<string, string[]> = {}
+): SkillGraph {
+  const skillMap = new Map(
+    skills.map((s) => [s, { id: s, name: s, prerequisites: prereqs[s] || [] }])
+  );
 
   return {
     skills: skillMap,
@@ -51,7 +56,7 @@ function createMockSkillGraph(skills: string[], prereqs: Record<string, string[]
       return Array.from(result);
     },
     getDependents: (skillId: string) => {
-      return skills.filter(s => (prereqs[s] || []).includes(skillId));
+      return skills.filter((s) => (prereqs[s] || []).includes(skillId));
     },
     isPrerequisiteOf: (skillA: string, skillB: string) => {
       const allPrereqs = new Set<string>();
@@ -70,13 +75,15 @@ function createMockSkillGraph(skills: string[], prereqs: Record<string, string[]
 }
 
 // Helper to create item mappings
-function createItemMappings(items: Array<{
-  id: string;
-  skill: string;
-  difficulty: number;
-  secondarySkills?: string[];
-}>): ItemSkillMapping[] {
-  return items.map(item => ({
+function createItemMappings(
+  items: Array<{
+    id: string;
+    skill: string;
+    difficulty: number;
+    secondarySkills?: string[];
+  }>
+): ItemSkillMapping[] {
+  return items.map((item) => ({
     itemId: item.id,
     primarySkillId: item.skill,
     secondarySkillIds: item.secondarySkills || [],
@@ -298,13 +305,9 @@ describe('DiagnosticEngineImpl', () => {
     it('should use default prior for skills with no data', () => {
       const skillGraph = createMockSkillGraph(['A', 'B']);
 
-      const itemMappings = createItemMappings([
-        { id: 'item-a', skill: 'A', difficulty: 0.5 },
-      ]);
+      const itemMappings = createItemMappings([{ id: 'item-a', skill: 'A', difficulty: 0.5 }]);
 
-      const responses = [
-        { itemId: 'item-a', correct: true },
-      ];
+      const responses = [{ itemId: 'item-a', correct: true }];
 
       const result = engine.analyzeResults(skillGraph, itemMappings, responses);
 
@@ -314,9 +317,7 @@ describe('DiagnosticEngineImpl', () => {
 
     it('should handle empty responses', () => {
       const skillGraph = createMockSkillGraph(['A', 'B']);
-      const itemMappings = createItemMappings([
-        { id: 'item-a', skill: 'A', difficulty: 0.5 },
-      ]);
+      const itemMappings = createItemMappings([{ id: 'item-a', skill: 'A', difficulty: 0.5 }]);
 
       const result = engine.analyzeResults(skillGraph, itemMappings, []);
 
@@ -337,9 +338,7 @@ describe('DiagnosticEngineImpl', () => {
       ]);
 
       // Get 100% on advanced skill (clamped to 0.95)
-      const responses = [
-        { itemId: 'item-advanced', correct: true },
-      ];
+      const responses = [{ itemId: 'item-advanced', correct: true }];
 
       const result = engine.analyzeResults(skillGraph, itemMappings, responses);
 
@@ -358,9 +357,7 @@ describe('DiagnosticEngineImpl', () => {
       ]);
 
       // Get 0% on advanced skill
-      const responses = [
-        { itemId: 'item-advanced', correct: false },
-      ];
+      const responses = [{ itemId: 'item-advanced', correct: false }];
 
       const result = engine.analyzeResults(skillGraph, itemMappings, responses);
 
@@ -381,9 +378,7 @@ describe('DiagnosticEngineImpl', () => {
         { id: 'item-advanced', skill: 'advanced', difficulty: 0.5 },
       ]);
 
-      const responses = [
-        { itemId: 'item-advanced', correct: true },
-      ];
+      const responses = [{ itemId: 'item-advanced', correct: true }];
 
       const result = customEngine.analyzeResults(skillGraph, itemMappings, responses);
 
@@ -402,9 +397,7 @@ describe('DiagnosticEngineImpl', () => {
         { id: 'item-l3', skill: 'level3', difficulty: 0.5 },
       ]);
 
-      const responses = [
-        { itemId: 'item-l3', correct: true },
-      ];
+      const responses = [{ itemId: 'item-l3', correct: true }];
 
       const result = engine.analyzeResults(skillGraph, itemMappings, responses);
 

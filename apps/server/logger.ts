@@ -233,17 +233,19 @@ export function createErrorHandler() {
     const isServerError = status >= 500;
 
     // Log the error
-    logger.error(`Request failed: ${req.method} ${req.path}`, {
-      status,
-      method: req.method,
-      path: req.path,
-      ip: req.ip,
-    }, err);
+    logger.error(
+      `Request failed: ${req.method} ${req.path}`,
+      {
+        status,
+        method: req.method,
+        path: req.path,
+        ip: req.ip,
+      },
+      err
+    );
 
     // Don't expose internal errors to clients
-    const clientMessage = isServerError
-      ? 'An internal error occurred'
-      : err.message;
+    const clientMessage = isServerError ? 'An internal error occurred' : err.message;
 
     if (!res.headersSent) {
       res.status(status).json({
@@ -260,9 +262,7 @@ export function createErrorHandler() {
 /**
  * Async error wrapper for route handlers
  */
-export function asyncHandler<T>(
-  fn: (req: T, res: unknown, next: unknown) => Promise<void>
-) {
+export function asyncHandler<T>(fn: (req: T, res: unknown, next: unknown) => Promise<void>) {
   return (req: T, res: unknown, next: (err?: Error) => void) => {
     Promise.resolve(fn(req, res, next)).catch(next);
   };

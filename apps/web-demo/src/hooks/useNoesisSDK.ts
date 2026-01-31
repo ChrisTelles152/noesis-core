@@ -18,12 +18,12 @@ export const useNoesisSDK = () => {
         debug: import.meta.env.DEV,
         attentionOptions: {
           trackingInterval: 500, // Update every 500ms
-          historySize: 20 // Keep 20 samples for stability calculation
+          historySize: 20, // Keep 20 samples for stability calculation
         },
         masteryOptions: {
           threshold: 0.8, // 80% mastery required
-          spacingFactor: 2.5 // For spaced repetition algorithm
-        }
+          spacingFactor: 2.5, // For spaced repetition algorithm
+        },
       });
     }
 
@@ -37,9 +37,9 @@ export const useNoesisSDK = () => {
     // Create a stub SDK to use until the real one is initialized
     const stubSDK = new NoesisSDK({
       debug: false,
-      modules: ['attention', 'mastery', 'orchestration']
+      modules: ['attention', 'mastery', 'orchestration'],
     });
-    
+
     return stubSDK;
   }
 

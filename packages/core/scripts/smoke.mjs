@@ -104,7 +104,15 @@ test('Process practice events and update model', () => {
   // Process 5 correct practice events
   for (let i = 0; i < 5; i++) {
     time += 1000;
-    const event = createPracticeEvent(ctx, 'learner-1', 'session-1', 'math', `item-${i}`, true, 1000);
+    const event = createPracticeEvent(
+      ctx,
+      'learner-1',
+      'session-1',
+      'math',
+      `item-${i}`,
+      true,
+      1000
+    );
     engine.processEvent(event);
   }
 
@@ -161,9 +169,33 @@ test('Deterministic replay produces identical results', () => {
   const idGen = createDeterministicIdGenerator();
   let time = 0;
   const events = [
-    createPracticeEvent({ clock: () => (time += 100), idGenerator: idGen }, 'l1', 's1', 'a', 'i1', true, 500),
-    createPracticeEvent({ clock: () => (time += 100), idGenerator: idGen }, 'l1', 's1', 'a', 'i2', false, 600),
-    createPracticeEvent({ clock: () => (time += 100), idGenerator: idGen }, 'l1', 's1', 'a', 'i3', true, 400),
+    createPracticeEvent(
+      { clock: () => (time += 100), idGenerator: idGen },
+      'l1',
+      's1',
+      'a',
+      'i1',
+      true,
+      500
+    ),
+    createPracticeEvent(
+      { clock: () => (time += 100), idGenerator: idGen },
+      'l1',
+      's1',
+      'a',
+      'i2',
+      false,
+      600
+    ),
+    createPracticeEvent(
+      { clock: () => (time += 100), idGenerator: idGen },
+      'l1',
+      's1',
+      'a',
+      'i3',
+      true,
+      400
+    ),
   ];
 
   // Process events in both engines

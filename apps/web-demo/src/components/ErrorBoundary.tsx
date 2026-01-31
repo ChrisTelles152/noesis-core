@@ -74,9 +74,7 @@ export class ErrorBoundary extends Component<Props, State> {
                 <i className="fas fa-exclamation-circle"></i>
                 Something went wrong
               </CardTitle>
-              <CardDescription>
-                An error occurred while rendering this component.
-              </CardDescription>
+              <CardDescription>An error occurred while rendering this component.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               {this.props.showDetails && this.state.error && (
@@ -162,9 +160,7 @@ export function SDKErrorBoundary({ children, componentName = 'Unknown' }: SDKErr
         <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
           <div className="flex items-center gap-2 text-yellow-800">
             <i className="fas fa-exclamation-triangle"></i>
-            <span className="font-medium">
-              {componentName} encountered an error
-            </span>
+            <span className="font-medium">{componentName} encountered an error</span>
           </div>
           <p className="mt-2 text-sm text-yellow-700">
             This component failed to load. Try refreshing the page.

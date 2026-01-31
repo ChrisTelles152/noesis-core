@@ -111,7 +111,7 @@ describe('Sanitization Functions', () => {
     });
 
     it('should escape single quotes', () => {
-      expect(escapeHtml("it's")).toBe("it&#x27;s");
+      expect(escapeHtml("it's")).toBe('it&#x27;s');
     });
 
     it('should handle strings without special characters', () => {
@@ -356,7 +356,9 @@ describe('Security - Prototype Pollution Protection', () => {
     });
 
     it('should strip constructor key from objects', () => {
-      const maliciousInput = JSON.parse('{"constructor": {"prototype": {"polluted": true}}, "safe": "value"}');
+      const maliciousInput = JSON.parse(
+        '{"constructor": {"prototype": {"polluted": true}}, "safe": "value"}'
+      );
       const result = sanitizeObject(maliciousInput);
 
       expect(result.safe).toBe('value');

@@ -34,7 +34,7 @@ function createMockSkillGraph(
   prereqs: Record<string, string[]> = {}
 ): SkillGraph {
   const skillMap = new Map(
-    skills.map(s => [s, { id: s, name: s, prerequisites: prereqs[s] || [] }])
+    skills.map((s) => [s, { id: s, name: s, prerequisites: prereqs[s] || [] }])
   );
 
   // Build dependents map for getDependents()
@@ -86,10 +86,7 @@ function createMockLearnerModel(
 /**
  * Create a mock memory state
  */
-function createMockMemoryState(
-  skillId: string,
-  overrides: Partial<MemoryState> = {}
-): MemoryState {
+function createMockMemoryState(skillId: string, overrides: Partial<MemoryState> = {}): MemoryState {
   return {
     skillId,
     stability: 1,
@@ -144,10 +141,7 @@ describe('SessionPlannerImpl', () => {
   describe('getNextAction - Priority 1: Due spaced retrieval', () => {
     it('should return review action for due items', () => {
       const skillGraph = createMockSkillGraph(['skill-a', 'skill-b']);
-      const learnerModel = createMockLearnerModel(
-        { 'skill-a': 0.9, 'skill-b': 0.5 },
-        currentTime
-      );
+      const learnerModel = createMockLearnerModel({ 'skill-a': 0.9, 'skill-b': 0.5 }, currentTime);
       const memoryStates = [
         createMockMemoryState('skill-a', {
           nextReview: currentTime - MS_PER_DAY, // 1 day overdue
@@ -155,12 +149,7 @@ describe('SessionPlannerImpl', () => {
         }),
       ];
 
-      const action = planner.getNextAction(
-        learnerModel,
-        skillGraph,
-        memoryStates,
-        defaultConfig
-      );
+      const action = planner.getNextAction(learnerModel, skillGraph, memoryStates, defaultConfig);
 
       expect(action.type).toBe('review');
       expect(action.skillId).toBe('skill-a');
@@ -169,10 +158,7 @@ describe('SessionPlannerImpl', () => {
 
     it('should prioritize most overdue item first', () => {
       const skillGraph = createMockSkillGraph(['skill-a', 'skill-b']);
-      const learnerModel = createMockLearnerModel(
-        { 'skill-a': 0.9, 'skill-b': 0.9 },
-        currentTime
-      );
+      const learnerModel = createMockLearnerModel({ 'skill-a': 0.9, 'skill-b': 0.9 }, currentTime);
       const memoryStates = [
         createMockMemoryState('skill-a', {
           nextReview: currentTime - MS_PER_DAY, // 1 day overdue
@@ -182,12 +168,7 @@ describe('SessionPlannerImpl', () => {
         }),
       ];
 
-      const action = planner.getNextAction(
-        learnerModel,
-        skillGraph,
-        memoryStates,
-        defaultConfig
-      );
+      const action = planner.getNextAction(learnerModel, skillGraph, memoryStates, defaultConfig);
 
       expect(action.skillId).toBe('skill-b'); // More overdue
     });
@@ -201,12 +182,10 @@ describe('SessionPlannerImpl', () => {
         }),
       ];
 
-      const action = planner.getNextAction(
-        learnerModel,
-        skillGraph,
-        memoryStates,
-        { ...defaultConfig, enforceSpacedRetrieval: false }
-      );
+      const action = planner.getNextAction(learnerModel, skillGraph, memoryStates, {
+        ...defaultConfig,
+        enforceSpacedRetrieval: false,
+      });
 
       expect(action.type).not.toBe('review');
     });
@@ -222,12 +201,7 @@ describe('SessionPlannerImpl', () => {
       const skillGraph = createMockSkillGraph(['skill-a']);
       const learnerModel = createMockLearnerModel({ 'skill-a': 0.85 }, currentTime);
 
-      const action = p.getNextAction(
-        learnerModel,
-        skillGraph,
-        [],
-        defaultConfig
-      );
+      const action = p.getNextAction(learnerModel, skillGraph, [], defaultConfig);
 
       expect(action.type).toBe('transfer_test');
       expect(action.skillId).toBe('skill-a');
@@ -246,12 +220,7 @@ describe('SessionPlannerImpl', () => {
       const skillGraph = createMockSkillGraph(['skill-a']);
       const learnerModel = createMockLearnerModel({ 'skill-a': 0.9 }, currentTime);
 
-      const action = p.getNextAction(
-        learnerModel,
-        skillGraph,
-        [],
-        defaultConfig
-      );
+      const action = p.getNextAction(learnerModel, skillGraph, [], defaultConfig);
 
       expect(action.type).not.toBe('transfer_test');
     });
@@ -266,12 +235,7 @@ describe('SessionPlannerImpl', () => {
       const skillGraph = createMockSkillGraph(['skill-a']);
       const learnerModel = createMockLearnerModel({ 'skill-a': 0.9 }, currentTime);
 
-      const action = p.getNextAction(
-        learnerModel,
-        skillGraph,
-        [],
-        defaultConfig
-      );
+      const action = p.getNextAction(learnerModel, skillGraph, [], defaultConfig);
 
       expect(action.itemId).toBe('test-near');
     });
@@ -285,12 +249,10 @@ describe('SessionPlannerImpl', () => {
       const skillGraph = createMockSkillGraph(['skill-a']);
       const learnerModel = createMockLearnerModel({ 'skill-a': 0.9 }, currentTime);
 
-      const action = p.getNextAction(
-        learnerModel,
-        skillGraph,
-        [],
-        { ...defaultConfig, requireTransferTests: false }
-      );
+      const action = p.getNextAction(learnerModel, skillGraph, [], {
+        ...defaultConfig,
+        requireTransferTests: false,
+      });
 
       expect(action.type).not.toBe('transfer_test');
     });
@@ -299,10 +261,7 @@ describe('SessionPlannerImpl', () => {
   describe('getNextAction - Priority 3: Error-focused practice', () => {
     it('should return practice for skills in relearning state', () => {
       const skillGraph = createMockSkillGraph(['skill-a', 'skill-b']);
-      const learnerModel = createMockLearnerModel(
-        { 'skill-a': 0.4, 'skill-b': 0.6 },
-        currentTime
-      );
+      const learnerModel = createMockLearnerModel({ 'skill-a': 0.4, 'skill-b': 0.6 }, currentTime);
       const memoryStates = [
         createMockMemoryState('skill-a', {
           state: 'relearning',
@@ -311,12 +270,11 @@ describe('SessionPlannerImpl', () => {
         }),
       ];
 
-      const action = planner.getNextAction(
-        learnerModel,
-        skillGraph,
-        memoryStates,
-        { ...defaultConfig, enforceSpacedRetrieval: false, requireTransferTests: false }
-      );
+      const action = planner.getNextAction(learnerModel, skillGraph, memoryStates, {
+        ...defaultConfig,
+        enforceSpacedRetrieval: false,
+        requireTransferTests: false,
+      });
 
       expect(action.type).toBe('practice');
       expect(action.skillId).toBe('skill-a');
@@ -325,21 +283,17 @@ describe('SessionPlannerImpl', () => {
 
     it('should prioritize skills with more failures', () => {
       const skillGraph = createMockSkillGraph(['skill-a', 'skill-b']);
-      const learnerModel = createMockLearnerModel(
-        { 'skill-a': 0.4, 'skill-b': 0.4 },
-        currentTime
-      );
+      const learnerModel = createMockLearnerModel({ 'skill-a': 0.4, 'skill-b': 0.4 }, currentTime);
       const memoryStates = [
         createMockMemoryState('skill-a', { state: 'relearning', failureCount: 1 }),
         createMockMemoryState('skill-b', { state: 'relearning', failureCount: 5 }),
       ];
 
-      const action = planner.getNextAction(
-        learnerModel,
-        skillGraph,
-        memoryStates,
-        { ...defaultConfig, enforceSpacedRetrieval: false, requireTransferTests: false }
-      );
+      const action = planner.getNextAction(learnerModel, skillGraph, memoryStates, {
+        ...defaultConfig,
+        enforceSpacedRetrieval: false,
+        requireTransferTests: false,
+      });
 
       expect(action.skillId).toBe('skill-b'); // More failures
     });
@@ -347,21 +301,14 @@ describe('SessionPlannerImpl', () => {
 
   describe('getNextAction - Priority 4: New skill introduction', () => {
     it('should introduce new skill when prerequisites are mastered', () => {
-      const skillGraph = createMockSkillGraph(
-        ['prereq-a', 'skill-b'],
-        { 'skill-b': ['prereq-a'] }
-      );
-      const learnerModel = createMockLearnerModel(
-        { 'prereq-a': 0.9, 'skill-b': 0.1 },
-        currentTime
-      );
+      const skillGraph = createMockSkillGraph(['prereq-a', 'skill-b'], { 'skill-b': ['prereq-a'] });
+      const learnerModel = createMockLearnerModel({ 'prereq-a': 0.9, 'skill-b': 0.1 }, currentTime);
 
-      const action = planner.getNextAction(
-        learnerModel,
-        skillGraph,
-        [],
-        { ...defaultConfig, enforceSpacedRetrieval: false, requireTransferTests: false }
-      );
+      const action = planner.getNextAction(learnerModel, skillGraph, [], {
+        ...defaultConfig,
+        enforceSpacedRetrieval: false,
+        requireTransferTests: false,
+      });
 
       expect(action.type).toBe('practice');
       expect(action.skillId).toBe('skill-b');
@@ -369,21 +316,17 @@ describe('SessionPlannerImpl', () => {
     });
 
     it('should not introduce skill when prerequisites not mastered', () => {
-      const skillGraph = createMockSkillGraph(
-        ['prereq-a', 'skill-b'],
-        { 'skill-b': ['prereq-a'] }
-      );
+      const skillGraph = createMockSkillGraph(['prereq-a', 'skill-b'], { 'skill-b': ['prereq-a'] });
       const learnerModel = createMockLearnerModel(
         { 'prereq-a': 0.5, 'skill-b': 0.1 }, // prereq not mastered
         currentTime
       );
 
-      const action = planner.getNextAction(
-        learnerModel,
-        skillGraph,
-        [],
-        { ...defaultConfig, enforceSpacedRetrieval: false, requireTransferTests: false }
-      );
+      const action = planner.getNextAction(learnerModel, skillGraph, [], {
+        ...defaultConfig,
+        enforceSpacedRetrieval: false,
+        requireTransferTests: false,
+      });
 
       // Should choose prereq-a instead since it's not mastered
       expect(action.skillId).toBe('prereq-a');
@@ -391,21 +334,20 @@ describe('SessionPlannerImpl', () => {
 
     it('should prioritize skills with higher leverage', () => {
       // skill-a has 2 dependents, skill-b has 0
-      const skillGraph = createMockSkillGraph(
-        ['skill-a', 'skill-b', 'dep-1', 'dep-2'],
-        { 'dep-1': ['skill-a'], 'dep-2': ['skill-a'] }
-      );
+      const skillGraph = createMockSkillGraph(['skill-a', 'skill-b', 'dep-1', 'dep-2'], {
+        'dep-1': ['skill-a'],
+        'dep-2': ['skill-a'],
+      });
       const learnerModel = createMockLearnerModel(
         { 'skill-a': 0.1, 'skill-b': 0.1, 'dep-1': 0.0, 'dep-2': 0.0 },
         currentTime
       );
 
-      const action = planner.getNextAction(
-        learnerModel,
-        skillGraph,
-        [],
-        { ...defaultConfig, enforceSpacedRetrieval: false, requireTransferTests: false }
-      );
+      const action = planner.getNextAction(learnerModel, skillGraph, [], {
+        ...defaultConfig,
+        enforceSpacedRetrieval: false,
+        requireTransferTests: false,
+      });
 
       expect(action.skillId).toBe('skill-a'); // Higher leverage
     });
@@ -415,25 +357,24 @@ describe('SessionPlannerImpl', () => {
     it('should return consolidation for skills with unmastered prereqs', () => {
       // Consolidation only triggers for skills that have unmastered prereqs
       // (not eligible for new skill introduction) but have some pMastery
-      const skillGraph = createMockSkillGraph(
-        ['base', 'intermediate', 'advanced'],
-        { 'intermediate': ['base'], 'advanced': ['intermediate'] }
-      );
+      const skillGraph = createMockSkillGraph(['base', 'intermediate', 'advanced'], {
+        intermediate: ['base'],
+        advanced: ['intermediate'],
+      });
       const learnerModel = createMockLearnerModel(
         {
-          'base': 0.9,         // Mastered, skip in new skill intro
-          'intermediate': 0.9, // Mastered, skip in new skill intro
-          'advanced': 0.6,     // Prereq (intermediate) mastered -> new skill intro picks this
+          base: 0.9, // Mastered, skip in new skill intro
+          intermediate: 0.9, // Mastered, skip in new skill intro
+          advanced: 0.6, // Prereq (intermediate) mastered -> new skill intro picks this
         },
         currentTime
       );
 
-      const action = planner.getNextAction(
-        learnerModel,
-        skillGraph,
-        [],
-        { ...defaultConfig, enforceSpacedRetrieval: false, requireTransferTests: false }
-      );
+      const action = planner.getNextAction(learnerModel, skillGraph, [], {
+        ...defaultConfig,
+        enforceSpacedRetrieval: false,
+        requireTransferTests: false,
+      });
 
       // Since 'advanced' has mastered prereqs and is not mastered, it's picked by new skill intro
       // This is correct behavior - the test verifies the action type and skill
@@ -445,26 +386,25 @@ describe('SessionPlannerImpl', () => {
       // Create a scenario where consolidation triggers:
       // - All skills with mastered prereqs are already mastered
       // - There's a skill with unmastered prereq that has pMastery in consolidation range
-      const skillGraph = createMockSkillGraph(
-        ['base', 'blocker', 'advanced'],
-        { 'blocker': ['base'], 'advanced': ['blocker'] }
-      );
+      const skillGraph = createMockSkillGraph(['base', 'blocker', 'advanced'], {
+        blocker: ['base'],
+        advanced: ['blocker'],
+      });
       const learnerModel = createMockLearnerModel(
         {
-          'base': 0.9,      // Mastered
-          'blocker': 0.7,   // Not mastered (prereq is mastered -> new skill intro)
-          'advanced': 0.5,  // Prereq (blocker) not mastered -> NOT eligible for new skill intro
+          base: 0.9, // Mastered
+          blocker: 0.7, // Not mastered (prereq is mastered -> new skill intro)
+          advanced: 0.5, // Prereq (blocker) not mastered -> NOT eligible for new skill intro
         },
         currentTime
       );
 
       // blocker will be selected by new skill introduction (prereq mastered, not yet mastered itself)
-      const action = planner.getNextAction(
-        learnerModel,
-        skillGraph,
-        [],
-        { ...defaultConfig, enforceSpacedRetrieval: false, requireTransferTests: false }
-      );
+      const action = planner.getNextAction(learnerModel, skillGraph, [], {
+        ...defaultConfig,
+        enforceSpacedRetrieval: false,
+        requireTransferTests: false,
+      });
 
       expect(action.type).toBe('practice');
       expect(action.skillId).toBe('blocker');
@@ -500,12 +440,12 @@ describe('SessionPlannerImpl', () => {
         currentTime
       );
 
-      const actions = planner.planSession(
-        learnerModel,
-        skillGraph,
-        [],
-        { ...defaultConfig, targetItems: 3, enforceSpacedRetrieval: false, requireTransferTests: false }
-      );
+      const actions = planner.planSession(learnerModel, skillGraph, [], {
+        ...defaultConfig,
+        targetItems: 3,
+        enforceSpacedRetrieval: false,
+        requireTransferTests: false,
+      });
 
       // Each skill is only planned once (no repeats)
       expect(actions.length).toBeLessThanOrEqual(3);
@@ -523,33 +463,28 @@ describe('SessionPlannerImpl', () => {
         createMockMemoryState('skill-b', { nextReview: currentTime - MS_PER_DAY * 2 }),
       ];
 
-      const actions = planner.planSession(
-        learnerModel,
-        skillGraph,
-        memoryStates,
-        { ...defaultConfig, targetItems: 10, requireTransferTests: false }
-      );
+      const actions = planner.planSession(learnerModel, skillGraph, memoryStates, {
+        ...defaultConfig,
+        targetItems: 10,
+        requireTransferTests: false,
+      });
 
-      const reviews = actions.filter(a => a.type === 'review');
+      const reviews = actions.filter((a) => a.type === 'review');
       expect(reviews.length).toBe(2);
     });
 
     it('should sort actions by priority', () => {
       const skillGraph = createMockSkillGraph(['skill-a', 'skill-b']);
-      const learnerModel = createMockLearnerModel(
-        { 'skill-a': 0.5, 'skill-b': 0.8 },
-        currentTime
-      );
+      const learnerModel = createMockLearnerModel({ 'skill-a': 0.5, 'skill-b': 0.8 }, currentTime);
       const memoryStates = [
         createMockMemoryState('skill-a', { nextReview: currentTime - MS_PER_DAY * 5 }), // Very overdue
       ];
 
-      const actions = planner.planSession(
-        learnerModel,
-        skillGraph,
-        memoryStates,
-        { ...defaultConfig, targetItems: 2, requireTransferTests: false }
-      );
+      const actions = planner.planSession(learnerModel, skillGraph, memoryStates, {
+        ...defaultConfig,
+        targetItems: 2,
+        requireTransferTests: false,
+      });
 
       // First action should have highest priority
       for (let i = 0; i < actions.length - 1; i++) {
@@ -559,19 +494,16 @@ describe('SessionPlannerImpl', () => {
 
     it('should not repeat skills', () => {
       const skillGraph = createMockSkillGraph(['skill-a', 'skill-b']);
-      const learnerModel = createMockLearnerModel(
-        { 'skill-a': 0.5, 'skill-b': 0.6 },
-        currentTime
-      );
+      const learnerModel = createMockLearnerModel({ 'skill-a': 0.5, 'skill-b': 0.6 }, currentTime);
 
-      const actions = planner.planSession(
-        learnerModel,
-        skillGraph,
-        [],
-        { ...defaultConfig, targetItems: 5, enforceSpacedRetrieval: false, requireTransferTests: false }
-      );
+      const actions = planner.planSession(learnerModel, skillGraph, [], {
+        ...defaultConfig,
+        targetItems: 5,
+        enforceSpacedRetrieval: false,
+        requireTransferTests: false,
+      });
 
-      const skillIds = actions.filter(a => a.skillId).map(a => a.skillId);
+      const skillIds = actions.filter((a) => a.skillId).map((a) => a.skillId);
       const uniqueSkillIds = new Set(skillIds);
       expect(uniqueSkillIds.size).toBe(skillIds.length);
     });
@@ -583,12 +515,12 @@ describe('SessionPlannerImpl', () => {
         currentTime
       );
 
-      const actions = planner.planSession(
-        learnerModel,
-        skillGraph,
-        [],
-        { ...defaultConfig, targetItems: 10, enforceSpacedRetrieval: false, requireTransferTests: false }
-      );
+      const actions = planner.planSession(learnerModel, skillGraph, [], {
+        ...defaultConfig,
+        targetItems: 10,
+        enforceSpacedRetrieval: false,
+        requireTransferTests: false,
+      });
 
       expect(actions.length).toBe(0);
     });
@@ -600,7 +532,13 @@ describe('SessionPlannerImpl', () => {
         { type: 'review' as const, skillId: 'skill-a', reason: 'test', priority: 80 },
         { type: 'review' as const, skillId: 'skill-b', reason: 'test', priority: 70 },
         { type: 'practice' as const, skillId: 'skill-c', reason: 'test', priority: 50 },
-        { type: 'transfer_test' as const, skillId: 'skill-a', itemId: 'test-1', reason: 'test', priority: 75 },
+        {
+          type: 'transfer_test' as const,
+          skillId: 'skill-a',
+          itemId: 'test-1',
+          reason: 'test',
+          priority: 75,
+        },
       ];
 
       const stats = planner.getSessionStats(actions);
@@ -622,9 +560,7 @@ describe('SessionPlannerImpl', () => {
     });
 
     it('should handle rest actions without skillId', () => {
-      const actions = [
-        { type: 'rest' as const, reason: 'done', priority: 0 },
-      ];
+      const actions = [{ type: 'rest' as const, reason: 'done', priority: 0 }];
 
       const stats = planner.getSessionStats(actions);
 
@@ -672,16 +608,15 @@ describe('SessionPlannerImpl', () => {
     it('should sort by skillId when priorities are equal', () => {
       const skillGraph = createMockSkillGraph(['zebra', 'apple', 'mango']);
       const learnerModel = createMockLearnerModel(
-        { 'zebra': 0.5, 'apple': 0.5, 'mango': 0.5 },
+        { zebra: 0.5, apple: 0.5, mango: 0.5 },
         currentTime
       );
 
-      const action = planner.getNextAction(
-        learnerModel,
-        skillGraph,
-        [],
-        { ...defaultConfig, enforceSpacedRetrieval: false, requireTransferTests: false }
-      );
+      const action = planner.getNextAction(learnerModel, skillGraph, [], {
+        ...defaultConfig,
+        enforceSpacedRetrieval: false,
+        requireTransferTests: false,
+      });
 
       // Skills with same priority should be sorted alphabetically
       // Note: topological order is used, so order depends on input
@@ -702,18 +637,8 @@ describe('SessionPlannerImpl', () => {
         nextReview: currentTime - MS_PER_DAY * 5,
       });
 
-      const action1 = planner.getNextAction(
-        learnerModel,
-        skillGraph,
-        [state1Day],
-        defaultConfig
-      );
-      const action5 = planner.getNextAction(
-        learnerModel,
-        skillGraph,
-        [state5Days],
-        defaultConfig
-      );
+      const action1 = planner.getNextAction(learnerModel, skillGraph, [state1Day], defaultConfig);
+      const action5 = planner.getNextAction(learnerModel, skillGraph, [state5Days], defaultConfig);
 
       expect(action5.priority).toBeGreaterThan(action1.priority);
     });

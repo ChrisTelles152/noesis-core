@@ -1,5 +1,5 @@
-import CodeBlock from "@/components/CodeBlock";
-import { masteryTrackingCode } from "./codeSnippets";
+import CodeBlock from '@/components/CodeBlock';
+import { masteryTrackingCode } from './codeSnippets';
 
 export default function MasteryLearningSection() {
   return (
@@ -11,9 +11,7 @@ export default function MasteryLearningSection() {
 
       <div className="mb-8">
         <h3 className="text-lg font-medium text-slate-900 mb-3">Tracking Learning Mastery</h3>
-        <p className="text-slate-700 mb-4">
-          To track learning progress and mastery of concepts:
-        </p>
+        <p className="text-slate-700 mb-4">To track learning progress and mastery of concepts:</p>
         <CodeBlock code={masteryTrackingCode} language="javascript" />
       </div>
 
@@ -42,9 +40,7 @@ export default function MasteryLearningSection() {
 
       <div className="mb-8">
         <h3 className="text-lg font-medium text-slate-900 mb-3">Getting Review Recommendations</h3>
-        <p className="text-slate-700 mb-4">
-          To get a list of concepts that need review:
-        </p>
+        <p className="text-slate-700 mb-4">To get a list of concepts that need review:</p>
         <CodeBlock
           code={`const reviewRecommendations = noesis.mastery.getReviewRecommendations();
 console.log('Concepts to review:', reviewRecommendations);`}

@@ -68,20 +68,69 @@ function createTestItemMappings(): ItemSkillMapping[] {
     { itemId: 'item1', primarySkillId: 'arithmetic', secondarySkillIds: [], difficulty: 0.3 },
     { itemId: 'item2', primarySkillId: 'arithmetic', secondarySkillIds: [], difficulty: 0.5 },
     { itemId: 'item3', primarySkillId: 'arithmetic', secondarySkillIds: [], difficulty: 0.7 },
-    { itemId: 'item4', primarySkillId: 'algebra', secondarySkillIds: ['arithmetic'], difficulty: 0.4 },
-    { itemId: 'item5', primarySkillId: 'algebra', secondarySkillIds: ['arithmetic'], difficulty: 0.6 },
-    { itemId: 'item6', primarySkillId: 'geometry', secondarySkillIds: ['arithmetic'], difficulty: 0.5 },
-    { itemId: 'item7', primarySkillId: 'calculus', secondarySkillIds: ['algebra', 'geometry'], difficulty: 0.7 },
-    { itemId: 'item8', primarySkillId: 'statistics', secondarySkillIds: ['algebra'], difficulty: 0.5 },
+    {
+      itemId: 'item4',
+      primarySkillId: 'algebra',
+      secondarySkillIds: ['arithmetic'],
+      difficulty: 0.4,
+    },
+    {
+      itemId: 'item5',
+      primarySkillId: 'algebra',
+      secondarySkillIds: ['arithmetic'],
+      difficulty: 0.6,
+    },
+    {
+      itemId: 'item6',
+      primarySkillId: 'geometry',
+      secondarySkillIds: ['arithmetic'],
+      difficulty: 0.5,
+    },
+    {
+      itemId: 'item7',
+      primarySkillId: 'calculus',
+      secondarySkillIds: ['algebra', 'geometry'],
+      difficulty: 0.7,
+    },
+    {
+      itemId: 'item8',
+      primarySkillId: 'statistics',
+      secondarySkillIds: ['algebra'],
+      difficulty: 0.5,
+    },
   ];
 }
 
 function createTestTransferTests(): TransferTest[] {
   return [
-    { id: 'test1', skillId: 'arithmetic', transferType: 'near', context: 'Word problems', passingScore: 0.7 },
-    { id: 'test2', skillId: 'arithmetic', transferType: 'far', context: 'Real-world budgeting', passingScore: 0.6 },
-    { id: 'test3', skillId: 'algebra', transferType: 'near', context: 'Variable expressions', passingScore: 0.7 },
-    { id: 'test4', skillId: 'algebra', transferType: 'far', context: 'Physics equations', passingScore: 0.6 },
+    {
+      id: 'test1',
+      skillId: 'arithmetic',
+      transferType: 'near',
+      context: 'Word problems',
+      passingScore: 0.7,
+    },
+    {
+      id: 'test2',
+      skillId: 'arithmetic',
+      transferType: 'far',
+      context: 'Real-world budgeting',
+      passingScore: 0.6,
+    },
+    {
+      id: 'test3',
+      skillId: 'algebra',
+      transferType: 'near',
+      context: 'Variable expressions',
+      passingScore: 0.7,
+    },
+    {
+      id: 'test4',
+      skillId: 'algebra',
+      transferType: 'far',
+      context: 'Physics equations',
+      passingScore: 0.6,
+    },
   ];
 }
 
@@ -105,9 +154,7 @@ describe('SkillGraph', () => {
   });
 
   it('should detect missing prerequisites', () => {
-    const skills: Skill[] = [
-      { id: 'advanced', name: 'Advanced', prerequisites: ['missing'] },
-    ];
+    const skills: Skill[] = [{ id: 'advanced', name: 'Advanced', prerequisites: ['missing'] }];
     const graph = createSkillGraph(skills);
     const result = graph.validate();
     expect(result.valid).toBe(false);
@@ -334,7 +381,9 @@ describe('BKTEngine', () => {
 
     expect(restored.learnerId).toBe(model.learnerId);
     expect(restored.totalEvents).toBe(model.totalEvents);
-    expect(engine.getPMastery(restored, 'arithmetic')).toBe(engine.getPMastery(model, 'arithmetic'));
+    expect(engine.getPMastery(restored, 'arithmetic')).toBe(
+      engine.getPMastery(model, 'arithmetic')
+    );
   });
 
   it('should be deterministic', () => {
@@ -356,7 +405,9 @@ describe('BKTEngine', () => {
     const updated1 = engine.updateModel(model1, event);
     const updated2 = engine.updateModel(model2, event);
 
-    expect(engine.getPMastery(updated1, 'arithmetic')).toBe(engine.getPMastery(updated2, 'arithmetic'));
+    expect(engine.getPMastery(updated1, 'arithmetic')).toBe(
+      engine.getPMastery(updated2, 'arithmetic')
+    );
   });
 });
 
@@ -434,9 +485,36 @@ describe('FSRSScheduler', () => {
 
   it('should get due skills', () => {
     const states: MemoryState[] = [
-      { skillId: 'skill1', stability: 1, difficulty: 0.5, lastReview: 0, nextReview: 100, successCount: 1, failureCount: 0, state: 'review' },
-      { skillId: 'skill2', stability: 1, difficulty: 0.5, lastReview: 0, nextReview: 200, successCount: 1, failureCount: 0, state: 'review' },
-      { skillId: 'skill3', stability: 1, difficulty: 0.5, lastReview: 0, nextReview: 50, successCount: 1, failureCount: 0, state: 'review' },
+      {
+        skillId: 'skill1',
+        stability: 1,
+        difficulty: 0.5,
+        lastReview: 0,
+        nextReview: 100,
+        successCount: 1,
+        failureCount: 0,
+        state: 'review',
+      },
+      {
+        skillId: 'skill2',
+        stability: 1,
+        difficulty: 0.5,
+        lastReview: 0,
+        nextReview: 200,
+        successCount: 1,
+        failureCount: 0,
+        state: 'review',
+      },
+      {
+        skillId: 'skill3',
+        stability: 1,
+        difficulty: 0.5,
+        lastReview: 0,
+        nextReview: 50,
+        successCount: 1,
+        failureCount: 0,
+        state: 'review',
+      },
     ];
 
     currentTime = 150;
@@ -549,7 +627,7 @@ describe('TransferGate', () => {
     const required = transferGate.getRequiredTests('arithmetic', tests);
 
     expect(required.length).toBeGreaterThan(0);
-    expect(required.some(t => t.transferType === 'near')).toBe(true);
+    expect(required.some((t) => t.transferType === 'near')).toBe(true);
   });
 
   it('should get pending tests', () => {
@@ -572,8 +650,8 @@ describe('TransferGate', () => {
     const strictGate = createTransferGate({ requireNearTransfer: true, requireFarTransfer: true });
     const required = strictGate.getRequiredTests('arithmetic', tests);
 
-    expect(required.some(t => t.transferType === 'near')).toBe(true);
-    expect(required.some(t => t.transferType === 'far')).toBe(true);
+    expect(required.some((t) => t.transferType === 'near')).toBe(true);
+    expect(required.some((t) => t.transferType === 'far')).toBe(true);
   });
 });
 
@@ -758,8 +836,9 @@ describe('NoesisCoreEngine', () => {
 
     // Same events should produce identical state
     expect(model1.totalEvents).toBe(model2.totalEvents);
-    expect(model1.skillProbabilities.get('arithmetic')!.pMastery)
-      .toBe(model2.skillProbabilities.get('arithmetic')!.pMastery);
+    expect(model1.skillProbabilities.get('arithmetic')!.pMastery).toBe(
+      model2.skillProbabilities.get('arithmetic')!.pMastery
+    );
   });
 
   it('should export and import state', () => {
@@ -834,11 +913,61 @@ describe('NoesisCoreEngine', () => {
     // Replay same events -> actions must match exactly
 
     const events: PracticeEvent[] = [
-      { id: 'evt1', type: 'practice', learnerId: 'learner1', sessionId: 'session1', timestamp: 1000, skillId: 'arithmetic', itemId: 'item1', correct: true, responseTimeMs: 5000 },
-      { id: 'evt2', type: 'practice', learnerId: 'learner1', sessionId: 'session1', timestamp: 2000, skillId: 'arithmetic', itemId: 'item2', correct: true, responseTimeMs: 4000 },
-      { id: 'evt3', type: 'practice', learnerId: 'learner1', sessionId: 'session1', timestamp: 3000, skillId: 'algebra', itemId: 'item3', correct: false, responseTimeMs: 6000 },
-      { id: 'evt4', type: 'practice', learnerId: 'learner1', sessionId: 'session1', timestamp: 4000, skillId: 'arithmetic', itemId: 'item4', correct: true, responseTimeMs: 3000 },
-      { id: 'evt5', type: 'practice', learnerId: 'learner1', sessionId: 'session1', timestamp: 5000, skillId: 'geometry', itemId: 'item5', correct: true, responseTimeMs: 4500 },
+      {
+        id: 'evt1',
+        type: 'practice',
+        learnerId: 'learner1',
+        sessionId: 'session1',
+        timestamp: 1000,
+        skillId: 'arithmetic',
+        itemId: 'item1',
+        correct: true,
+        responseTimeMs: 5000,
+      },
+      {
+        id: 'evt2',
+        type: 'practice',
+        learnerId: 'learner1',
+        sessionId: 'session1',
+        timestamp: 2000,
+        skillId: 'arithmetic',
+        itemId: 'item2',
+        correct: true,
+        responseTimeMs: 4000,
+      },
+      {
+        id: 'evt3',
+        type: 'practice',
+        learnerId: 'learner1',
+        sessionId: 'session1',
+        timestamp: 3000,
+        skillId: 'algebra',
+        itemId: 'item3',
+        correct: false,
+        responseTimeMs: 6000,
+      },
+      {
+        id: 'evt4',
+        type: 'practice',
+        learnerId: 'learner1',
+        sessionId: 'session1',
+        timestamp: 4000,
+        skillId: 'arithmetic',
+        itemId: 'item4',
+        correct: true,
+        responseTimeMs: 3000,
+      },
+      {
+        id: 'evt5',
+        type: 'practice',
+        learnerId: 'learner1',
+        sessionId: 'session1',
+        timestamp: 5000,
+        skillId: 'geometry',
+        itemId: 'item5',
+        correct: true,
+        responseTimeMs: 4500,
+      },
     ];
 
     const config = { ...DEFAULT_SESSION_CONFIG, enforceSpacedRetrieval: false };
@@ -933,9 +1062,7 @@ describe('Integration', () => {
       sessionId: 'session1',
       timestamp: 1000,
       skillsAssessed: ['arithmetic'],
-      results: [
-        { skillId: 'arithmetic', score: 0.5, itemsAttempted: 3, itemsCorrect: 2 },
-      ],
+      results: [{ skillId: 'arithmetic', score: 0.5, itemsAttempted: 3, itemsCorrect: 2 }],
     };
     engine.processEvent(diagnosticEvent);
 
@@ -944,7 +1071,10 @@ describe('Integration', () => {
     expect(action.type).toBeDefined();
 
     // Plan a session
-    const sessionPlan = engine.planSession('learner1', { ...DEFAULT_SESSION_CONFIG, targetItems: 5 });
+    const sessionPlan = engine.planSession('learner1', {
+      ...DEFAULT_SESSION_CONFIG,
+      targetItems: 5,
+    });
     expect(sessionPlan.length).toBeGreaterThan(0);
 
     // Process practice events

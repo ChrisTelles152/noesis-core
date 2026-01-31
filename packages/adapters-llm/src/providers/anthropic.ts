@@ -35,15 +35,17 @@ export class AnthropicProvider implements LLMProvider {
 
   async complete(options: LLMCompletionOptions): Promise<LLMCompletionResult> {
     if (!this.apiKey) {
-      throw new Error('Anthropic API key not configured. Set ANTHROPIC_API_KEY environment variable.');
+      throw new Error(
+        'Anthropic API key not configured. Set ANTHROPIC_API_KEY environment variable.'
+      );
     }
 
     try {
       // Extract system message and convert to Anthropic format
-      const systemMessage = options.messages.find(m => m.role === 'system');
+      const systemMessage = options.messages.find((m) => m.role === 'system');
       const otherMessages: AnthropicMessage[] = options.messages
-        .filter(m => m.role !== 'system')
-        .map(m => ({
+        .filter((m) => m.role !== 'system')
+        .map((m) => ({
           role: m.role as 'user' | 'assistant',
           content: m.content,
         }));
@@ -70,14 +72,18 @@ export class AnthropicProvider implements LLMProvider {
 
       const data: AnthropicResponse = await response.json();
       const content = data.content
-        .filter(c => c.type === 'text')
-        .map(c => c.text)
+        .filter((c) => c.type === 'text')
+        .map((c) => c.text)
         .join('');
 
       return {
         content,
-        finishReason: data.stop_reason === 'end_turn' ? 'stop' :
-                      data.stop_reason === 'max_tokens' ? 'length' : 'stop',
+        finishReason:
+          data.stop_reason === 'end_turn'
+            ? 'stop'
+            : data.stop_reason === 'max_tokens'
+              ? 'length'
+              : 'stop',
         usage: {
           promptTokens: data.usage.input_tokens,
           completionTokens: data.usage.output_tokens,

@@ -1,5 +1,5 @@
-import { useState, useMemo } from "react";
-import { Button } from "@/components/ui/button";
+import { useState, useMemo } from 'react';
+import { Button } from '@/components/ui/button';
 
 interface CodeBlockProps {
   code: string;
@@ -30,13 +30,17 @@ function tokenizeCode(code: string, language: string): Token[] {
   // Simple tokenizer - splits code into highlighted segments
   // For production, consider using a proper lexer like Prism.js or highlight.js
   switch (language) {
-    case "javascript":
-    case "typescript": {
+    case 'javascript':
+    case 'typescript': {
       // Pattern to match tokens in order of precedence
       const patterns: Array<{ type: TokenType; regex: RegExp }> = [
         { type: 'comment', regex: /^\/\/.*/ },
         { type: 'string', regex: /^(['"`])(?:(?!\1)[^\\]|\\.)*\1/ },
-        { type: 'keyword', regex: /^(?:import|from|const|let|var|await|async|function|return|if|else|try|catch|new|true|false|export|default|class|extends|interface|type)\b/ },
+        {
+          type: 'keyword',
+          regex:
+            /^(?:import|from|const|let|var|await|async|function|return|if|else|try|catch|new|true|false|export|default|class|extends|interface|type)\b/,
+        },
         { type: 'function', regex: /^[a-zA-Z_]\w*(?=\s*\()/ },
         { type: 'property', regex: /^\.[a-zA-Z_]\w*/ },
         { type: 'plain', regex: /^[^\s]+/ },
@@ -64,7 +68,7 @@ function tokenizeCode(code: string, language: string): Token[] {
       break;
     }
 
-    case "bash": {
+    case 'bash': {
       const patterns: Array<{ type: TokenType; regex: RegExp }> = [
         { type: 'comment', regex: /^#.*/ },
         { type: 'keyword', regex: /^(?:npm|yarn|git|cd|mkdir|rm|cp|mv|cat|echo|export)\b/ },
@@ -107,12 +111,18 @@ function tokenizeCode(code: string, language: string): Token[] {
  */
 function getTokenClass(type: TokenType): string {
   switch (type) {
-    case 'keyword': return 'text-purple-400';
-    case 'string': return 'text-green-400';
-    case 'comment': return 'text-slate-500 italic';
-    case 'function': return 'text-blue-400';
-    case 'property': return 'text-cyan-400';
-    default: return '';
+    case 'keyword':
+      return 'text-purple-400';
+    case 'string':
+      return 'text-green-400';
+    case 'comment':
+      return 'text-slate-500 italic';
+    case 'function':
+      return 'text-blue-400';
+    case 'property':
+      return 'text-cyan-400';
+    default:
+      return '';
   }
 }
 
@@ -151,9 +161,9 @@ export default function CodeBlock({ code, language, filename }: CodeBlockProps) 
           </code>
         </pre>
         <div className="absolute top-2 right-2">
-          <Button 
-            size="sm" 
-            variant="ghost" 
+          <Button
+            size="sm"
+            variant="ghost"
             className="h-8 text-slate-400 hover:text-white hover:bg-slate-700"
             onClick={copyToClipboard}
           >
@@ -162,7 +172,7 @@ export default function CodeBlock({ code, language, filename }: CodeBlockProps) 
             ) : (
               <i className="far fa-copy mr-1"></i>
             )}
-            {copied ? "Copied!" : "Copy"}
+            {copied ? 'Copied!' : 'Copy'}
           </Button>
         </div>
       </div>

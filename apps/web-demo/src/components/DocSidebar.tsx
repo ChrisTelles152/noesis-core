@@ -1,4 +1,4 @@
-import { Button } from "@/components/ui/button";
+import { Button } from '@/components/ui/button';
 
 interface DocSidebarProps {
   activeSection: string;
@@ -7,14 +7,14 @@ interface DocSidebarProps {
 
 export default function DocSidebar({ activeSection, setActiveSection }: DocSidebarProps) {
   const sections = [
-    { id: "getting-started", label: "Getting Started" },
-    { id: "installation", label: "Installation" },
-    { id: "basic-usage", label: "Basic Usage" },
-    { id: "attention-tracking", label: "Attention Tracking" },
-    { id: "mastery-learning", label: "Mastery Learning" },
-    { id: "llm-integration", label: "LLM Integration" },
-    { id: "api-reference", label: "API Reference" },
-    { id: "examples", label: "Examples" }
+    { id: 'getting-started', label: 'Getting Started' },
+    { id: 'installation', label: 'Installation' },
+    { id: 'basic-usage', label: 'Basic Usage' },
+    { id: 'attention-tracking', label: 'Attention Tracking' },
+    { id: 'mastery-learning', label: 'Mastery Learning' },
+    { id: 'llm-integration', label: 'LLM Integration' },
+    { id: 'api-reference', label: 'API Reference' },
+    { id: 'examples', label: 'Examples' },
   ];
 
   return (
@@ -26,11 +26,11 @@ export default function DocSidebar({ activeSection, setActiveSection }: DocSideb
         <nav className="p-2">
           <div className="space-y-1">
             {sections.map((section) => (
-              <Button 
+              <Button
                 key={section.id}
-                variant="ghost" 
+                variant="ghost"
                 className={`w-full justify-start text-sm px-3 py-2 h-auto rounded-md ${
-                  activeSection === section.id 
+                  activeSection === section.id
                     ? 'bg-primary-50 text-primary-700 font-medium'
                     : 'text-slate-700 hover:bg-slate-50 hover:text-slate-900'
                 }`}

@@ -85,7 +85,7 @@ export class WebSocketService {
       this.checkHeartbeats();
     }, 30000);
 
-    this.logger.info("WebSocket server initialized", { module: "websocket", path: "/ws" });
+    this.logger.info('WebSocket server initialized', { module: 'websocket', path: '/ws' });
   }
 
   /**
@@ -94,8 +94,8 @@ export class WebSocketService {
   private async handleConnection(socket: WebSocket, request: IncomingMessage): Promise<void> {
     // Reject if we have too many clients (DoS protection)
     if (this.clients.size >= this.maxClients) {
-      this.logger.warn("WebSocket connection rejected - max clients reached", {
-        module: "websocket",
+      this.logger.warn('WebSocket connection rejected - max clients reached', {
+        module: 'websocket',
         maxClients: this.maxClients,
         currentClients: this.clients.size,
       });
@@ -110,7 +110,10 @@ export class WebSocketService {
     };
 
     this.clients.set(socket, client);
-    this.logger.info("WebSocket client connected", { module: "websocket", totalClients: this.clients.size });
+    this.logger.info('WebSocket client connected', {
+      module: 'websocket',
+      totalClients: this.clients.size,
+    });
 
     // Try to authenticate from HTTP upgrade request cookies
     const cookieHeader = request.headers.cookie;
@@ -120,7 +123,10 @@ export class WebSocketService {
       const userId = await verifySessionAndGetUserId(sessionId);
       if (userId) {
         client.userId = userId;
-        this.logger.info("WebSocket client auto-authenticated from session", { module: "websocket", userId });
+        this.logger.info('WebSocket client auto-authenticated from session', {
+          module: 'websocket',
+          userId,
+        });
       }
     }
 
@@ -144,12 +150,15 @@ export class WebSocketService {
     // Handle client disconnect
     socket.on('close', () => {
       this.clients.delete(socket);
-      this.logger.info("WebSocket client disconnected", { module: "websocket", totalClients: this.clients.size });
+      this.logger.info('WebSocket client disconnected', {
+        module: 'websocket',
+        totalClients: this.clients.size,
+      });
     });
 
     // Handle errors
     socket.on('error', (error) => {
-      this.logger.error("WebSocket client error", { module: "websocket" }, error);
+      this.logger.error('WebSocket client error', { module: 'websocket' }, error);
       this.clients.delete(socket);
     });
 
@@ -211,7 +220,10 @@ export class WebSocketService {
                 payload: { userId: verifiedUserId, method: 'session' },
                 timestamp: Date.now(),
               });
-              this.logger.info("WebSocket client authenticated via session", { module: "websocket", userId: verifiedUserId });
+              this.logger.info('WebSocket client authenticated via session', {
+                module: 'websocket',
+                userId: verifiedUserId,
+              });
               break;
             } else {
               this.sendToClient(socket, {
@@ -226,7 +238,9 @@ export class WebSocketService {
           // Fall back to userId (development only)
           if (providedUserId) {
             if (process.env.NODE_ENV === 'production') {
-              this.logger.error("SECURITY: Client-provided userId rejected in production", { module: "websocket" });
+              this.logger.error('SECURITY: Client-provided userId rejected in production', {
+                module: 'websocket',
+              });
               this.sendToClient(socket, {
                 type: 'auth-error',
                 payload: { error: 'Session authentication required in production' },
@@ -235,11 +249,17 @@ export class WebSocketService {
               break;
             }
 
-            this.logger.warn("DEV: Accepting client-provided userId without verification", { module: "websocket" });
+            this.logger.warn('DEV: Accepting client-provided userId without verification', {
+              module: 'websocket',
+            });
             client.userId = providedUserId;
             this.sendToClient(socket, {
               type: 'authenticated',
-              payload: { userId: providedUserId, method: 'dev-userId', warning: 'Development mode only' },
+              payload: {
+                userId: providedUserId,
+                method: 'dev-userId',
+                warning: 'Development mode only',
+              },
               timestamp: Date.now(),
             });
           } else {
@@ -253,10 +273,17 @@ export class WebSocketService {
         }
 
         default:
-          this.logger.debug("Unknown WebSocket message type", { module: "websocket", type: message.type });
+          this.logger.debug('Unknown WebSocket message type', {
+            module: 'websocket',
+            type: message.type,
+          });
       }
     } catch (error) {
-      this.logger.error("Error parsing WebSocket message", { module: "websocket" }, error instanceof Error ? error : undefined);
+      this.logger.error(
+        'Error parsing WebSocket message',
+        { module: 'websocket' },
+        error instanceof Error ? error : undefined
+      );
     }
   }
 
@@ -328,7 +355,10 @@ export class WebSocketService {
   /**
    * Broadcast recommendation notification
    */
-  broadcastRecommendation(userId: number, recommendation: { suggestion: string; type: string }): void {
+  broadcastRecommendation(
+    userId: number,
+    recommendation: { suggestion: string; type: string }
+  ): void {
     const message: WSMessage = {
       type: 'recommendation',
       payload: recommendation,
@@ -378,7 +408,7 @@ export class WebSocketService {
 
     Array.from(this.clients.entries()).forEach(([socket, client]) => {
       if (now - client.lastPing > timeout) {
-        this.logger.info("WebSocket client timed out, disconnecting", { module: "websocket" });
+        this.logger.info('WebSocket client timed out, disconnecting', { module: 'websocket' });
         socket.terminate();
         this.clients.delete(socket);
       } else {
@@ -429,7 +459,7 @@ export class WebSocketService {
     }
 
     this.clients.clear();
-    this.logger.info("WebSocket server shutdown complete", { module: "websocket" });
+    this.logger.info('WebSocket server shutdown complete', { module: 'websocket' });
   }
 }
 

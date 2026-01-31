@@ -157,7 +157,7 @@ export class NoesisCoreEngineImpl implements NoesisCoreEngine {
 
     // Update memory state
     let states = this.memoryStates.get(learnerId) || [];
-    let skillState = states.find(s => s.skillId === skillId);
+    let skillState = states.find((s) => s.skillId === skillId);
 
     if (!skillState) {
       skillState = this.memoryScheduler.createState(skillId);
@@ -169,7 +169,7 @@ export class NoesisCoreEngineImpl implements NoesisCoreEngine {
     const updatedState = this.memoryScheduler.scheduleReview(skillState, correct, rating);
 
     // Replace the state in the array
-    states = states.map(s => s.skillId === skillId ? updatedState : s);
+    states = states.map((s) => (s.skillId === skillId ? updatedState : s));
     this.memoryStates.set(learnerId, states);
   }
 
@@ -295,11 +295,7 @@ export class NoesisCoreEngineImpl implements NoesisCoreEngine {
    * Generate a diagnostic test
    */
   generateDiagnostic(maxItems: number): string[] {
-    return this.diagnosticEngine.generateDiagnostic(
-      this.graph,
-      this.itemMappings,
-      maxItems
-    );
+    return this.diagnosticEngine.generateDiagnostic(this.graph, this.itemMappings, maxItems);
   }
 
   /**
@@ -387,22 +383,14 @@ export class NoesisCoreEngineImpl implements NoesisCoreEngine {
    * Check if a skill is unlocked (passed transfer tests)
    */
   isSkillUnlocked(skillId: string): boolean {
-    return this.transferGate.isSkillUnlocked(
-      skillId,
-      this.transferResults,
-      this.transferTests
-    );
+    return this.transferGate.isSkillUnlocked(skillId, this.transferResults, this.transferTests);
   }
 
   /**
    * Get pending transfer tests for a skill
    */
   getPendingTransferTests(skillId: string): TransferTest[] {
-    return this.transferGate.getPendingTests(
-      skillId,
-      this.transferResults,
-      this.transferTests
-    );
+    return this.transferGate.getPendingTests(skillId, this.transferResults, this.transferTests);
   }
 
   /**
@@ -507,10 +495,5 @@ export function createDeterministicEngine(
     return `evt-${eventCounter.toString().padStart(6, '0')}`;
   };
 
-  return new NoesisCoreEngineImpl(
-    skillGraph,
-    config,
-    deterministicClock,
-    deterministicIdGenerator
-  );
+  return new NoesisCoreEngineImpl(skillGraph, config, deterministicClock, deterministicIdGenerator);
 }

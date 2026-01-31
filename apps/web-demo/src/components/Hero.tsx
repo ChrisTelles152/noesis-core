@@ -1,6 +1,6 @@
-import { Link } from "wouter";
-import { Button } from "@/components/ui/button";
-import CodeBlock from "@/components/CodeBlock";
+import { Link } from 'wouter';
+import { Button } from '@/components/ui/button';
+import CodeBlock from '@/components/CodeBlock';
 
 export default function Hero() {
   const codeExample = `// Initialize Noesis SDK with default configuration
@@ -48,10 +48,14 @@ console.log('Suggested next step:', response.suggestion);`;
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="max-w-4xl mx-auto text-center">
           <h1 className="text-4xl md:text-5xl font-bold text-slate-900 tracking-tight">
-            <span className="bg-clip-text text-transparent bg-gradient-to-r from-primary-600 to-secondary-500">Adaptive Learning</span> for Every Platform
+            <span className="bg-clip-text text-transparent bg-gradient-to-r from-primary-600 to-secondary-500">
+              Adaptive Learning
+            </span>{' '}
+            for Every Platform
           </h1>
           <p className="mt-6 text-xl text-slate-600 max-w-3xl mx-auto">
-            The universal infrastructure layer for attention-aware, personalized learning experiences. Open-source SDK that makes any app smarter about how people learn.
+            The universal infrastructure layer for attention-aware, personalized learning
+            experiences. Open-source SDK that makes any app smarter about how people learn.
           </p>
           <div className="mt-10 flex flex-col sm:flex-row justify-center items-center space-y-4 sm:space-y-0 sm:space-x-4">
             <Button size="lg" asChild>
@@ -68,7 +72,7 @@ console.log('Suggested next step:', response.suggestion);`;
               </Link>
             </Button>
           </div>
-          
+
           <div className="mt-12 text-sm flex items-center justify-center text-slate-600">
             <span className="mr-4">Open Source</span>
             <div className="w-px h-4 bg-slate-300"></div>
@@ -77,7 +81,7 @@ console.log('Suggested next step:', response.suggestion);`;
             <span className="ml-4">Cross-Platform</span>
           </div>
         </div>
-        
+
         <div className="mt-16 max-w-4xl mx-auto bg-white p-4 rounded-xl shadow-md border border-slate-200">
           <CodeBlock code={codeExample} language="javascript" filename="noesis-sdk-demo.js" />
         </div>

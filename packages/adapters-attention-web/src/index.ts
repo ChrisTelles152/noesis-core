@@ -11,11 +11,7 @@
  */
 
 export { AttentionTracker } from './attention';
-export {
-  WebGazerAdapter,
-  getWebGazerAdapter,
-  resetWebGazerAdapter,
-} from './webgazer-adapter';
+export { WebGazerAdapter, getWebGazerAdapter, resetWebGazerAdapter } from './webgazer-adapter';
 
 export type {
   AttentionData,

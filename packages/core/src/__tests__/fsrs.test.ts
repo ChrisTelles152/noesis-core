@@ -312,10 +312,7 @@ describe('FSRSScheduler', () => {
 
   describe('serialize/deserialize', () => {
     it('should round-trip states correctly', () => {
-      const states = [
-        scheduler.createState('skill-a'),
-        scheduler.createState('skill-b'),
-      ];
+      const states = [scheduler.createState('skill-a'), scheduler.createState('skill-b')];
 
       // Modify one state
       states[0] = scheduler.scheduleReview(states[0], true, 4);
@@ -434,7 +431,7 @@ describe('FSRSScheduler', () => {
   describe('custom parameters', () => {
     it('should use custom requestedRetention', () => {
       const highRetentionScheduler = createFSRSScheduler({ requestedRetention: 0.95 }, mockClock);
-      const lowRetentionScheduler = createFSRSScheduler({ requestedRetention: 0.80 }, mockClock);
+      const lowRetentionScheduler = createFSRSScheduler({ requestedRetention: 0.8 }, mockClock);
 
       let highState = highRetentionScheduler.createState('skill-a');
       let lowState = lowRetentionScheduler.createState('skill-a');
@@ -450,9 +447,12 @@ describe('FSRSScheduler', () => {
     });
 
     it('should use custom initial stability', () => {
-      const customScheduler = createFSRSScheduler({
-        initialStability: [0.1, 0.5, 1.0, 2.0],
-      }, mockClock);
+      const customScheduler = createFSRSScheduler(
+        {
+          initialStability: [0.1, 0.5, 1.0, 2.0],
+        },
+        mockClock
+      );
 
       const state = customScheduler.createState('skill-a');
 

@@ -10,32 +10,32 @@ vi.mock('../storage', () => {
   let currentId = 1;
 
   const mockStorage = {
-      getUserByUsername: vi.fn(async (username: string) => {
-        return Array.from(users.values()).find(u => u.username === username);
-      }),
-      getUser: vi.fn(async (id: number) => {
-        return users.get(id);
-      }),
-      createUser: vi.fn(async (user: { username: string; password: string }) => {
-        const bcrypt = await import('bcrypt');
-        const hashedPassword = await bcrypt.hash(user.password, 10);
-        const newUser = { id: currentId++, username: user.username, password: hashedPassword };
-        users.set(newUser.id, newUser);
-        return newUser;
-      }),
-      verifyPassword: vi.fn(async (username: string, password: string) => {
-        const bcrypt = await import('bcrypt');
-        const user = Array.from(users.values()).find(u => u.username === username);
-        if (!user) return null;
-        const isValid = await bcrypt.compare(password, user.password);
-        return isValid ? user : null;
-      }),
+    getUserByUsername: vi.fn(async (username: string) => {
+      return Array.from(users.values()).find((u) => u.username === username);
+    }),
+    getUser: vi.fn(async (id: number) => {
+      return users.get(id);
+    }),
+    createUser: vi.fn(async (user: { username: string; password: string }) => {
+      const bcrypt = await import('bcrypt');
+      const hashedPassword = await bcrypt.hash(user.password, 10);
+      const newUser = { id: currentId++, username: user.username, password: hashedPassword };
+      users.set(newUser.id, newUser);
+      return newUser;
+    }),
+    verifyPassword: vi.fn(async (username: string, password: string) => {
+      const bcrypt = await import('bcrypt');
+      const user = Array.from(users.values()).find((u) => u.username === username);
+      if (!user) return null;
+      const isValid = await bcrypt.compare(password, user.password);
+      return isValid ? user : null;
+    }),
     // Reset for tests
     _reset: () => {
       users.clear();
       currentId = 1;
     },
-    _getUsers: () => users
+    _getUsers: () => users,
   };
 
   return {
@@ -52,11 +52,13 @@ function createTestApp() {
   app.use(express.json());
 
   // Setup session for testing
-  app.use(session({
-    secret: 'test-secret',
-    resave: false,
-    saveUninitialized: false,
-  }));
+  app.use(
+    session({
+      secret: 'test-secret',
+      resave: false,
+      saveUninitialized: false,
+    })
+  );
 
   // Setup auth
   setupAuth(app);
@@ -120,9 +122,7 @@ describe('Auth System', () => {
     });
 
     it('should return 400 for missing password', async () => {
-      const response = await request(app)
-        .post('/api/auth/register')
-        .send({ username: 'testuser' });
+      const response = await request(app).post('/api/auth/register').send({ username: 'testuser' });
 
       expect(response.status).toBe(400);
       expect(response.body).toHaveProperty('error');
@@ -204,9 +204,7 @@ describe('Auth System', () => {
       const agent = request.agent(app);
 
       // Register (auto-login)
-      await agent
-        .post('/api/auth/register')
-        .send({ username: 'meuser', password: 'Password123!' });
+      await agent.post('/api/auth/register').send({ username: 'meuser', password: 'Password123!' });
 
       const response = await agent.get('/api/auth/me');
 
@@ -225,8 +223,7 @@ describe('Auth System', () => {
 
   describe('GET /api/auth/check-username/:username', () => {
     it('should return available: true for unused username', async () => {
-      const response = await request(app)
-        .get('/api/auth/check-username/newuser');
+      const response = await request(app).get('/api/auth/check-username/newuser');
 
       expect(response.status).toBe(200);
       expect(response.body).toHaveProperty('available', true);
@@ -238,8 +235,7 @@ describe('Auth System', () => {
         .post('/api/auth/register')
         .send({ username: 'takenuser', password: 'Password123!' });
 
-      const response = await request(app)
-        .get('/api/auth/check-username/takenuser');
+      const response = await request(app).get('/api/auth/check-username/takenuser');
 
       expect(response.status).toBe(200);
       expect(response.body).toHaveProperty('available', false);
@@ -274,7 +270,7 @@ describe('Auth System', () => {
     it('should return null for unauthenticated request', () => {
       const mockReq = {
         isAuthenticated: () => false,
-        user: undefined
+        user: undefined,
       } as any;
 
       expect(getCurrentUserId(mockReq)).toBeNull();
@@ -283,7 +279,7 @@ describe('Auth System', () => {
     it('should return null when isAuthenticated is not a function', () => {
       const mockReq = {
         isAuthenticated: 'not a function',
-        user: { id: 1 }
+        user: { id: 1 },
       } as any;
 
       expect(getCurrentUserId(mockReq)).toBeNull();

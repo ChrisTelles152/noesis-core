@@ -17,7 +17,11 @@ const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
 
   // Server port (defaults to 5174 to avoid macOS AirPlay conflict on 5000)
-  PORT: z.string().transform(v => parseInt(v, 10)).pipe(z.number().min(1).max(65535)).optional(),
+  PORT: z
+    .string()
+    .transform((v) => parseInt(v, 10))
+    .pipe(z.number().min(1).max(65535))
+    .optional(),
 
   // Server host (defaults to 127.0.0.1)
   HOST: z.string().optional(),
@@ -31,11 +35,17 @@ const envSchema = z.object({
 
   // Security
   SESSION_SECRET: z.string().min(16).optional(),
-  DISABLE_CSRF: z.string().transform(v => v === 'true').optional(),
+  DISABLE_CSRF: z
+    .string()
+    .transform((v) => v === 'true')
+    .optional(),
   ALLOWED_ORIGINS: z.string().optional(),
 
   // Feature flags
-  ENABLE_REAL_GAZE_TRACKING: z.string().transform(v => v === 'true').optional(),
+  ENABLE_REAL_GAZE_TRACKING: z
+    .string()
+    .transform((v) => v === 'true')
+    .optional(),
 
   // Logging
   LOG_LEVEL: z.enum(['debug', 'info', 'warn', 'error']).default('info'),
@@ -65,7 +75,7 @@ export function validateEnvironment(): ValidationResult {
     if (!env.OPENAI_API_KEY && !env.ANTHROPIC_API_KEY) {
       warnings.push(
         'No LLM API key configured (OPENAI_API_KEY or ANTHROPIC_API_KEY). ' +
-        'Using fallback mode for recommendations.'
+          'Using fallback mode for recommendations.'
       );
     }
 
@@ -73,22 +83,21 @@ export function validateEnvironment(): ValidationResult {
     if (!env.DATABASE_URL) {
       warnings.push(
         'No DATABASE_URL configured. Using in-memory storage. ' +
-        'Data will not persist across restarts.'
+          'Data will not persist across restarts.'
       );
     }
 
     // Security warnings for production
     if (env.NODE_ENV === 'production') {
-      if (!env.SESSION_SECRET || env.SESSION_SECRET === 'noesis-development-secret-change-in-production') {
-        errors.push(
-          'SESSION_SECRET must be set to a secure random value in production.'
-        );
+      if (
+        !env.SESSION_SECRET ||
+        env.SESSION_SECRET === 'noesis-development-secret-change-in-production'
+      ) {
+        errors.push('SESSION_SECRET must be set to a secure random value in production.');
       }
 
       if (env.DISABLE_CSRF) {
-        errors.push(
-          'CSRF protection cannot be disabled in production mode.'
-        );
+        errors.push('CSRF protection cannot be disabled in production mode.');
       }
 
       if (!env.ALLOWED_ORIGINS) {
@@ -115,9 +124,7 @@ export function validateEnvironment(): ValidationResult {
     };
   } catch (error) {
     if (error instanceof z.ZodError) {
-      const zodErrors = error.errors.map(e =>
-        `${e.path.join('.')}: ${e.message}`
-      );
+      const zodErrors = error.errors.map((e) => `${e.path.join('.')}: ${e.message}`);
       return {
         valid: false,
         env: null,

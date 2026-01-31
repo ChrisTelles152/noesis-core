@@ -1,11 +1,7 @@
 import { AttentionTracker } from './attention';
 import { MasteryTracker } from './mastery';
 import { Orchestrator } from './orchestration';
-import {
-  NoesisSDKOptions,
-  LearnerState,
-  ModuleType
-} from './types';
+import { NoesisSDKOptions, LearnerState, ModuleType } from './types';
 
 export class NoesisSDK {
   attention: AttentionTracker;
@@ -59,7 +55,7 @@ export class NoesisSDK {
     return {
       attention: this.isModuleActive('attention') ? this.attention.getCurrentData() : undefined,
       mastery: this.isModuleActive('mastery') ? this.mastery.getMasteryData() : undefined,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     };
   }
 

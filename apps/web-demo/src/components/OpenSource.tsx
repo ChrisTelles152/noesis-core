@@ -1,22 +1,22 @@
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Link } from "wouter";
+import { Card, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Link } from 'wouter';
 
 export default function OpenSource() {
   const openSourceComponents = [
-    "Core SDK (JavaScript/TypeScript)",
-    "Basic attention tracking",
-    "Mastery learning logic",
-    "Platform adapters",
-    "Documentation and examples"
+    'Core SDK (JavaScript/TypeScript)',
+    'Basic attention tracking',
+    'Mastery learning logic',
+    'Platform adapters',
+    'Documentation and examples',
   ];
 
   const premiumServices = [
-    "LLM Orchestration API",
-    "Advanced analytics dashboard",
-    "A/B testing infrastructure",
-    "Enterprise support",
-    "Custom integrations"
+    'LLM Orchestration API',
+    'Advanced analytics dashboard',
+    'A/B testing infrastructure',
+    'Enterprise support',
+    'Custom integrations',
   ];
 
   return (
@@ -30,13 +30,15 @@ export default function OpenSource() {
                   <i className="fab fa-github text-primary-600 text-2xl"></i>
                 </div>
                 <div>
-                  <h3 className="text-xl sm:text-2xl font-bold text-slate-900">Open Source Project</h3>
+                  <h3 className="text-xl sm:text-2xl font-bold text-slate-900">
+                    Open Source Project
+                  </h3>
                   <p className="mt-2 text-slate-600">
                     Noesis follows an open-core model, with core SDK components under MIT license
                   </p>
                 </div>
               </div>
-              
+
               <div className="mt-8 grid gap-6 md:grid-cols-2">
                 <div className="bg-slate-50 rounded-lg border border-slate-200 p-5">
                   <h4 className="font-semibold text-slate-900 mb-2 flex items-center">
@@ -52,10 +54,14 @@ export default function OpenSource() {
                     ))}
                   </ul>
                   <div className="mt-4 pt-4 border-t border-slate-200">
-                    <Button variant="ghost" className="text-sm font-medium text-primary-600 hover:text-primary-700 p-0" asChild>
-                      <a 
-                        href="https://github.com/noesis-sdk" 
-                        target="_blank" 
+                    <Button
+                      variant="ghost"
+                      className="text-sm font-medium text-primary-600 hover:text-primary-700 p-0"
+                      asChild
+                    >
+                      <a
+                        href="https://github.com/noesis-sdk"
+                        target="_blank"
                         rel="noopener noreferrer"
                         className="inline-flex items-center"
                       >
@@ -65,7 +71,7 @@ export default function OpenSource() {
                     </Button>
                   </div>
                 </div>
-                
+
                 <div className="bg-primary-50 rounded-lg border border-primary-200 p-5">
                   <h4 className="font-semibold text-slate-900 mb-2 flex items-center">
                     <i className="fas fa-puzzle-piece text-primary-500 mr-2"></i>
@@ -80,7 +86,11 @@ export default function OpenSource() {
                     ))}
                   </ul>
                   <div className="mt-4 pt-4 border-t border-primary-200">
-                    <Button variant="ghost" className="text-sm font-medium text-primary-700 hover:text-primary-800 p-0" asChild>
+                    <Button
+                      variant="ghost"
+                      className="text-sm font-medium text-primary-700 hover:text-primary-800 p-0"
+                      asChild
+                    >
                       <Link href="#contact">
                         <a className="inline-flex items-center">
                           Contact for enterprise options
@@ -91,7 +101,7 @@ export default function OpenSource() {
                   </div>
                 </div>
               </div>
-              
+
               <div className="mt-8 pt-6 border-t border-slate-200">
                 <div className="flex items-start">
                   <div className="flex-shrink-0 mt-1">
@@ -100,7 +110,9 @@ export default function OpenSource() {
                   <div className="ml-3">
                     <h4 className="text-sm font-medium text-slate-900">Why Open Core?</h4>
                     <p className="mt-1 text-sm text-slate-600">
-                      We believe in open collaboration and transparency while maintaining a sustainable business model that allows us to continuously improve the SDK and provide premium services for enterprise customers.
+                      We believe in open collaboration and transparency while maintaining a
+                      sustainable business model that allows us to continuously improve the SDK and
+                      provide premium services for enterprise customers.
                     </p>
                   </div>
                 </div>

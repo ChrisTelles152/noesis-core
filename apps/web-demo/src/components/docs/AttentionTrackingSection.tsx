@@ -1,5 +1,5 @@
-import CodeBlock from "@/components/CodeBlock";
-import { attentionTrackingCode } from "./codeSnippets";
+import CodeBlock from '@/components/CodeBlock';
+import { attentionTrackingCode } from './codeSnippets';
 
 export default function AttentionTrackingSection() {
   return (
@@ -11,9 +11,7 @@ export default function AttentionTrackingSection() {
 
       <div className="mb-8">
         <h3 className="text-lg font-medium text-slate-900 mb-3">Starting Attention Tracking</h3>
-        <p className="text-slate-700 mb-4">
-          To begin tracking user attention using the webcam:
-        </p>
+        <p className="text-slate-700 mb-4">To begin tracking user attention using the webcam:</p>
         <CodeBlock code={attentionTrackingCode} language="javascript" />
       </div>
 
@@ -37,13 +35,8 @@ export default function AttentionTrackingSection() {
 
       <div className="mb-8">
         <h3 className="text-lg font-medium text-slate-900 mb-3">Stopping Tracking</h3>
-        <p className="text-slate-700 mb-4">
-          When you're done tracking attention:
-        </p>
-        <CodeBlock
-          code={`await noesis.attention.stopTracking();`}
-          language="javascript"
-        />
+        <p className="text-slate-700 mb-4">When you're done tracking attention:</p>
+        <CodeBlock code={`await noesis.attention.stopTracking();`} language="javascript" />
       </div>
     </>
   );

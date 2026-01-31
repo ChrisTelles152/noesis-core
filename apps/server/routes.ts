@@ -1,17 +1,17 @@
-import type { Express, Request } from "express";
-import { createServer, type Server } from "http";
-import { storage } from "./storage";
-import { z } from "zod";
-import { getCurrentUserId, requireAuth } from "./auth";
-import { getLLMManager, configureLLMManager, type LLMLogger } from "@noesis/adapters-llm";
-import { createError as _createError, ErrorCodes as _ErrorCodes } from "./errors";
-import { logger } from "./logger";
+import type { Express, Request } from 'express';
+import { createServer, type Server } from 'http';
+import { storage } from './storage';
+import { z } from 'zod';
+import { getCurrentUserId, requireAuth } from './auth';
+import { getLLMManager, configureLLMManager, type LLMLogger } from '@noesis/adapters-llm';
+import { createError as _createError, ErrorCodes as _ErrorCodes } from './errors';
+import { logger } from './logger';
 
 // Configure the LLM Manager with the server's structured logger
 const llmLogger: LLMLogger = {
-  info: (message, meta) => logger.info(message, { module: "llm", ...meta }),
-  warn: (message, meta) => logger.warn(message, { module: "llm", ...meta }),
-  error: (message, meta, error) => logger.error(message, { module: "llm", ...meta }, error),
+  info: (message, meta) => logger.info(message, { module: 'llm', ...meta }),
+  warn: (message, meta) => logger.warn(message, { module: 'llm', ...meta }),
+  error: (message, meta, error) => logger.error(message, { module: 'llm', ...meta }, error),
 };
 configureLLMManager({ logger: llmLogger });
 
@@ -28,15 +28,17 @@ const engagementResponseSchema = z.object({
 });
 
 // Learning event data schema with specific allowed fields
-const learningEventDataSchema = z.object({
-  context: z.string().optional(),
-  attentionScore: z.number().optional(),
-  recommendation: z.string().optional(),
-  intervention: z.string().optional(),
-  objectiveId: z.string().optional(),
-  progress: z.number().optional(),
-  result: z.number().optional(),
-}).catchall(z.union([z.string(), z.number(), z.boolean()]).optional());
+const learningEventDataSchema = z
+  .object({
+    context: z.string().optional(),
+    attentionScore: z.number().optional(),
+    recommendation: z.string().optional(),
+    intervention: z.string().optional(),
+    objectiveId: z.string().optional(),
+    progress: z.number().optional(),
+    result: z.number().optional(),
+  })
+  .catchall(z.union([z.string(), z.number(), z.boolean()]).optional());
 
 /**
  * Get authenticated user ID from request.
@@ -82,25 +84,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const requestSchema = z.object({
         learnerState: z.object({
-          attention: z.object({
-            score: z.number().min(0).max(1).optional(),
-            focusStability: z.number().min(0).max(1).optional(),
-            cognitiveLoad: z.number().min(0).max(1).optional(),
-            status: z.string().optional()
-          }).optional(),
-          mastery: z.array(z.object({
-            id: z.string(),
-            name: z.string(),
-            progress: z.number().min(0).max(1),
-            status: z.string()
-          })).optional(),
-          timestamp: z.number()
+          attention: z
+            .object({
+              score: z.number().min(0).max(1).optional(),
+              focusStability: z.number().min(0).max(1).optional(),
+              cognitiveLoad: z.number().min(0).max(1).optional(),
+              status: z.string().optional(),
+            })
+            .optional(),
+          mastery: z
+            .array(
+              z.object({
+                id: z.string(),
+                name: z.string(),
+                progress: z.number().min(0).max(1),
+                status: z.string(),
+              })
+            )
+            .optional(),
+          timestamp: z.number(),
         }),
         context: z.string().optional(),
-        options: z.object({
-          detail: z.enum(['low', 'medium', 'high']).optional(),
-          format: z.enum(['text', 'json']).optional()
-        }).optional()
+        options: z
+          .object({
+            detail: z.enum(['low', 'medium', 'high']).optional(),
+            format: z.enum(['text', 'json']).optional(),
+          })
+          .optional(),
       });
 
       const validatedData = requestSchema.parse(req.body);
@@ -131,10 +141,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
           model: llmResult.model,
         };
       } catch (parseError) {
-        logger.error("Error parsing LLM response", { module: "routes", endpoint: "next-step" }, parseError instanceof Error ? parseError : undefined);
+        logger.error(
+          'Error parsing LLM response',
+          { module: 'routes', endpoint: 'next-step' },
+          parseError instanceof Error ? parseError : undefined
+        );
         response = {
-          suggestion: "Based on your progress, I recommend continuing with the current concept.",
-          explanation: "This recommendation is based on your current attention and mastery levels.",
+          suggestion: 'Based on your progress, I recommend continuing with the current concept.',
+          explanation: 'This recommendation is based on your current attention and mastery levels.',
           resourceLinks: [],
           type: 'fallback',
           provider: 'fallback',
@@ -153,14 +167,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
           recommendation: response.suggestion,
           provider: response.provider,
         },
-        timestamp: new Date()
+        timestamp: new Date(),
       });
 
       res.json(response);
     } catch (error) {
-      logger.error("Error in next-step endpoint", { module: "routes" }, error instanceof Error ? error : undefined);
+      logger.error(
+        'Error in next-step endpoint',
+        { module: 'routes' },
+        error instanceof Error ? error : undefined
+      );
       res.status(400).json({
-        error: error instanceof Error ? error.message : 'Invalid request'
+        error: error instanceof Error ? error.message : 'Invalid request',
       });
     }
   });
@@ -170,7 +188,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const requestSchema = z.object({
         attentionScore: z.number().min(0).max(1).optional(),
         context: z.string().optional(),
-        previousInterventions: z.array(z.string()).optional()
+        previousInterventions: z.array(z.string()).optional(),
       });
 
       const validatedData = requestSchema.parse(req.body);
@@ -200,9 +218,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
           model: llmResult.model,
         };
       } catch (parseError) {
-        logger.error("Error parsing LLM response", { module: "routes", endpoint: "engagement" }, parseError instanceof Error ? parseError : undefined);
+        logger.error(
+          'Error parsing LLM response',
+          { module: 'routes', endpoint: 'engagement' },
+          parseError instanceof Error ? parseError : undefined
+        );
         response = {
-          message: "Would you like to take a quick break to refresh your focus?",
+          message: 'Would you like to take a quick break to refresh your focus?',
           type: 'attention-prompt',
           source: 'fallback',
           provider: 'fallback',
@@ -221,14 +243,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
           intervention: response.message,
           provider: response.provider,
         },
-        timestamp: new Date()
+        timestamp: new Date(),
       });
 
       res.json(response);
     } catch (error) {
-      logger.error("Error in engagement endpoint", { module: "routes" }, error instanceof Error ? error : undefined);
+      logger.error(
+        'Error in engagement endpoint',
+        { module: 'routes' },
+        error instanceof Error ? error : undefined
+      );
       res.status(400).json({
-        error: error instanceof Error ? error.message : 'Invalid request'
+        error: error instanceof Error ? error.message : 'Invalid request',
       });
     }
   });
@@ -239,10 +265,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = getUserIdFromRequest(req);
       const events = await storage.getLearningEventsByType('attention');
       // Filter to only show authenticated user's data
-      const userEvents = events.filter(e => e.userId === userId);
+      const userEvents = events.filter((e) => e.userId === userId);
       res.json(userEvents);
     } catch (error) {
-      logger.error("Error fetching attention analytics", { module: "routes" }, error instanceof Error ? error : undefined);
+      logger.error(
+        'Error fetching attention analytics',
+        { module: 'routes' },
+        error instanceof Error ? error : undefined
+      );
       res.status(500).json({ error: 'Failed to fetch attention data' });
     }
   });
@@ -252,10 +282,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = getUserIdFromRequest(req);
       const events = await storage.getLearningEventsByType('mastery');
       // Filter to only show authenticated user's data
-      const userEvents = events.filter(e => e.userId === userId);
+      const userEvents = events.filter((e) => e.userId === userId);
       res.json(userEvents);
     } catch (error) {
-      logger.error("Error fetching mastery analytics", { module: "routes" }, error instanceof Error ? error : undefined);
+      logger.error(
+        'Error fetching mastery analytics',
+        { module: 'routes' },
+        error instanceof Error ? error : undefined
+      );
       res.status(500).json({ error: 'Failed to fetch mastery data' });
     }
   });
@@ -267,15 +301,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const allEvents = await storage.getLearningEventsByUserId(userId);
 
       // Compute summary statistics
-      const attentionEvents = allEvents.filter(e => e.type === 'attention');
-      const masteryEvents = allEvents.filter(e => e.type === 'mastery');
-      const recommendationEvents = allEvents.filter(e => e.type === 'recommendation');
-      const engagementEvents = allEvents.filter(e => e.type === 'engagement');
+      const attentionEvents = allEvents.filter((e) => e.type === 'attention');
+      const masteryEvents = allEvents.filter((e) => e.type === 'mastery');
+      const recommendationEvents = allEvents.filter((e) => e.type === 'recommendation');
+      const engagementEvents = allEvents.filter((e) => e.type === 'engagement');
 
       // Calculate averages
-      const avgAttention = attentionEvents.length > 0
-        ? attentionEvents.reduce((sum, e) => sum + ((e.data as { attentionScore?: number }).attentionScore || 0), 0) / attentionEvents.length
-        : 0;
+      const avgAttention =
+        attentionEvents.length > 0
+          ? attentionEvents.reduce(
+              (sum, e) => sum + ((e.data as { attentionScore?: number }).attentionScore || 0),
+              0
+            ) / attentionEvents.length
+          : 0;
 
       res.json({
         userId,
@@ -291,7 +329,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         llmProvider: llm.getActiveProvider(),
       });
     } catch (error) {
-      logger.error("Error fetching analytics summary", { module: "routes" }, error instanceof Error ? error : undefined);
+      logger.error(
+        'Error fetching analytics summary',
+        { module: 'routes' },
+        error instanceof Error ? error : undefined
+      );
       res.status(500).json({ error: 'Failed to fetch analytics summary' });
     }
   });
@@ -302,7 +344,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const eventSchema = z.object({
         type: z.string(),
         data: learningEventDataSchema,
-        timestamp: z.string().datetime().optional().transform(val => val ? new Date(val) : undefined)
+        timestamp: z
+          .string()
+          .datetime()
+          .optional()
+          .transform((val) => (val ? new Date(val) : undefined)),
       });
 
       const validatedData = eventSchema.parse(req.body);
@@ -313,13 +359,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         userId,
         type: validatedData.type,
         data: validatedData.data,
-        timestamp: validatedData.timestamp || new Date()
+        timestamp: validatedData.timestamp || new Date(),
       });
       res.json(event);
     } catch (error) {
-      logger.error("Error creating learning event", { module: "routes" }, error instanceof Error ? error : undefined);
+      logger.error(
+        'Error creating learning event',
+        { module: 'routes' },
+        error instanceof Error ? error : undefined
+      );
       res.status(400).json({
-        error: error instanceof Error ? error.message : 'Invalid request'
+        error: error instanceof Error ? error.message : 'Invalid request',
       });
     }
   });

@@ -132,10 +132,13 @@ describe('CoreEngineAdapter', () => {
 
   describe('diagnostic events', () => {
     it('should record diagnostic event', () => {
-      const event = adapter.recordDiagnostic(['skill-a', 'skill-b'], [
-        { skillId: 'skill-a', score: 0.8, itemsAttempted: 5, itemsCorrect: 4 },
-        { skillId: 'skill-b', score: 0.6, itemsAttempted: 5, itemsCorrect: 3 },
-      ]);
+      const event = adapter.recordDiagnostic(
+        ['skill-a', 'skill-b'],
+        [
+          { skillId: 'skill-a', score: 0.8, itemsAttempted: 5, itemsCorrect: 4 },
+          { skillId: 'skill-b', score: 0.6, itemsAttempted: 5, itemsCorrect: 3 },
+        ]
+      );
       expect(event.type).toBe('diagnostic');
       expect(event.skillsAssessed).toEqual(['skill-a', 'skill-b']);
       expect(event.results.length).toBe(2);
@@ -240,9 +243,7 @@ describe('CoreEngineAdapter', () => {
         debug: true,
       });
 
-      const newSkills: Skill[] = [
-        { id: 'new-skill', name: 'New Skill', prerequisites: [] },
-      ];
+      const newSkills: Skill[] = [{ id: 'new-skill', name: 'New Skill', prerequisites: [] }];
       debugAdapter.updateSkillGraph(newSkills);
 
       const action = debugAdapter.getNextAction();

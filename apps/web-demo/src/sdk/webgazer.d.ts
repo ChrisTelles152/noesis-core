@@ -6,7 +6,9 @@ declare module 'webgazer' {
   }
 
   interface WebGazer {
-    setGazeListener(callback: (data: WebGazerPrediction | null, elapsedTime: number) => void): WebGazer;
+    setGazeListener(
+      callback: (data: WebGazerPrediction | null, elapsedTime: number) => void
+    ): WebGazer;
     clearGazeListener(): WebGazer;
     begin(): Promise<WebGazer>;
     end(): void;

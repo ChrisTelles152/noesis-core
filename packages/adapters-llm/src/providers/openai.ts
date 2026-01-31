@@ -28,7 +28,7 @@ export class OpenAIProvider implements LLMProvider {
     try {
       const response = await this.client.chat.completions.create({
         model: this.model,
-        messages: options.messages.map(m => ({
+        messages: options.messages.map((m) => ({
           role: m.role,
           content: m.content,
         })),
@@ -42,13 +42,19 @@ export class OpenAIProvider implements LLMProvider {
 
       return {
         content,
-        finishReason: choice?.finish_reason === 'stop' ? 'stop' :
-                      choice?.finish_reason === 'length' ? 'length' : 'error',
-        usage: response.usage ? {
-          promptTokens: response.usage.prompt_tokens,
-          completionTokens: response.usage.completion_tokens,
-          totalTokens: response.usage.total_tokens,
-        } : undefined,
+        finishReason:
+          choice?.finish_reason === 'stop'
+            ? 'stop'
+            : choice?.finish_reason === 'length'
+              ? 'length'
+              : 'error',
+        usage: response.usage
+          ? {
+              promptTokens: response.usage.prompt_tokens,
+              completionTokens: response.usage.completion_tokens,
+              totalTokens: response.usage.total_tokens,
+            }
+          : undefined,
         provider: this.name,
         model: this.model,
       };

@@ -9,7 +9,11 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { InMemoryStateStore, type NoesisStateStore } from '../persistence';
 import { createSkillGraph, type Skill } from '../graph';
 import { createDeterministicEngine } from '../engine';
-import { createEventFactoryContext, createDeterministicIdGenerator, createPracticeEvent } from '../events';
+import {
+  createEventFactoryContext,
+  createDeterministicIdGenerator,
+  createPracticeEvent,
+} from '../events';
 
 // =============================================================================
 // TEST FIXTURES
@@ -123,10 +127,7 @@ describe('Engine State Persistence', () => {
     const engine = createDeterministicEngine(graph, {}, 1000);
 
     // Create and process a practice event
-    const ctx = createEventFactoryContext(
-      () => 1000,
-      createDeterministicIdGenerator('evt')
-    );
+    const ctx = createEventFactoryContext(() => 1000, createDeterministicIdGenerator('evt'));
     const event = createPracticeEvent(
       ctx,
       learnerId,

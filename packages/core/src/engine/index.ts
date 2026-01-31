@@ -4,9 +4,7 @@
  * Provides the unified Noesis Core Engine interface.
  */
 
-export type {
-  NoesisCoreEngine,
-} from '../constitution.js';
+export type { NoesisCoreEngine } from '../constitution.js';
 
 export {
   NoesisCoreEngineImpl,
@@ -17,7 +15,4 @@ export {
 } from './NoesisCoreEngineImpl.js';
 
 // Metrics extraction
-export {
-  getLearnerMetrics,
-  type LearnerMetrics,
-} from './metrics.js';
+export { getLearnerMetrics, type LearnerMetrics } from './metrics.js';

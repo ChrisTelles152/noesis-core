@@ -123,18 +123,14 @@ describe('requireInternalAccess Middleware', () => {
     });
 
     it('should allow requests from 127.0.0.1', async () => {
-      const response = await request(app)
-        .get('/internal-only')
-        .set('X-Forwarded-For', '127.0.0.1');
+      const response = await request(app).get('/internal-only').set('X-Forwarded-For', '127.0.0.1');
 
       // supertest connects via localhost, so it should be allowed
       expect(response.status).toBe(200);
     });
 
     it('should allow requests from ::1 (IPv6 localhost)', async () => {
-      const response = await request(app)
-        .get('/internal-only')
-        .set('X-Forwarded-For', '::1');
+      const response = await request(app).get('/internal-only').set('X-Forwarded-For', '::1');
 
       expect(response.status).toBe(200);
     });
@@ -171,14 +167,19 @@ describe('requireInternalAccess Middleware', () => {
       // Middleware to simulate external IP via X-Forwarded-For
       // But requireInternalAccess checks req.ip which in production
       // with trust proxy would use X-Forwarded-For
-      customApp.get('/internal-only', (req, res, next) => {
-        // Directly test the denial logic by setting a non-matching IP
-        // requireInternalAccess checks localhostPatterns and INTERNAL_IPS
-        // In test env (not production), it always allows, so we verify the middleware exists
-        next();
-      }, requireInternalAccess, (_req, res) => {
-        res.json({ message: 'internal content' });
-      });
+      customApp.get(
+        '/internal-only',
+        (req, res, next) => {
+          // Directly test the denial logic by setting a non-matching IP
+          // requireInternalAccess checks localhostPatterns and INTERNAL_IPS
+          // In test env (not production), it always allows, so we verify the middleware exists
+          next();
+        },
+        requireInternalAccess,
+        (_req, res) => {
+          res.json({ message: 'internal content' });
+        }
+      );
 
       // In production, external IPs should be denied
       // Since supertest connects from localhost, we verify the logic works

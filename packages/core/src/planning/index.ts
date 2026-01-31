@@ -4,11 +4,7 @@
  * Provides deterministic session planning with gap targeting.
  */
 
-export type {
-  SessionAction,
-  SessionConfig,
-  SessionPlanner,
-} from '../constitution.js';
+export type { SessionAction, SessionConfig, SessionPlanner } from '../constitution.js';
 
 export {
   SessionPlannerImpl,

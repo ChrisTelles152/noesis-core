@@ -2,16 +2,18 @@ import { useState, useCallback, useEffect } from 'react';
 import { MasteryData } from '@/sdk/types';
 import { useNoesisSDK } from './useNoesisSDK';
 
-export const useMasteryTracking = (initialObjectives: { id: string, name: string, progress: number }[] = []) => {
+export const useMasteryTracking = (
+  initialObjectives: { id: string; name: string; progress: number }[] = []
+) => {
   const [masteryData, setMasteryData] = useState<MasteryData>([]);
   const sdk = useNoesisSDK();
 
   // Initialize mastery tracking with provided objectives
   useEffect(() => {
     // Convert the initial objectives with progress to format expected by SDK
-    const objectives = initialObjectives.map(obj => ({
+    const objectives = initialObjectives.map((obj) => ({
       id: obj.id,
-      name: obj.name
+      name: obj.name,
     }));
 
     // Initialize mastery tracking
@@ -19,11 +21,11 @@ export const useMasteryTracking = (initialObjectives: { id: string, name: string
       objectives,
       onMasteryUpdate: (data) => {
         setMasteryData(data);
-      }
+      },
     });
 
     // Set initial progress values after initialization
-    initialObjectives.forEach(obj => {
+    initialObjectives.forEach((obj) => {
       // Create a synthetic learning event to set the initial progress
       // This uses recordEvent instead of directly modifying state to ensure
       // all the SDK's internal calculations are properly applied
@@ -31,27 +33,29 @@ export const useMasteryTracking = (initialObjectives: { id: string, name: string
         sdk.mastery.recordEvent({
           objectiveId: obj.id,
           result: obj.progress,
-          confidence: 1.0 // High confidence for initial setting
+          confidence: 1.0, // High confidence for initial setting
         });
       }
     });
 
     // Get initial mastery data
     setMasteryData(sdk.mastery.getMasteryData());
-
   }, [sdk.mastery, initialObjectives]);
 
   // Record progress for a specific objective
-  const recordProgress = useCallback((objectiveId: string, result: number, confidence?: number) => {
-    sdk.mastery.recordEvent({
-      objectiveId,
-      result,
-      confidence
-    });
-    
-    // Update our local state with the latest data
-    setMasteryData(sdk.mastery.getMasteryData());
-  }, [sdk.mastery]);
+  const recordProgress = useCallback(
+    (objectiveId: string, result: number, confidence?: number) => {
+      sdk.mastery.recordEvent({
+        objectiveId,
+        result,
+        confidence,
+      });
+
+      // Update our local state with the latest data
+      setMasteryData(sdk.mastery.getMasteryData());
+    },
+    [sdk.mastery]
+  );
 
   // Get recommended objectives to review
   const getReviewRecommendations = useCallback(() => {
@@ -59,14 +63,17 @@ export const useMasteryTracking = (initialObjectives: { id: string, name: string
   }, [sdk.mastery]);
 
   // Get progress for a specific objective
-  const getObjectiveProgress = useCallback((objectiveId: string) => {
-    return sdk.mastery.getObjectiveProgress(objectiveId);
-  }, [sdk.mastery]);
+  const getObjectiveProgress = useCallback(
+    (objectiveId: string) => {
+      return sdk.mastery.getObjectiveProgress(objectiveId);
+    },
+    [sdk.mastery]
+  );
 
   return {
     masteryData,
     recordProgress,
     getReviewRecommendations,
-    getObjectiveProgress
+    getObjectiveProgress,
   };
 };

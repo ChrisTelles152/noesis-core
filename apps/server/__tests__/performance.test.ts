@@ -1,10 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import {
-  performanceMonitor,
-  performanceMiddleware,
-  Timer,
-  RateLimitTracker,
-} from '../performance';
+import { performanceMonitor, performanceMiddleware, Timer, RateLimitTracker } from '../performance';
 import type { Request, Response, NextFunction } from 'express';
 
 describe('PerformanceMonitor', () => {

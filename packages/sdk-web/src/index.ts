@@ -19,11 +19,7 @@ export { NoesisSDK } from './NoesisSDK';
 export { MasteryTracker } from './policies/mastery';
 
 // Core engine integration
-export {
-  CoreEngineAdapter,
-  createCoreEngineAdapter,
-  type CoreAdapterConfig,
-} from './core';
+export { CoreEngineAdapter, createCoreEngineAdapter, type CoreAdapterConfig } from './core';
 
 // Re-export commonly used core types for convenience
 export type {

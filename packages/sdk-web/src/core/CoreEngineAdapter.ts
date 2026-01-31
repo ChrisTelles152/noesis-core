@@ -134,12 +134,7 @@ export class CoreEngineAdapter {
     itemsCorrect: number;
     skillsPracticed: string[];
   }): SessionEvent {
-    const event = createSessionEndEvent(
-      this.eventContext,
-      this.learnerId,
-      this.sessionId,
-      summary
-    );
+    const event = createSessionEndEvent(this.eventContext, this.learnerId, this.sessionId, summary);
     this.pushEvent(event);
     this.engine.processEvent(event);
     return event;

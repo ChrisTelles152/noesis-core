@@ -81,8 +81,8 @@ describe('LLMManager', () => {
       new LLMManager();
 
       expect(consoleSpy).toHaveBeenCalled();
-      const logCalls = consoleSpy.mock.calls.map((c) => c.join(' '));
-      expect(logCalls.some((c) => c.includes('[LLM]'))).toBe(true);
+      const logCalls = consoleSpy.mock.calls.map((c: unknown[]) => c.join(' '));
+      expect(logCalls.some((c: string) => c.includes('[LLM]'))).toBe(true);
     });
   });
 
@@ -152,9 +152,7 @@ describe('LLMManager', () => {
 
       const result = await manager.getRecommendation({
         attentionScore: 0.7,
-        masteryData: [
-          { id: 'skill-1', name: 'Algebra', progress: 0.5, status: 'in-progress' },
-        ],
+        masteryData: [{ id: 'skill-1', name: 'Algebra', progress: 0.5, status: 'in-progress' }],
         learningContext: 'mathematics',
       });
 

@@ -3,7 +3,13 @@
  * Handles multi-provider support with automatic fallback
  */
 
-import type { LLMProvider, LLMCompletionOptions, LLMCompletionResult, LLMProviderType, LLMLogger } from './types';
+import type {
+  LLMProvider,
+  LLMCompletionOptions,
+  LLMCompletionResult,
+  LLMProviderType,
+  LLMLogger,
+} from './types';
 import { defaultLogger } from './types';
 import { OpenAIProvider } from './providers/openai';
 import { AnthropicProvider } from './providers/anthropic';
@@ -88,8 +94,9 @@ export class LLMManager {
     const providersToTry: LLMProviderType[] = [
       this.preferredProvider,
       // Add fallback providers
-      ...(['openai', 'anthropic', 'fallback'] as LLMProviderType[])
-        .filter(p => p !== this.preferredProvider),
+      ...(['openai', 'anthropic', 'fallback'] as LLMProviderType[]).filter(
+        (p) => p !== this.preferredProvider
+      ),
     ];
 
     let _lastError: Error | null = null;

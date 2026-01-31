@@ -3,12 +3,7 @@ import express from 'express';
 import request from 'supertest';
 import session from 'express-session';
 import { insertUserSchema } from '../../../shared/schema';
-import {
-  sanitizeObject,
-  sanitizeString,
-  escapeHtml,
-  isSafeKey,
-} from '../middleware/sanitize';
+import { sanitizeObject, sanitizeString, escapeHtml, isSafeKey } from '../middleware/sanitize';
 
 describe('Security Tests', () => {
   describe('Mass Assignment Prevention', () => {
@@ -414,9 +409,7 @@ describe('Security Tests', () => {
     });
 
     it('should handle missing content type gracefully', async () => {
-      const response = await request(app)
-        .post('/api/test')
-        .send('{"data": "test"}');
+      const response = await request(app).post('/api/test').send('{"data": "test"}');
 
       // Express.json() should handle this based on content
       expect([200, 400]).toContain(response.status);

@@ -1,9 +1,9 @@
-import { Button } from "@/components/ui/button";
-import CodeBlock from "@/components/CodeBlock";
+import { Button } from '@/components/ui/button';
+import CodeBlock from '@/components/CodeBlock';
 
 export default function GetStarted() {
-  const installCode = "npm install @noesis-edu/core";
-  
+  const installCode = 'npm install @noesis-edu/core';
+
   const configCode = `import { NoesisSDK } from '@noesis-edu/core';
 
 const noesis = new NoesisSDK({
@@ -49,7 +49,7 @@ const recommendation = await noesis.orchestration.getNextStep({
               Follow these steps to integrate adaptive learning into your application
             </p>
           </div>
-          
+
           <div className="space-y-12">
             {/* Step 1 */}
             <div className="flex flex-col md:flex-row gap-8">
@@ -60,13 +60,11 @@ const recommendation = await noesis.orchestration.getNextStep({
                 <h3 className="ml-4 text-xl font-semibold text-slate-900">Installation</h3>
               </div>
               <div className="flex-1">
-                <p className="text-slate-700 mb-4">
-                  Install the Noesis SDK from npm or yarn.
-                </p>
+                <p className="text-slate-700 mb-4">Install the Noesis SDK from npm or yarn.</p>
                 <CodeBlock code={installCode} language="bash" />
               </div>
             </div>
-            
+
             {/* Step 2 */}
             <div className="flex flex-col md:flex-row gap-8">
               <div className="md:w-64 shrink-0 flex items-start">
@@ -82,7 +80,7 @@ const recommendation = await noesis.orchestration.getNextStep({
                 <CodeBlock code={configCode} language="javascript" />
               </div>
             </div>
-            
+
             {/* Step 3 */}
             <div className="flex flex-col md:flex-row gap-8">
               <div className="md:w-64 shrink-0 flex items-start">
@@ -98,7 +96,7 @@ const recommendation = await noesis.orchestration.getNextStep({
                 <CodeBlock code={trackingCode} language="javascript" />
               </div>
             </div>
-            
+
             {/* Step 4 */}
             <div className="flex flex-col md:flex-row gap-8">
               <div className="md:w-64 shrink-0 flex items-start">
@@ -115,12 +113,12 @@ const recommendation = await noesis.orchestration.getNextStep({
               </div>
             </div>
           </div>
-          
+
           <div className="mt-16 text-center">
             <Button variant="ghost" className="font-medium" asChild>
-              <a 
-                href="https://github.com/noesis-sdk" 
-                target="_blank" 
+              <a
+                href="https://github.com/noesis-sdk"
+                target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center"
               >

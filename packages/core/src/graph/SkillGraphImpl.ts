@@ -92,7 +92,7 @@ export class SkillGraphImpl implements SkillGraph {
    */
   private detectCycles(): string[] {
     const WHITE = 0; // Not visited
-    const GRAY = 1;  // In current DFS path
+    const GRAY = 1; // In current DFS path
     const BLACK = 2; // Fully processed
 
     const color = new Map<string, number>();

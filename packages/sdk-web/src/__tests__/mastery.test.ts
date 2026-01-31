@@ -106,7 +106,7 @@ describe('MasteryTracker', () => {
       tracker.recordEvent({ objectiveId: 'obj-1', result: 1.0 });
 
       const data = tracker.getMasteryData();
-      const obj = data.find(o => o.id === 'obj-1')!;
+      const obj = data.find((o) => o.id === 'obj-1')!;
 
       expect(obj.progress).toBe(0.7); // First attempt: 1.0 * 0.7
       expect(obj.attempts).toBe(1);
@@ -177,14 +177,14 @@ describe('MasteryTracker', () => {
       // Default threshold is 0.8
       // Progress after one successful attempt: 0.7 (below threshold)
       tracker.recordEvent({ objectiveId: 'obj-1', result: 1.0 });
-      expect(tracker.getMasteryData().find(o => o.id === 'obj-1')!.status).toBe('in-progress');
+      expect(tracker.getMasteryData().find((o) => o.id === 'obj-1')!.status).toBe('in-progress');
 
       // Multiple successful attempts should eventually reach mastery
       for (let i = 0; i < 10; i++) {
         tracker.recordEvent({ objectiveId: 'obj-1', result: 1.0 });
       }
 
-      const obj = tracker.getMasteryData().find(o => o.id === 'obj-1')!;
+      const obj = tracker.getMasteryData().find((o) => o.id === 'obj-1')!;
       expect(obj.status).toBe('mastered');
     });
 
@@ -194,13 +194,13 @@ describe('MasteryTracker', () => {
 
       // Data should remain unchanged
       const data = tracker.getMasteryData();
-      expect(data.every(o => o.attempts === 0)).toBe(true);
+      expect(data.every((o) => o.attempts === 0)).toBe(true);
     });
 
     it('should set next review time', () => {
       tracker.recordEvent({ objectiveId: 'obj-1', result: 1.0 });
 
-      const obj = tracker.getMasteryData().find(o => o.id === 'obj-1')!;
+      const obj = tracker.getMasteryData().find((o) => o.id === 'obj-1')!;
       expect(obj.nextReviewDue).not.toBeNull();
       expect(obj.nextReviewDue!).toBeGreaterThan(Date.now());
     });
@@ -224,7 +224,7 @@ describe('MasteryTracker', () => {
 
       // Make obj-1 overdue by setting its nextReviewDue in the past
       const data = tracker.getMasteryData();
-      const obj1 = data.find(o => o.id === 'obj-1')!;
+      const obj1 = data.find((o) => o.id === 'obj-1')!;
       obj1.nextReviewDue = Date.now() - 1000; // In the past
 
       const recommendations = tracker.getReviewRecommendations();
@@ -243,7 +243,7 @@ describe('MasteryTracker', () => {
 
       // Should get in-progress items sorted by progress (highest first)
       expect(recommendations.length).toBeGreaterThan(0);
-      const inProgress = recommendations.filter(r => r.status === 'in-progress');
+      const inProgress = recommendations.filter((r) => r.status === 'in-progress');
       if (inProgress.length >= 2) {
         expect(inProgress[0].progress).toBeGreaterThanOrEqual(inProgress[1].progress);
       }
@@ -253,7 +253,7 @@ describe('MasteryTracker', () => {
       const recommendations = tracker.getReviewRecommendations();
 
       // All objectives are not-started
-      expect(recommendations.every(r => r.status === 'not-started')).toBe(true);
+      expect(recommendations.every((r) => r.status === 'not-started')).toBe(true);
       expect(recommendations.length).toBe(3);
     });
 
@@ -267,7 +267,7 @@ describe('MasteryTracker', () => {
 
       // All should be mastered now
       const data = tracker.getMasteryData();
-      expect(data.every(o => o.status === 'mastered')).toBe(true);
+      expect(data.every((o) => o.status === 'mastered')).toBe(true);
 
       // Wait a bit and get recommendations
       const recommendations = tracker.getReviewRecommendations();
@@ -289,9 +289,9 @@ describe('MasteryTracker', () => {
       tracker.recordEvent({ objectiveId: 'obj-1', result: 1.0 });
 
       expect(callback).toHaveBeenCalledTimes(1);
-      expect(callback).toHaveBeenCalledWith(expect.arrayContaining([
-        expect.objectContaining({ id: 'obj-1' }),
-      ]));
+      expect(callback).toHaveBeenCalledWith(
+        expect.arrayContaining([expect.objectContaining({ id: 'obj-1' })])
+      );
     });
 
     it('should support multiple callbacks', () => {
@@ -379,7 +379,7 @@ describe('MasteryTracker', () => {
 
     it('should schedule shorter intervals for lower progress', () => {
       tracker.recordEvent({ objectiveId: 'obj-1', result: 0.3 });
-      const lowProgressObj = tracker.getMasteryData().find(o => o.id === 'obj-1')!;
+      const lowProgressObj = tracker.getMasteryData().find((o) => o.id === 'obj-1')!;
       const lowProgressInterval = lowProgressObj.nextReviewDue! - Date.now();
 
       // Reset and try high progress
@@ -392,7 +392,7 @@ describe('MasteryTracker', () => {
         tracker.recordEvent({ objectiveId: 'obj-2', result: 1.0 });
       }
 
-      const highProgressObj = tracker.getMasteryData().find(o => o.id === 'obj-2')!;
+      const highProgressObj = tracker.getMasteryData().find((o) => o.id === 'obj-2')!;
       const highProgressInterval = highProgressObj.nextReviewDue! - Date.now();
 
       // Higher progress should have longer interval

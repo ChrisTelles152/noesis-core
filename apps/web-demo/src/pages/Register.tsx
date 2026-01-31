@@ -4,7 +4,14 @@ import { useAuth } from '../hooks/useAuth';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '../components/ui/card';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from '../components/ui/card';
 
 export default function Register() {
   const [, setLocation] = useLocation();
@@ -97,8 +104,8 @@ export default function Register() {
                       ? usernameAvailable === true
                         ? 'border-green-500 focus:ring-green-500'
                         : usernameAvailable === false
-                        ? 'border-red-500 focus:ring-red-500'
-                        : ''
+                          ? 'border-red-500 focus:ring-red-500'
+                          : ''
                       : ''
                   }
                 />

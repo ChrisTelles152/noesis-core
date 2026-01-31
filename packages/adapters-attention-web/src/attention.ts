@@ -1,8 +1,4 @@
-import {
-  AttentionData,
-  AttentionTrackingOptions,
-  AttentionChangeCallback,
-} from './types';
+import { AttentionData, AttentionTrackingOptions, AttentionChangeCallback } from './types';
 import { WebGazerAdapter, getWebGazerAdapter, GazeData } from './webgazer-adapter';
 
 export class AttentionTracker {
@@ -24,7 +20,7 @@ export class AttentionTracker {
     cognitiveLoad: 0.3,
     gazePoint: { x: 0, y: 0 },
     timestamp: Date.now(),
-    status: 'inactive'
+    status: 'inactive',
   };
 
   private attentionHistory: number[] = [];
@@ -35,16 +31,19 @@ export class AttentionTracker {
       webcamOptions: options.webcamOptions || {
         width: 640,
         height: 480,
-        facingMode: 'user'
+        facingMode: 'user',
       },
       attentionThreshold: options.attentionThreshold || 0.7,
       historySize: options.historySize || 20,
       useRealGazeTracking: options.useRealGazeTracking || false,
-      showGazePoints: options.showGazePoints || false
+      showGazePoints: options.showGazePoints || false,
     };
     this.debug = debug;
     this.useRealGazeTracking = this.options.useRealGazeTracking || false;
-    this.log('AttentionTracker initialized' + (this.useRealGazeTracking ? ' with WebGazer' : ' in simulation mode'));
+    this.log(
+      'AttentionTracker initialized' +
+        (this.useRealGazeTracking ? ' with WebGazer' : ' in simulation mode')
+    );
   }
 
   /**
@@ -83,7 +82,9 @@ export class AttentionTracker {
       this.attentionData.status = 'tracking';
       this.startTrackingLoop();
 
-      this.log('Attention tracking started' + (this.useRealGazeTracking ? ' with real gaze tracking' : ''));
+      this.log(
+        'Attention tracking started' + (this.useRealGazeTracking ? ' with real gaze tracking' : '')
+      );
       return true;
     } catch (error) {
       this.log('Failed to start attention tracking:', error);
@@ -112,7 +113,7 @@ export class AttentionTracker {
 
     // Release webcam
     if (this.webcamStream) {
-      this.webcamStream.getTracks().forEach(track => track.stop());
+      this.webcamStream.getTracks().forEach((track) => track.stop());
       this.webcamStream = null;
     }
 
@@ -189,10 +190,7 @@ export class AttentionTracker {
    */
   private async initializeWebGazer(): Promise<void> {
     try {
-      this.webgazerAdapter = getWebGazerAdapter(
-        this.debug,
-        this.options.showGazePoints || false
-      );
+      this.webgazerAdapter = getWebGazerAdapter(this.debug, this.options.showGazePoints || false);
 
       const success = await this.webgazerAdapter.initialize();
       if (!success) {
@@ -223,7 +221,7 @@ export class AttentionTracker {
       // Request webcam access
       const webcamOptions: MediaStreamConstraints = {
         video: this.options.webcamOptions || true,
-        audio: false
+        audio: false,
       };
 
       this.webcamStream = await navigator.mediaDevices.getUserMedia(webcamOptions);
@@ -245,7 +243,7 @@ export class AttentionTracker {
       await new Promise<void>((resolve) => {
         if (this.videoElement) {
           this.videoElement.onloadedmetadata = () => {
-            this.videoElement?.play().catch(err => {
+            this.videoElement?.play().catch((err) => {
               this.log('Error playing video:', err);
             });
             resolve();
@@ -258,7 +256,9 @@ export class AttentionTracker {
       this.log('Webcam initialized successfully');
     } catch (error) {
       this.log('Error initializing webcam:', error);
-      throw new Error('Failed to access webcam. Please ensure you have granted camera permissions.');
+      throw new Error(
+        'Failed to access webcam. Please ensure you have granted camera permissions.'
+      );
     }
   }
 
@@ -300,12 +300,12 @@ export class AttentionTracker {
       // When attentive, score gradually increases
       // With real tracking, confidence affects the rate of increase
       const increment = this.useRealGazeTracking
-        ? 0.05 * gazeConfidence + (Math.random() * 0.02)
-        : 0.05 + (Math.random() * 0.02);
+        ? 0.05 * gazeConfidence + Math.random() * 0.02
+        : 0.05 + Math.random() * 0.02;
       newScore = Math.min(1, previousScore + increment);
     } else {
       // When inattentive, score gradually decreases
-      const decrement = 0.08 + (Math.random() * 0.03);
+      const decrement = 0.08 + Math.random() * 0.03;
       newScore = Math.max(0, previousScore - decrement);
     }
 
@@ -324,10 +324,10 @@ export class AttentionTracker {
     let cognitiveLoad: number;
     if (this.useRealGazeTracking && this.lastRealGaze) {
       // Lower gaze movement = higher cognitive load (user is concentrating)
-      cognitiveLoad = 0.3 + (stabilityScore * 0.4);
+      cognitiveLoad = 0.3 + stabilityScore * 0.4;
     } else {
       // Simulate cognitive load
-      cognitiveLoad = 0.3 + (Math.random() * 0.4);
+      cognitiveLoad = 0.3 + Math.random() * 0.4;
     }
 
     // Update attention data
@@ -337,12 +337,14 @@ export class AttentionTracker {
       cognitiveLoad: cognitiveLoad,
       gazePoint: gazeCoordinates,
       timestamp: now,
-      status: 'tracking'
+      status: 'tracking',
     };
 
     // Log for debugging
     const mode = this.useRealGazeTracking ? 'real' : 'sim';
-    this.log(`Attention [${mode}] - score: ${Math.round(newScore * 100)}%, stability: ${Math.round(stabilityScore * 100)}%`);
+    this.log(
+      `Attention [${mode}] - score: ${Math.round(newScore * 100)}%, stability: ${Math.round(stabilityScore * 100)}%`
+    );
 
     // Notify callbacks
     this.notifyCallbacks();
@@ -351,7 +353,7 @@ export class AttentionTracker {
   /**
    * Simulate gaze tracking - used when WebGazer is not available
    */
-  private simulateGazeTracking(): { x: number, y: number } {
+  private simulateGazeTracking(): { x: number; y: number } {
     if (!this.targetElement) {
       return { x: window.innerWidth / 2, y: window.innerHeight / 2 };
     }
@@ -367,13 +369,13 @@ export class AttentionTracker {
       // Gaze point near the center of target with some random offset
       return {
         x: centerX + (Math.random() * 100 - 50),
-        y: centerY + (Math.random() * 100 - 50)
+        y: centerY + (Math.random() * 100 - 50),
       };
     } else {
       // Gaze point elsewhere on screen
       return {
         x: Math.random() * window.innerWidth,
-        y: Math.random() * window.innerHeight
+        y: Math.random() * window.innerHeight,
       };
     }
   }
@@ -381,7 +383,7 @@ export class AttentionTracker {
   /**
    * Check if the gaze point is on the target element
    */
-  private isGazeOnTarget(gazePoint: { x: number, y: number }): boolean {
+  private isGazeOnTarget(gazePoint: { x: number; y: number }): boolean {
     if (!this.targetElement) return false;
 
     const rect = this.targetElement.getBoundingClientRect();
@@ -400,18 +402,21 @@ export class AttentionTracker {
     if (!this.attentionHistory || this.attentionHistory.length < 2) return 1;
 
     // Calculate variance
-    const mean = this.attentionHistory.reduce((sum, val) => sum + val, 0) / this.attentionHistory.length;
-    const variance = this.attentionHistory.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / this.attentionHistory.length;
+    const mean =
+      this.attentionHistory.reduce((sum, val) => sum + val, 0) / this.attentionHistory.length;
+    const variance =
+      this.attentionHistory.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) /
+      this.attentionHistory.length;
 
     // Convert variance to stability score (lower variance = higher stability)
-    return Math.max(0, Math.min(1, 1 - (variance * 5)));
+    return Math.max(0, Math.min(1, 1 - variance * 5));
   }
 
   /**
    * Notify all registered callbacks with updated attention data
    */
   private notifyCallbacks(): void {
-    this.changeCallbacks.forEach(callback => {
+    this.changeCallbacks.forEach((callback) => {
       try {
         callback(this.attentionData);
       } catch (error) {

@@ -13,13 +13,15 @@ export function sanitizeString(input: string): string {
     return '';
   }
 
-  return input
-    // Remove null bytes
-    .replace(/\0/g, '')
-    // Trim whitespace
-    .trim()
-    // Limit length to prevent DoS
-    .slice(0, 10000);
+  return (
+    input
+      // Remove null bytes
+      .replace(/\0/g, '')
+      // Trim whitespace
+      .trim()
+      // Limit length to prevent DoS
+      .slice(0, 10000)
+  );
 }
 
 /**
@@ -78,8 +80,8 @@ export function sanitizeObject<T extends Record<string, unknown>>(obj: T): T {
         typeof item === 'string'
           ? sanitizeString(item)
           : typeof item === 'object' && item !== null
-          ? sanitizeObject(item as Record<string, unknown>)
-          : item
+            ? sanitizeObject(item as Record<string, unknown>)
+            : item
       );
     } else if (typeof value === 'object' && value !== null) {
       result[sanitizedKey] = sanitizeObject(value as Record<string, unknown>);

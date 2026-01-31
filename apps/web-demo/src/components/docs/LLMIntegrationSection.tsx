@@ -1,11 +1,12 @@
-import CodeBlock from "@/components/CodeBlock";
+import CodeBlock from '@/components/CodeBlock';
 
 export default function LLMIntegrationSection() {
   return (
     <>
       <h2 className="text-2xl font-semibold text-slate-900 mb-4">LLM Integration</h2>
       <p className="text-slate-700 mb-6">
-        Learn how to use the orchestration module to get adaptive learning recommendations from LLMs.
+        Learn how to use the orchestration module to get adaptive learning recommendations from
+        LLMs.
       </p>
 
       <div className="mb-8">
@@ -23,7 +24,9 @@ export default function LLMIntegrationSection() {
       </div>
 
       <div className="mb-8">
-        <h3 className="text-lg font-medium text-slate-900 mb-3">Getting Adaptive Recommendations</h3>
+        <h3 className="text-lg font-medium text-slate-900 mb-3">
+          Getting Adaptive Recommendations
+        </h3>
         <p className="text-slate-700 mb-4">
           Request personalized learning recommendations based on the learner's state:
         </p>
@@ -48,7 +51,9 @@ console.log('Explanation:', response.explanation);`}
       </div>
 
       <div className="mb-8">
-        <h3 className="text-lg font-medium text-slate-900 mb-3">Requesting Engagement Interventions</h3>
+        <h3 className="text-lg font-medium text-slate-900 mb-3">
+          Requesting Engagement Interventions
+        </h3>
         <p className="text-slate-700 mb-4">
           When attention is low, request an engagement intervention:
         </p>

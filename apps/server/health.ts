@@ -21,13 +21,13 @@ function requireInternalAccess(req: Request, res: Response, next: NextFunction):
 
   // Allow localhost/loopback addresses
   const localhostPatterns = ['127.0.0.1', '::1', '::ffff:127.0.0.1', 'localhost'];
-  if (localhostPatterns.some(pattern => clientIp.includes(pattern))) {
+  if (localhostPatterns.some((pattern) => clientIp.includes(pattern))) {
     return next();
   }
 
   // Allow configurable internal IPs (comma-separated)
-  const allowedIps = process.env.INTERNAL_IPS?.split(',').map(ip => ip.trim()) || [];
-  if (allowedIps.some(ip => clientIp.includes(ip))) {
+  const allowedIps = process.env.INTERNAL_IPS?.split(',').map((ip) => ip.trim()) || [];
+  if (allowedIps.some((ip) => clientIp.includes(ip))) {
     return next();
   }
 
@@ -90,18 +90,31 @@ function checkMemory(): { status: 'pass' | 'warn' | 'fail'; message: string } {
   const heapUsagePercent = Math.round((used.heapUsed / used.heapTotal) * 100);
 
   if (heapUsagePercent > 90) {
-    return { status: 'fail', message: `High memory usage: ${heapUsedMB}MB/${heapTotalMB}MB (${heapUsagePercent}%)` };
+    return {
+      status: 'fail',
+      message: `High memory usage: ${heapUsedMB}MB/${heapTotalMB}MB (${heapUsagePercent}%)`,
+    };
   } else if (heapUsagePercent > 75) {
-    return { status: 'warn', message: `Elevated memory usage: ${heapUsedMB}MB/${heapTotalMB}MB (${heapUsagePercent}%)` };
+    return {
+      status: 'warn',
+      message: `Elevated memory usage: ${heapUsedMB}MB/${heapTotalMB}MB (${heapUsagePercent}%)`,
+    };
   }
 
-  return { status: 'pass', message: `Memory: ${heapUsedMB}MB/${heapTotalMB}MB (${heapUsagePercent}%)` };
+  return {
+    status: 'pass',
+    message: `Memory: ${heapUsedMB}MB/${heapTotalMB}MB (${heapUsagePercent}%)`,
+  };
 }
 
 /**
  * Check event loop lag
  */
-async function checkEventLoop(): Promise<{ status: 'pass' | 'warn' | 'fail'; message: string; responseTime: number }> {
+async function checkEventLoop(): Promise<{
+  status: 'pass' | 'warn' | 'fail';
+  message: string;
+  responseTime: number;
+}> {
   const start = Date.now();
 
   return new Promise((resolve) => {
@@ -111,7 +124,11 @@ async function checkEventLoop(): Promise<{ status: 'pass' | 'warn' | 'fail'; mes
       if (lag > 100) {
         resolve({ status: 'fail', message: `High event loop lag: ${lag}ms`, responseTime: lag });
       } else if (lag > 50) {
-        resolve({ status: 'warn', message: `Elevated event loop lag: ${lag}ms`, responseTime: lag });
+        resolve({
+          status: 'warn',
+          message: `Elevated event loop lag: ${lag}ms`,
+          responseTime: lag,
+        });
       } else {
         resolve({ status: 'pass', message: `Event loop lag: ${lag}ms`, responseTime: lag });
       }

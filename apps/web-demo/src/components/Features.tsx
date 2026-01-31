@@ -1,37 +1,43 @@
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent } from '@/components/ui/card';
 
 export default function Features() {
   const features = [
     {
-      icon: "fa-webcam",
-      title: "Webcam-Based Attention Tracking",
-      description: "Use standard webcams to estimate user attention and engagement through gaze estimation, head pose, and facial expressions."
+      icon: 'fa-webcam',
+      title: 'Webcam-Based Attention Tracking',
+      description:
+        'Use standard webcams to estimate user attention and engagement through gaze estimation, head pose, and facial expressions.',
     },
     {
-      icon: "fa-graduation-cap",
-      title: "Mastery Learning System",
-      description: "Track concept mastery with sophisticated spaced repetition algorithms and adaptive difficulty adjustment."
+      icon: 'fa-graduation-cap',
+      title: 'Mastery Learning System',
+      description:
+        'Track concept mastery with sophisticated spaced repetition algorithms and adaptive difficulty adjustment.',
     },
     {
-      icon: "fa-code",
-      title: "Cross-Platform SDK",
-      description: "JavaScript/TypeScript core works across web, mobile, and desktop platforms with platform-specific adapters."
+      icon: 'fa-code',
+      title: 'Cross-Platform SDK',
+      description:
+        'JavaScript/TypeScript core works across web, mobile, and desktop platforms with platform-specific adapters.',
     },
     {
-      icon: "fa-brain",
-      title: "LLM Orchestration",
-      description: "Connect to LLMs for adaptive learning guidance, content selection, and personalized feedback based on learner state."
+      icon: 'fa-brain',
+      title: 'LLM Orchestration',
+      description:
+        'Connect to LLMs for adaptive learning guidance, content selection, and personalized feedback based on learner state.',
     },
     {
-      icon: "fa-chart-line",
-      title: "Learning Analytics",
-      description: "Track engagement, mastery, and learning patterns with built-in analytics tools and visualizations."
+      icon: 'fa-chart-line',
+      title: 'Learning Analytics',
+      description:
+        'Track engagement, mastery, and learning patterns with built-in analytics tools and visualizations.',
     },
     {
-      icon: "fa-puzzle-piece",
-      title: "Modular Architecture",
-      description: "Use only what you need with modular components for attention tracking, mastery learning, and LLM integration."
-    }
+      icon: 'fa-puzzle-piece',
+      title: 'Modular Architecture',
+      description:
+        'Use only what you need with modular components for attention tracking, mastery learning, and LLM integration.',
+    },
   ];
 
   return (
@@ -43,7 +49,7 @@ export default function Features() {
             Everything you need to build attention-aware, adaptive learning experiences.
           </p>
         </div>
-        
+
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-7xl mx-auto">
           {features.map((feature, index) => (
             <Card key={index} className="border-slate-200 shadow-sm">
@@ -52,9 +58,7 @@ export default function Features() {
                   <i className={`fas ${feature.icon} text-xl`}></i>
                 </div>
                 <h3 className="text-lg font-semibold text-slate-900 mb-2">{feature.title}</h3>
-                <p className="text-slate-600">
-                  {feature.description}
-                </p>
+                <p className="text-slate-600">{feature.description}</p>
               </CardContent>
             </Card>
           ))}

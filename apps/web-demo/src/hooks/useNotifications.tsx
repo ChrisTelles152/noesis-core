@@ -126,11 +126,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     error,
   };
 
-  return (
-    <NotificationContext.Provider value={value}>
-      {children}
-    </NotificationContext.Provider>
-  );
+  return <NotificationContext.Provider value={value}>{children}</NotificationContext.Provider>;
 }
 
 export function useNotifications(): NotificationContextValue {
@@ -197,7 +193,9 @@ export function NotificationContainer() {
           role="alert"
         >
           <div className="flex items-start gap-3">
-            <i className={`fas ${getIcon(notification.type)} ${getIconStyles(notification.type)} text-lg mt-0.5`}></i>
+            <i
+              className={`fas ${getIcon(notification.type)} ${getIconStyles(notification.type)} text-lg mt-0.5`}
+            ></i>
             <div className="flex-1 min-w-0">
               <p className="font-medium">{notification.title}</p>
               {notification.message && (

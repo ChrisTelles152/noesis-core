@@ -36,15 +36,13 @@ describe('Orchestrator', () => {
     it('should log when debug mode is enabled', () => {
       new Orchestrator('test-key', true);
 
-      expect(consoleSpy).toHaveBeenCalledWith(
-        '[Orchestrator] Orchestrator initialized'
-      );
+      expect(consoleSpy).toHaveBeenCalledWith('[Orchestrator] Orchestrator initialized');
     });
 
     it('should not log when debug mode is disabled', () => {
       new Orchestrator('test-key', false);
 
-      const orchestratorLogs = consoleSpy.mock.calls.filter((call) =>
+      const orchestratorLogs = consoleSpy.mock.calls.filter((call: unknown[]) =>
         String(call[0]).includes('[Orchestrator]')
       );
       expect(orchestratorLogs.length).toBe(0);
@@ -363,8 +361,8 @@ describe('Orchestrator', () => {
         learnerState: { timestamp: Date.now() },
       });
 
-      const logCalls = consoleSpy.mock.calls.map((c) => c.join(' '));
-      expect(logCalls.some((c) => c.includes('Getting next step'))).toBe(true);
+      const logCalls = consoleSpy.mock.calls.map((c: unknown[]) => c.join(' '));
+      expect(logCalls.some((c: string) => c.includes('Getting next step'))).toBe(true);
     });
 
     it('should log API response when debug enabled', async () => {
@@ -379,10 +377,8 @@ describe('Orchestrator', () => {
         learnerState: { timestamp: Date.now() },
       });
 
-      const logCalls = consoleSpy.mock.calls.map((c) => c.join(' '));
-      expect(logCalls.some((c) => c.includes('Received recommendation'))).toBe(
-        true
-      );
+      const logCalls = consoleSpy.mock.calls.map((c: unknown[]) => c.join(' '));
+      expect(logCalls.some((c: string) => c.includes('Received recommendation'))).toBe(true);
     });
 
     it('should log errors when debug enabled', async () => {
@@ -394,10 +390,8 @@ describe('Orchestrator', () => {
         learnerState: { timestamp: Date.now() },
       });
 
-      const logCalls = consoleSpy.mock.calls.map((c) => c.join(' '));
-      expect(logCalls.some((c) => c.includes('Error getting next step'))).toBe(
-        true
-      );
+      const logCalls = consoleSpy.mock.calls.map((c: unknown[]) => c.join(' '));
+      expect(logCalls.some((c: string) => c.includes('Error getting next step'))).toBe(true);
     });
 
     it('should not log when debug disabled', async () => {
@@ -412,7 +406,7 @@ describe('Orchestrator', () => {
         learnerState: { timestamp: Date.now() },
       });
 
-      const orchestratorLogs = consoleSpy.mock.calls.filter((call) =>
+      const orchestratorLogs = consoleSpy.mock.calls.filter((call: unknown[]) =>
         String(call[0]).includes('[Orchestrator]')
       );
       expect(orchestratorLogs.length).toBe(0);

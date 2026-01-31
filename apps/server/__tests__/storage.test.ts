@@ -219,7 +219,7 @@ describe('MemStorage', () => {
         const events = await storage.getLearningEventsByUserId(1);
 
         expect(events).toHaveLength(2);
-        expect(events.every(e => e.userId === 1)).toBe(true);
+        expect(events.every((e) => e.userId === 1)).toBe(true);
       });
 
       it('should return empty array for user with no events', async () => {
@@ -249,7 +249,7 @@ describe('MemStorage', () => {
         const events = await storage.getLearningEventsByType('practice');
 
         expect(events).toHaveLength(2);
-        expect(events.every(e => e.type === 'practice')).toBe(true);
+        expect(events.every((e) => e.type === 'practice')).toBe(true);
       });
 
       it('should return empty array for non-existent type', async () => {

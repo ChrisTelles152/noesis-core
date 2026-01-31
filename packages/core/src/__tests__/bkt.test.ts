@@ -16,7 +16,7 @@ import type { SkillGraph, PracticeEvent } from '../constitution.js';
 
 // Mock SkillGraph
 function createMockSkillGraph(skillIds: string[]): SkillGraph {
-  const skills = new Map(skillIds.map(id => [id, { id, name: id, prerequisites: [] }]));
+  const skills = new Map(skillIds.map((id) => [id, { id, name: id, prerequisites: [] }]));
   return {
     skills,
     validate: () => ({ valid: true, errors: [] }),
@@ -61,54 +61,68 @@ describe('BKTEngine', () => {
     });
 
     it('should reject pInit outside [0, 1]', () => {
-      expect(() => validateBKTParams({ ...DEFAULT_BKT_PARAMS, pInit: -0.1 }))
-        .toThrow('pInit must be between 0 and 1');
-      expect(() => validateBKTParams({ ...DEFAULT_BKT_PARAMS, pInit: 1.1 }))
-        .toThrow('pInit must be between 0 and 1');
+      expect(() => validateBKTParams({ ...DEFAULT_BKT_PARAMS, pInit: -0.1 })).toThrow(
+        'pInit must be between 0 and 1'
+      );
+      expect(() => validateBKTParams({ ...DEFAULT_BKT_PARAMS, pInit: 1.1 })).toThrow(
+        'pInit must be between 0 and 1'
+      );
     });
 
     it('should reject pLearn outside [0, 1]', () => {
-      expect(() => validateBKTParams({ ...DEFAULT_BKT_PARAMS, pLearn: -0.1 }))
-        .toThrow('pLearn must be between 0 and 1');
-      expect(() => validateBKTParams({ ...DEFAULT_BKT_PARAMS, pLearn: 1.1 }))
-        .toThrow('pLearn must be between 0 and 1');
+      expect(() => validateBKTParams({ ...DEFAULT_BKT_PARAMS, pLearn: -0.1 })).toThrow(
+        'pLearn must be between 0 and 1'
+      );
+      expect(() => validateBKTParams({ ...DEFAULT_BKT_PARAMS, pLearn: 1.1 })).toThrow(
+        'pLearn must be between 0 and 1'
+      );
     });
 
     it('should reject pSlip at boundaries (prevents division by zero)', () => {
-      expect(() => validateBKTParams({ ...DEFAULT_BKT_PARAMS, pSlip: 0 }))
-        .toThrow('pSlip must be strictly between 0 and 1');
-      expect(() => validateBKTParams({ ...DEFAULT_BKT_PARAMS, pSlip: 1 }))
-        .toThrow('pSlip must be strictly between 0 and 1');
+      expect(() => validateBKTParams({ ...DEFAULT_BKT_PARAMS, pSlip: 0 })).toThrow(
+        'pSlip must be strictly between 0 and 1'
+      );
+      expect(() => validateBKTParams({ ...DEFAULT_BKT_PARAMS, pSlip: 1 })).toThrow(
+        'pSlip must be strictly between 0 and 1'
+      );
     });
 
     it('should reject pGuess at boundaries (prevents division by zero)', () => {
-      expect(() => validateBKTParams({ ...DEFAULT_BKT_PARAMS, pGuess: 0 }))
-        .toThrow('pGuess must be strictly between 0 and 1');
-      expect(() => validateBKTParams({ ...DEFAULT_BKT_PARAMS, pGuess: 1 }))
-        .toThrow('pGuess must be strictly between 0 and 1');
+      expect(() => validateBKTParams({ ...DEFAULT_BKT_PARAMS, pGuess: 0 })).toThrow(
+        'pGuess must be strictly between 0 and 1'
+      );
+      expect(() => validateBKTParams({ ...DEFAULT_BKT_PARAMS, pGuess: 1 })).toThrow(
+        'pGuess must be strictly between 0 and 1'
+      );
     });
 
     it('should reject pSlip + pGuess >= 1 (model identifiability)', () => {
-      expect(() => validateBKTParams({ ...DEFAULT_BKT_PARAMS, pSlip: 0.5, pGuess: 0.5 }))
-        .toThrow('pSlip + pGuess must be less than 1');
-      expect(() => validateBKTParams({ ...DEFAULT_BKT_PARAMS, pSlip: 0.6, pGuess: 0.5 }))
-        .toThrow('pSlip + pGuess must be less than 1');
+      expect(() => validateBKTParams({ ...DEFAULT_BKT_PARAMS, pSlip: 0.5, pGuess: 0.5 })).toThrow(
+        'pSlip + pGuess must be less than 1'
+      );
+      expect(() => validateBKTParams({ ...DEFAULT_BKT_PARAMS, pSlip: 0.6, pGuess: 0.5 })).toThrow(
+        'pSlip + pGuess must be less than 1'
+      );
     });
 
     it('should accept edge-valid parameters', () => {
-      expect(() => validateBKTParams({
-        pInit: 0,
-        pLearn: 0,
-        pSlip: 0.01,
-        pGuess: 0.01,
-      })).not.toThrow();
+      expect(() =>
+        validateBKTParams({
+          pInit: 0,
+          pLearn: 0,
+          pSlip: 0.01,
+          pGuess: 0.01,
+        })
+      ).not.toThrow();
 
-      expect(() => validateBKTParams({
-        pInit: 1,
-        pLearn: 1,
-        pSlip: 0.49,
-        pGuess: 0.49,
-      })).not.toThrow();
+      expect(() =>
+        validateBKTParams({
+          pInit: 1,
+          pLearn: 1,
+          pSlip: 0.49,
+          pGuess: 0.49,
+        })
+      ).not.toThrow();
     });
   });
 
@@ -200,7 +214,9 @@ describe('BKTEngine', () => {
       model = engine.updateModel(model, createPracticeEvent('skill-b', true, currentTime));
 
       expect(model.skillProbabilities.has('skill-b')).toBe(true);
-      expect(model.skillProbabilities.get('skill-b')!.pMastery).toBeGreaterThan(DEFAULT_BKT_PARAMS.pInit);
+      expect(model.skillProbabilities.get('skill-b')!.pMastery).toBeGreaterThan(
+        DEFAULT_BKT_PARAMS.pInit
+      );
     });
 
     it('should clamp pMastery between 0 and 1', () => {
@@ -227,8 +243,9 @@ describe('BKTEngine', () => {
       const result1 = engine.updateModel(model1, event);
       const result2 = engine.updateModel(model2, event);
 
-      expect(result1.skillProbabilities.get('skill-a')!.pMastery)
-        .toBe(result2.skillProbabilities.get('skill-a')!.pMastery);
+      expect(result1.skillProbabilities.get('skill-a')!.pMastery).toBe(
+        result2.skillProbabilities.get('skill-a')!.pMastery
+      );
     });
   });
 
@@ -305,10 +322,12 @@ describe('BKTEngine', () => {
       expect(deserialized.createdAt).toBe(model.createdAt);
       expect(deserialized.lastUpdated).toBe(model.lastUpdated);
 
-      expect(deserialized.skillProbabilities.get('skill-a')!.pMastery)
-        .toBe(model.skillProbabilities.get('skill-a')!.pMastery);
-      expect(deserialized.skillProbabilities.get('skill-b')!.pMastery)
-        .toBe(model.skillProbabilities.get('skill-b')!.pMastery);
+      expect(deserialized.skillProbabilities.get('skill-a')!.pMastery).toBe(
+        model.skillProbabilities.get('skill-a')!.pMastery
+      );
+      expect(deserialized.skillProbabilities.get('skill-b')!.pMastery).toBe(
+        model.skillProbabilities.get('skill-b')!.pMastery
+      );
     });
 
     it('should serialize to valid JSON', () => {

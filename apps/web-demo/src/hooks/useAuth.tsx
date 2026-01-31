@@ -74,7 +74,7 @@ export function useAuth(): UseAuthReturn {
   }, []);
 
   const login = useCallback(async (username: string, password: string): Promise<boolean> => {
-    setState(prev => ({ ...prev, isLoading: true, error: null }));
+    setState((prev) => ({ ...prev, isLoading: true, error: null }));
 
     try {
       const response = await fetch('/api/auth/login', {
@@ -95,7 +95,7 @@ export function useAuth(): UseAuthReturn {
         return true;
       } else {
         const data = await response.json();
-        setState(prev => ({
+        setState((prev) => ({
           ...prev,
           isLoading: false,
           error: data.error || 'Login failed',
@@ -103,7 +103,7 @@ export function useAuth(): UseAuthReturn {
         return false;
       }
     } catch {
-      setState(prev => ({
+      setState((prev) => ({
         ...prev,
         isLoading: false,
         error: 'Network error. Please try again.',
@@ -113,7 +113,7 @@ export function useAuth(): UseAuthReturn {
   }, []);
 
   const register = useCallback(async (username: string, password: string): Promise<boolean> => {
-    setState(prev => ({ ...prev, isLoading: true, error: null }));
+    setState((prev) => ({ ...prev, isLoading: true, error: null }));
 
     try {
       const response = await fetch('/api/auth/register', {
@@ -134,7 +134,7 @@ export function useAuth(): UseAuthReturn {
         return true;
       } else {
         const data = await response.json();
-        setState(prev => ({
+        setState((prev) => ({
           ...prev,
           isLoading: false,
           error: data.error || 'Registration failed',
@@ -142,7 +142,7 @@ export function useAuth(): UseAuthReturn {
         return false;
       }
     } catch {
-      setState(prev => ({
+      setState((prev) => ({
         ...prev,
         isLoading: false,
         error: 'Network error. Please try again.',
@@ -152,7 +152,7 @@ export function useAuth(): UseAuthReturn {
   }, []);
 
   const logout = useCallback(async (): Promise<void> => {
-    setState(prev => ({ ...prev, isLoading: true }));
+    setState((prev) => ({ ...prev, isLoading: true }));
 
     try {
       await fetch('/api/auth/logout', {
@@ -188,7 +188,7 @@ export function useAuth(): UseAuthReturn {
   }, []);
 
   const clearError = useCallback(() => {
-    setState(prev => ({ ...prev, error: null }));
+    setState((prev) => ({ ...prev, error: null }));
   }, []);
 
   return {

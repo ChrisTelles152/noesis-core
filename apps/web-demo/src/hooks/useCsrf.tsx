@@ -51,23 +51,23 @@ export function useCsrf() {
   }, [getToken]);
 
   // Fetch wrapper that includes CSRF token
-  const csrfFetch = useCallback(async (
-    url: string,
-    options: RequestInit = {}
-  ): Promise<Response> => {
-    const currentToken = getToken();
+  const csrfFetch = useCallback(
+    async (url: string, options: RequestInit = {}): Promise<Response> => {
+      const currentToken = getToken();
 
-    const headers = new Headers(options.headers);
-    if (currentToken) {
-      headers.set(CSRF_HEADER, currentToken);
-    }
+      const headers = new Headers(options.headers);
+      if (currentToken) {
+        headers.set(CSRF_HEADER, currentToken);
+      }
 
-    return fetch(url, {
-      ...options,
-      credentials: 'include',
-      headers,
-    });
-  }, [getToken]);
+      return fetch(url, {
+        ...options,
+        credentials: 'include',
+        headers,
+      });
+    },
+    [getToken]
+  );
 
   // Effect to update token when cookie changes
   useEffect(() => {
@@ -115,9 +115,6 @@ export function withCsrfToken(options: RequestInit = {}): RequestInit {
 /**
  * Convenience function for making CSRF-protected requests
  */
-export async function csrfRequest(
-  url: string,
-  options: RequestInit = {}
-): Promise<Response> {
+export async function csrfRequest(url: string, options: RequestInit = {}): Promise<Response> {
   return fetch(url, withCsrfToken(options));
 }

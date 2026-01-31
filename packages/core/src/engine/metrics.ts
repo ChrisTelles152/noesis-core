@@ -164,7 +164,7 @@ export function getLearnerMetrics(
   // Count practice events from event log
   const eventLog = engine.getEventLog();
   const totalPracticeEvents = eventLog.filter(
-    e => e.type === 'practice' && e.learnerId === learnerId
+    (e) => e.type === 'practice' && e.learnerId === learnerId
   ).length;
 
   // Estimate events to full mastery (PROXY calculation)

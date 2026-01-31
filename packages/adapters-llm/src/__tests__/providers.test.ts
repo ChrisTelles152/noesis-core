@@ -26,9 +26,7 @@ describe('FallbackProvider', () => {
 
   it('should return attention-prompt for attention-related queries', async () => {
     const options: LLMCompletionOptions = {
-      messages: [
-        { role: 'user', content: 'How is my attention level?' },
-      ],
+      messages: [{ role: 'user', content: 'How is my attention level?' }],
     };
 
     const result = await provider.complete(options);
@@ -44,9 +42,7 @@ describe('FallbackProvider', () => {
 
   it('should return attention-prompt for engagement-related queries', async () => {
     const options: LLMCompletionOptions = {
-      messages: [
-        { role: 'user', content: 'Check engagement status' },
-      ],
+      messages: [{ role: 'user', content: 'Check engagement status' }],
     };
 
     const result = await provider.complete(options);
@@ -57,9 +53,7 @@ describe('FallbackProvider', () => {
 
   it('should return recommendation for next step queries', async () => {
     const options: LLMCompletionOptions = {
-      messages: [
-        { role: 'user', content: 'What should I do next?' },
-      ],
+      messages: [{ role: 'user', content: 'What should I do next?' }],
     };
 
     const result = await provider.complete(options);
@@ -72,9 +66,7 @@ describe('FallbackProvider', () => {
 
   it('should return recommendation for recommendation queries', async () => {
     const options: LLMCompletionOptions = {
-      messages: [
-        { role: 'user', content: 'Give me a recommendation' },
-      ],
+      messages: [{ role: 'user', content: 'Give me a recommendation' }],
     };
 
     const result = await provider.complete(options);
@@ -85,9 +77,7 @@ describe('FallbackProvider', () => {
 
   it('should return default response for generic queries', async () => {
     const options: LLMCompletionOptions = {
-      messages: [
-        { role: 'user', content: 'Hello world' },
-      ],
+      messages: [{ role: 'user', content: 'Hello world' }],
     };
 
     const result = await provider.complete(options);
@@ -111,9 +101,7 @@ describe('FallbackProvider', () => {
 
   it('should handle system-only messages', async () => {
     const options: LLMCompletionOptions = {
-      messages: [
-        { role: 'system', content: 'You are a helpful assistant' },
-      ],
+      messages: [{ role: 'system', content: 'You are a helpful assistant' }],
     };
 
     const result = await provider.complete(options);

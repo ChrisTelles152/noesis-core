@@ -3,11 +3,7 @@ import { Orchestrator } from '@noesis/adapters-llm';
 import { MasteryTracker } from './policies/mastery';
 import { CoreEngineAdapter, type CoreAdapterConfig } from './core';
 import type { Skill, NoesisEvent, SessionAction } from '@noesis-edu/core';
-import {
-  NoesisSDKOptions,
-  LearnerState,
-  ModuleType
-} from './types';
+import { NoesisSDKOptions, LearnerState, ModuleType } from './types';
 
 export class NoesisSDK {
   attention: AttentionTracker;
@@ -178,7 +174,7 @@ export class NoesisSDK {
       attention: this.isModuleActive('attention') ? this.attention.getCurrentData() : undefined,
       mastery: this.isModuleActive('mastery') ? this.mastery.getMasteryData() : undefined,
       coreProgress: this.core?.getLearnerProgress(),
-      timestamp: Date.now()
+      timestamp: Date.now(),
     };
   }
 

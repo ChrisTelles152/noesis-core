@@ -168,8 +168,9 @@ export class SessionPlannerImpl implements SessionPlanner {
     while (itemCount < mergedConfig.targetItems) {
       // Get due reviews first
       if (mergedConfig.enforceSpacedRetrieval) {
-        const dueStates = this.getDueStates(memoryStates, now)
-          .filter(s => !plannedSkills.has(s.skillId));
+        const dueStates = this.getDueStates(memoryStates, now).filter(
+          (s) => !plannedSkills.has(s.skillId)
+        );
 
         for (const state of dueStates) {
           if (itemCount >= mergedConfig.targetItems) break;
@@ -215,7 +216,7 @@ export class SessionPlannerImpl implements SessionPlanner {
    */
   private getDueStates(states: MemoryState[], atTime: number): MemoryState[] {
     return states
-      .filter(s => s.nextReview <= atTime)
+      .filter((s) => s.nextReview <= atTime)
       .sort((a, b) => {
         const overdueA = atTime - a.nextReview;
         const overdueB = atTime - b.nextReview;
@@ -249,18 +250,16 @@ export class SessionPlannerImpl implements SessionPlanner {
       // Check if skill is ready for transfer testing
       if (pMastery >= this.config.transferTestThreshold) {
         // Check if transfer test is needed
-        const skillTests = this.transferTests.filter(t => t.skillId === skillId);
+        const skillTests = this.transferTests.filter((t) => t.skillId === skillId);
         const passedTests = new Set(
-          this.transferResults
-            .filter(r => r.passed)
-            .map(r => r.testId)
+          this.transferResults.filter((r) => r.passed).map((r) => r.testId)
         );
 
-        const pendingTests = skillTests.filter(t => !passedTests.has(t.id));
+        const pendingTests = skillTests.filter((t) => !passedTests.has(t.id));
 
         if (pendingTests.length > 0) {
           // Prioritize near transfer first
-          const nearTests = pendingTests.filter(t => t.transferType === 'near');
+          const nearTests = pendingTests.filter((t) => t.transferType === 'near');
           const testToTake = nearTests.length > 0 ? nearTests[0] : pendingTests[0];
 
           return {
@@ -287,7 +286,7 @@ export class SessionPlannerImpl implements SessionPlanner {
   ): SessionAction | undefined {
     // Find skills with recent failures (relearning state in memory)
     const relearningStates = memoryStates
-      .filter(s => s.state === 'relearning')
+      .filter((s) => s.state === 'relearning')
       .sort((a, b) => b.failureCount - a.failureCount || a.skillId.localeCompare(b.skillId));
 
     if (relearningStates.length > 0) {
@@ -328,7 +327,7 @@ export class SessionPlannerImpl implements SessionPlanner {
 
       // Check if prerequisites are mastered
       const prereqs = skillGraph.getAllPrerequisites(skillId);
-      const prereqsMastered = prereqs.every(prereqId => {
+      const prereqsMastered = prereqs.every((prereqId) => {
         const prereqP = learnerModel.skillProbabilities.get(prereqId)?.pMastery || 0;
         return prereqP >= this.config.masteryThreshold;
       });
@@ -416,14 +415,15 @@ export class SessionPlannerImpl implements SessionPlanner {
     excludeSkills: Set<string>
   ): SessionAction {
     // Filter memory states
-    const filteredStates = memoryStates.filter(s => !excludeSkills.has(s.skillId));
+    const filteredStates = memoryStates.filter((s) => !excludeSkills.has(s.skillId));
 
     // Create a filtered learner model view
     const filteredModel: LearnerModel = {
       ...learnerModel,
       skillProbabilities: new Map(
-        Array.from(learnerModel.skillProbabilities.entries())
-          .filter(([id]) => !excludeSkills.has(id))
+        Array.from(learnerModel.skillProbabilities.entries()).filter(
+          ([id]) => !excludeSkills.has(id)
+        )
       ),
     };
 
@@ -447,24 +447,21 @@ export class SessionPlannerImpl implements SessionPlanner {
    */
   getSessionStats(actions: SessionAction[]): SessionStats {
     const byType = {
-      practice: actions.filter(a => a.type === 'practice').length,
-      review: actions.filter(a => a.type === 'review').length,
-      diagnostic: actions.filter(a => a.type === 'diagnostic').length,
-      transfer_test: actions.filter(a => a.type === 'transfer_test').length,
-      rest: actions.filter(a => a.type === 'rest').length,
+      practice: actions.filter((a) => a.type === 'practice').length,
+      review: actions.filter((a) => a.type === 'review').length,
+      diagnostic: actions.filter((a) => a.type === 'diagnostic').length,
+      transfer_test: actions.filter((a) => a.type === 'transfer_test').length,
+      rest: actions.filter((a) => a.type === 'rest').length,
     };
 
-    const uniqueSkills = new Set(
-      actions.filter(a => a.skillId).map(a => a.skillId as string)
-    );
+    const uniqueSkills = new Set(actions.filter((a) => a.skillId).map((a) => a.skillId as string));
 
     return {
       totalActions: actions.length,
       actionsByType: byType,
       uniqueSkills: uniqueSkills.size,
-      averagePriority: actions.length > 0
-        ? actions.reduce((sum, a) => sum + a.priority, 0) / actions.length
-        : 0,
+      averagePriority:
+        actions.length > 0 ? actions.reduce((sum, a) => sum + a.priority, 0) / actions.length : 0,
     };
   }
 }

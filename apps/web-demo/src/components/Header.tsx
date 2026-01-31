@@ -1,7 +1,7 @@
-import { useState, useEffect } from "react";
-import { Link, useLocation } from "wouter";
-import { Button } from "@/components/ui/button";
-import { useAuthContext } from "@/hooks/useAuth";
+import { useState, useEffect } from 'react';
+import { Link, useLocation } from 'wouter';
+import { Button } from '@/components/ui/button';
+import { useAuthContext } from '@/hooks/useAuth';
 
 export default function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -18,7 +18,7 @@ export default function Header() {
     const handleScroll = () => {
       setScrolled(window.scrollY > 10);
     };
-    
+
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
@@ -32,7 +32,9 @@ export default function Header() {
   };
 
   return (
-    <header className={`sticky top-0 z-50 bg-white border-b border-slate-200 ${scrolled ? 'shadow-sm' : ''}`}>
+    <header
+      className={`sticky top-0 z-50 bg-white border-b border-slate-200 ${scrolled ? 'shadow-sm' : ''}`}
+    >
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center py-4">
           <div className="flex items-center space-x-3">
@@ -40,19 +42,21 @@ export default function Header() {
               <div className="flex items-center justify-center w-10 h-10 bg-gradient-to-r from-primary-600 to-secondary-500 rounded-lg">
                 <span className="text-white text-xl font-bold">N</span>
               </div>
-              <span className="text-xl font-semibold tracking-tight text-slate-900">Noesis SDK</span>
+              <span className="text-xl font-semibold tracking-tight text-slate-900">
+                Noesis SDK
+              </span>
             </Link>
           </div>
-          
+
           <nav className="hidden md:flex items-center space-x-8">
-            <Link 
-              href="/#features" 
+            <Link
+              href="/#features"
               className={`text-slate-600 hover:text-primary-600 transition-colors text-sm font-medium ${isActive('/#features') ? 'text-primary-600' : ''}`}
             >
               Features
             </Link>
-            <Link 
-              href="/documentation" 
+            <Link
+              href="/documentation"
               className={`text-slate-600 hover:text-primary-600 transition-colors text-sm font-medium ${isActive('/documentation') ? 'text-primary-600' : ''}`}
             >
               Documentation
@@ -70,15 +74,15 @@ export default function Header() {
               Core Smoke
             </Link>
             <a
-              href="https://github.com/noesis-sdk" 
-              target="_blank" 
+              href="https://github.com/noesis-sdk"
+              target="_blank"
               rel="noopener noreferrer"
               className="text-slate-600 hover:text-primary-600 transition-colors text-sm font-medium"
             >
               GitHub
             </a>
           </nav>
-          
+
           <div className="flex items-center space-x-4">
             <a
               href="https://github.com/noesis-sdk"
@@ -89,8 +93,8 @@ export default function Header() {
               <i className="fab fa-github text-lg mr-2"></i>
               <span>Star on GitHub</span>
             </a>
-            {!isLoading && (
-              isAuthenticated ? (
+            {!isLoading &&
+              (isAuthenticated ? (
                 <div className="flex items-center space-x-3">
                   <Link
                     href="/dashboard"
@@ -114,30 +118,33 @@ export default function Header() {
                     <Link href="/register">Get Started</Link>
                   </Button>
                 </div>
-              )
-            )}
+              ))}
           </div>
-          
-          <button 
-            className="md:hidden flex items-center" 
+
+          <button
+            className="md:hidden flex items-center"
             onClick={toggleMobileMenu}
             aria-label="Toggle mobile menu"
           >
-            <i className={`fas ${mobileMenuOpen ? 'fa-times' : 'fa-bars'} text-slate-700 text-xl`}></i>
+            <i
+              className={`fas ${mobileMenuOpen ? 'fa-times' : 'fa-bars'} text-slate-700 text-xl`}
+            ></i>
           </button>
         </div>
       </div>
-      
+
       {/* Mobile menu */}
-      <div className={`md:hidden bg-white border-b border-slate-200 ${mobileMenuOpen ? 'block' : 'hidden'}`}>
+      <div
+        className={`md:hidden bg-white border-b border-slate-200 ${mobileMenuOpen ? 'block' : 'hidden'}`}
+      >
         <div className="container mx-auto px-4 py-3 space-y-1">
-          <Link 
+          <Link
             href="/#features"
             className="block px-3 py-2 text-slate-600 rounded-md hover:bg-slate-100 hover:text-primary-600 transition-colors"
           >
             Features
           </Link>
-          <Link 
+          <Link
             href="/documentation"
             className="block px-3 py-2 text-slate-600 rounded-md hover:bg-slate-100 hover:text-primary-600 transition-colors"
           >
@@ -156,8 +163,8 @@ export default function Header() {
             Core Smoke
           </Link>
           <a
-            href="https://github.com/noesis-sdk" 
-            target="_blank" 
+            href="https://github.com/noesis-sdk"
+            target="_blank"
             rel="noopener noreferrer"
             className="block px-3 py-2 text-slate-600 rounded-md hover:bg-slate-100 hover:text-primary-600 transition-colors"
           >

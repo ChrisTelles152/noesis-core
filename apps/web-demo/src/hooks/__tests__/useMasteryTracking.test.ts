@@ -170,18 +170,18 @@ describe('useMasteryTracking', () => {
       let capturedCallback: ((data: unknown[]) => void) | null = null;
 
       // Override initialize mock to capture the callback
-      mockMastery.initialize.mockImplementation((options: { onMasteryUpdate: (data: unknown[]) => void }) => {
-        capturedCallback = options.onMasteryUpdate;
-      });
+      mockMastery.initialize.mockImplementation(
+        (options: { onMasteryUpdate: (data: unknown[]) => void }) => {
+          capturedCallback = options.onMasteryUpdate;
+        }
+      );
 
       const { result, rerender } = renderHook(() => useMasteryTracking());
 
       // Verify callback was captured
       expect(capturedCallback).not.toBeNull();
 
-      const newData = [
-        { id: 'obj1', name: 'Test', mastery: 0.9 },
-      ];
+      const newData = [{ id: 'obj1', name: 'Test', mastery: 0.9 }];
 
       // Also update getMasteryData to return the new data (simulating SDK state sync)
       mockMastery.getMasteryData.mockReturnValue(newData);

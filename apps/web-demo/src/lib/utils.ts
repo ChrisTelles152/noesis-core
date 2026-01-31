@@ -1,5 +1,5 @@
-import { type ClassValue, clsx } from "clsx";
-import { twMerge } from "tailwind-merge";
+import { type ClassValue, clsx } from 'clsx';
+import { twMerge } from 'tailwind-merge';
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -60,32 +60,32 @@ export const estimateGazeFromFace = (faceData: FaceData | null): GazePoint => {
 };
 
 export const getFocusStabilityLabel = (stabilityScore: number): string => {
-  if (stabilityScore > 0.8) return "High";
-  if (stabilityScore > 0.5) return "Medium";
-  return "Low";
+  if (stabilityScore > 0.8) return 'High';
+  if (stabilityScore > 0.5) return 'Medium';
+  return 'Low';
 };
 
 export const getCognitiveLoadLabel = (loadScore: number): string => {
-  if (loadScore > 0.7) return "High";
-  if (loadScore > 0.4) return "Medium";
-  return "Low";
+  if (loadScore > 0.7) return 'High';
+  if (loadScore > 0.4) return 'Medium';
+  return 'Low';
 };
 
-export const formatAttentionFeedback = (score: number): { message: string, icon: string } => {
+export const formatAttentionFeedback = (score: number): { message: string; icon: string } => {
   if (score > 0.75) {
     return {
-      message: "Your attention level is excellent. You seem highly engaged with the content.",
-      icon: "fa-check-circle text-green-500"
+      message: 'Your attention level is excellent. You seem highly engaged with the content.',
+      icon: 'fa-check-circle text-green-500',
     };
   } else if (score > 0.5) {
     return {
-      message: "Your attention level is good. You seem engaged with the content.",
-      icon: "fa-info-circle text-blue-500"
+      message: 'Your attention level is good. You seem engaged with the content.',
+      icon: 'fa-info-circle text-blue-500',
     };
   } else {
     return {
-      message: "Your attention seems to be drifting. Would you like a different explanation?",
-      icon: "fa-exclamation-circle text-yellow-500"
+      message: 'Your attention seems to be drifting. Would you like a different explanation?',
+      icon: 'fa-exclamation-circle text-yellow-500',
     };
   }
 };

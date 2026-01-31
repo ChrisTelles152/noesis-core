@@ -110,7 +110,10 @@ function runSmokeSession(): SmokeTestResult {
 }
 
 // Verify replay produces identical results
-function verifyReplay(originalEvents: NoesisEvent[], originalActions: SessionAction[]): { ok: boolean; message: string } {
+function verifyReplay(
+  originalEvents: NoesisEvent[],
+  originalActions: SessionAction[]
+): { ok: boolean; message: string } {
   // Reset with fresh deterministic generators
   const nowFn = createDeterministicClock();
   const idFn = createDeterministicIdGenerator();
@@ -193,11 +196,15 @@ export default function CoreSmoke() {
   const handleDownload = useCallback(() => {
     if (!result) return;
 
-    const data = JSON.stringify({
-      events: result.events,
-      actions: result.actions,
-      timestamp: new Date().toISOString(),
-    }, null, 2);
+    const data = JSON.stringify(
+      {
+        events: result.events,
+        actions: result.actions,
+        timestamp: new Date().toISOString(),
+      },
+      null,
+      2
+    );
 
     const blob = new Blob([data], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
@@ -223,7 +230,8 @@ export default function CoreSmoke() {
     <div style={{ padding: '2rem', maxWidth: '1200px', margin: '0 auto' }}>
       <h1 style={{ marginBottom: '1rem' }}>Core Engine Smoke Test</h1>
       <p style={{ marginBottom: '1rem', color: '#666' }}>
-        Tests @noesis-edu/core: event generation, getNextAction sequence, export, and deterministic replay.
+        Tests @noesis-edu/core: event generation, getNextAction sequence, export, and deterministic
+        replay.
       </p>
 
       <div style={{ marginBottom: '1rem', display: 'flex', gap: '0.5rem' }}>

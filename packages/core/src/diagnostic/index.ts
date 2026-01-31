@@ -4,10 +4,7 @@
  * Provides diagnostic assessment for cold-start learner placement.
  */
 
-export type {
-  DiagnosticEngine,
-  ItemSkillMapping,
-} from '../constitution.js';
+export type { DiagnosticEngine, ItemSkillMapping } from '../constitution.js';
 
 export {
   DiagnosticEngineImpl,

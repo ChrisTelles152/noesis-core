@@ -11,11 +11,11 @@ services:
       POSTGRES_PASSWORD: noesis_dev_password
       POSTGRES_DB: noesis
     ports:
-      - "5432:5432"
+      - '5432:5432'
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U noesis -d noesis"]
+      test: ['CMD-SHELL', 'pg_isready -U noesis -d noesis']
       interval: 10s
       timeout: 5s
       retries: 5
@@ -40,7 +40,7 @@ services:
       # OPENAI_API_KEY: ${OPENAI_API_KEY}
       # ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
     ports:
-      - "5000:5000"
+      - '5000:5000'
     volumes:
       # Mount source code for hot reload in development
       - ./apps:/app/apps
@@ -49,7 +49,7 @@ services:
       - /app/node_modules
     command: npm run dev
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:5000/health"]
+      test: ['CMD', 'wget', '--no-verbose', '--tries=1', '--spider', 'http://localhost:5000/health']
       interval: 30s
       timeout: 10s
       start_period: 10s
@@ -72,9 +72,9 @@ services:
       DATABASE_URL: postgres://noesis:noesis_dev_password@db:5432/noesis
       SESSION_SECRET: ${SESSION_SECRET:-change-this-in-production}
     ports:
-      - "5001:5000"
+      - '5001:5000'
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:5000/health"]
+      test: ['CMD', 'wget', '--no-verbose', '--tries=1', '--spider', 'http://localhost:5000/health']
       interval: 30s
       timeout: 10s
       start_period: 5s

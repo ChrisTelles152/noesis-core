@@ -61,14 +61,27 @@ describe('getLearnerMetrics', () => {
 
   it('should compute masteryBySkill from practice events', () => {
     const engine = createTestEngine(1000);
-    const ctx = createEventFactoryContext(
-      () => 1000,
-      createDeterministicIdGenerator('evt')
-    );
+    const ctx = createEventFactoryContext(() => 1000, createDeterministicIdGenerator('evt'));
 
     // Process some practice events
-    const event1 = createPracticeEvent(ctx, learnerId, sessionId, 'arithmetic', 'item-1', true, 500);
-    const event2 = createPracticeEvent(ctx, learnerId, sessionId, 'arithmetic', 'item-2', true, 500);
+    const event1 = createPracticeEvent(
+      ctx,
+      learnerId,
+      sessionId,
+      'arithmetic',
+      'item-1',
+      true,
+      500
+    );
+    const event2 = createPracticeEvent(
+      ctx,
+      learnerId,
+      sessionId,
+      'arithmetic',
+      'item-2',
+      true,
+      500
+    );
     const event3 = createPracticeEvent(ctx, learnerId, sessionId, 'algebra', 'item-3', false, 500);
 
     engine.processEvent(event1);
@@ -87,10 +100,7 @@ describe('getLearnerMetrics', () => {
   it('should compute retentionBySkill in valid range [0, 1]', () => {
     const startTime = 1000;
     const engine = createTestEngine(startTime);
-    const ctx = createEventFactoryContext(
-      () => startTime,
-      createDeterministicIdGenerator('evt')
-    );
+    const ctx = createEventFactoryContext(() => startTime, createDeterministicIdGenerator('evt'));
 
     // Process a practice event
     const event = createPracticeEvent(ctx, learnerId, sessionId, 'arithmetic', 'item-1', true, 500);
@@ -109,10 +119,7 @@ describe('getLearnerMetrics', () => {
   it('should compute retention decay over time', () => {
     const startTime = 0;
     const engine = createTestEngine(startTime);
-    const ctx = createEventFactoryContext(
-      () => startTime,
-      createDeterministicIdGenerator('evt')
-    );
+    const ctx = createEventFactoryContext(() => startTime, createDeterministicIdGenerator('evt'));
 
     // Process a practice event at time 0
     const event = createPracticeEvent(ctx, learnerId, sessionId, 'arithmetic', 'item-1', true, 500);
@@ -136,13 +143,18 @@ describe('getLearnerMetrics', () => {
   it('should return due skills in nextReviews at chosen atTime', () => {
     const startTime = 0;
     const engine = createTestEngine(startTime);
-    const ctx = createEventFactoryContext(
-      () => startTime,
-      createDeterministicIdGenerator('evt')
-    );
+    const ctx = createEventFactoryContext(() => startTime, createDeterministicIdGenerator('evt'));
 
     // Process practice events
-    const event1 = createPracticeEvent(ctx, learnerId, sessionId, 'arithmetic', 'item-1', true, 500);
+    const event1 = createPracticeEvent(
+      ctx,
+      learnerId,
+      sessionId,
+      'arithmetic',
+      'item-1',
+      true,
+      500
+    );
     const event2 = createPracticeEvent(ctx, learnerId, sessionId, 'algebra', 'item-2', true, 500);
     engine.processEvent(event1);
     engine.processEvent(event2);
@@ -170,10 +182,7 @@ describe('getLearnerMetrics', () => {
 
   it('should compute averageMastery and averageRetention as finite numbers', () => {
     const engine = createTestEngine(1000);
-    const ctx = createEventFactoryContext(
-      () => 1000,
-      createDeterministicIdGenerator('evt')
-    );
+    const ctx = createEventFactoryContext(() => 1000, createDeterministicIdGenerator('evt'));
 
     // Process multiple practice events
     for (let i = 0; i < 5; i++) {
@@ -204,10 +213,7 @@ describe('getLearnerMetrics', () => {
 
   it('should count totalPracticeEvents correctly', () => {
     const engine = createTestEngine(1000);
-    const ctx = createEventFactoryContext(
-      () => 1000,
-      createDeterministicIdGenerator('evt')
-    );
+    const ctx = createEventFactoryContext(() => 1000, createDeterministicIdGenerator('evt'));
 
     // Process 7 practice events
     for (let i = 0; i < 7; i++) {
@@ -229,10 +235,7 @@ describe('getLearnerMetrics', () => {
 
   it('should compute estimatedEventsToFullMastery', () => {
     const engine = createTestEngine(1000);
-    const ctx = createEventFactoryContext(
-      () => 1000,
-      createDeterministicIdGenerator('evt')
-    );
+    const ctx = createEventFactoryContext(() => 1000, createDeterministicIdGenerator('evt'));
 
     // Process one event to initialize a skill (but not master it)
     const event = createPracticeEvent(ctx, learnerId, sessionId, 'arithmetic', 'item-1', true, 500);
@@ -255,19 +258,32 @@ describe('getLearnerMetrics', () => {
 
   it('should track multiple learners independently', () => {
     const engine = createTestEngine(1000);
-    const ctx = createEventFactoryContext(
-      () => 1000,
-      createDeterministicIdGenerator('evt')
-    );
+    const ctx = createEventFactoryContext(() => 1000, createDeterministicIdGenerator('evt'));
 
     // Learner A: 3 correct events on arithmetic
     for (let i = 0; i < 3; i++) {
-      const event = createPracticeEvent(ctx, 'learner-a', sessionId, 'arithmetic', `item-${i}`, true, 500);
+      const event = createPracticeEvent(
+        ctx,
+        'learner-a',
+        sessionId,
+        'arithmetic',
+        `item-${i}`,
+        true,
+        500
+      );
       engine.processEvent(event);
     }
 
     // Learner B: 1 incorrect event on algebra
-    const eventB = createPracticeEvent(ctx, 'learner-b', sessionId, 'algebra', 'item-x', false, 500);
+    const eventB = createPracticeEvent(
+      ctx,
+      'learner-b',
+      sessionId,
+      'algebra',
+      'item-x',
+      false,
+      500
+    );
     engine.processEvent(eventB);
 
     const metricsA = getLearnerMetrics(engine, 'learner-a');

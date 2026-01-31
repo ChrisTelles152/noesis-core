@@ -108,7 +108,15 @@ export function useWebSocket(options: UseWebSocketOptions = {}): UseWebSocketRet
       setStatus('error');
       console.error('[WebSocket] Connection error:', error);
     }
-  }, [getWebSocketUrl, reconnectAttempts, reconnectInterval, onConnect, onDisconnect, onError, onMessage]);
+  }, [
+    getWebSocketUrl,
+    reconnectAttempts,
+    reconnectInterval,
+    onConnect,
+    onDisconnect,
+    onError,
+    onMessage,
+  ]);
 
   const disconnect = useCallback(() => {
     if (reconnectTimeoutRef.current) {
@@ -139,13 +147,19 @@ export function useWebSocket(options: UseWebSocketOptions = {}): UseWebSocketRet
     }
   }, []);
 
-  const subscribe = useCallback((channels: string[]) => {
-    send('subscribe', channels);
-  }, [send]);
+  const subscribe = useCallback(
+    (channels: string[]) => {
+      send('subscribe', channels);
+    },
+    [send]
+  );
 
-  const unsubscribe = useCallback((channels: string[]) => {
-    send('unsubscribe', channels);
-  }, [send]);
+  const unsubscribe = useCallback(
+    (channels: string[]) => {
+      send('unsubscribe', channels);
+    },
+    [send]
+  );
 
   // Auto-connect on mount
   useEffect(() => {

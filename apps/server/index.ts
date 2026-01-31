@@ -1,18 +1,18 @@
-import express, { type Request, Response, NextFunction } from "express";
-import cors from "cors";
-import rateLimit from "express-rate-limit";
-import helmet from "helmet";
-import { registerRoutes } from "./routes";
-import { setupVite, serveStatic, log } from "./vite";
-import { setupAuth } from "./auth";
-import { csrfProtection, setupCsrfRoutes, shouldEnableCsrf } from "./csrf";
-import { logEnvironmentStatus, isProduction, getPort, getHost } from "./env";
-import { setupHealthRoutes, requireInternalAccess } from "./health";
-import { requestIdMiddleware } from "./middleware/requestId";
-import { sanitizeInput } from "./middleware/sanitize";
-import { initializeWebSocket } from "./websocket";
-import { setupOpenApiRoutes } from "./openapi";
-import { performanceMiddleware, performanceMonitor } from "./performance";
+import express, { type Request, Response, NextFunction } from 'express';
+import cors from 'cors';
+import rateLimit from 'express-rate-limit';
+import helmet from 'helmet';
+import { registerRoutes } from './routes';
+import { setupVite, serveStatic, log } from './vite';
+import { setupAuth } from './auth';
+import { csrfProtection, setupCsrfRoutes, shouldEnableCsrf } from './csrf';
+import { logEnvironmentStatus, isProduction, getPort, getHost } from './env';
+import { setupHealthRoutes, requireInternalAccess } from './health';
+import { requestIdMiddleware } from './middleware/requestId';
+import { sanitizeInput } from './middleware/sanitize';
+import { initializeWebSocket } from './websocket';
+import { setupOpenApiRoutes } from './openapi';
+import { performanceMiddleware, performanceMonitor } from './performance';
 
 // Validate environment at startup
 const envValid = logEnvironmentStatus(log);
@@ -30,22 +30,26 @@ const app = express();
 // - X-XSS-Protection: 0 (disabled, CSP is more effective)
 // - Strict-Transport-Security: enforces HTTPS
 // - Content-Security-Policy: restricts resource loading
-app.use(helmet({
-  contentSecurityPolicy: isProduction() ? {
-    directives: {
-      defaultSrc: ["'self'"],
-      scriptSrc: ["'self'"], // No unsafe-inline in production - bundled scripts don't need it
-      styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"], // unsafe-inline needed for CSS-in-JS
-      fontSrc: ["'self'", "https://fonts.gstatic.com"],
-      imgSrc: ["'self'", "data:", "blob:"],
-      connectSrc: ["'self'", "wss:", "https://api.openai.com", "https://api.anthropic.com"],
-      frameSrc: ["'none'"],
-      objectSrc: ["'none'"],
-    },
-  } : false, // Disable CSP in development for easier debugging
-  crossOriginEmbedderPolicy: false, // Needed for WebGazer
-  crossOriginOpenerPolicy: { policy: "same-origin-allow-popups" },
-}));
+app.use(
+  helmet({
+    contentSecurityPolicy: isProduction()
+      ? {
+          directives: {
+            defaultSrc: ["'self'"],
+            scriptSrc: ["'self'"], // No unsafe-inline in production - bundled scripts don't need it
+            styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'], // unsafe-inline needed for CSS-in-JS
+            fontSrc: ["'self'", 'https://fonts.gstatic.com'],
+            imgSrc: ["'self'", 'data:', 'blob:'],
+            connectSrc: ["'self'", 'wss:', 'https://api.openai.com', 'https://api.anthropic.com'],
+            frameSrc: ["'none'"],
+            objectSrc: ["'none'"],
+          },
+        }
+      : false, // Disable CSP in development for easier debugging
+    crossOriginEmbedderPolicy: false, // Needed for WebGazer
+    crossOriginOpenerPolicy: { policy: 'same-origin-allow-popups' },
+  })
+);
 
 // Request ID tracking (before other middleware)
 app.use(requestIdMiddleware);
@@ -67,12 +71,15 @@ app.get('/api/performance/stats', requireInternalAccess, (_req, res) => {
 
 // CORS configuration
 const corsOptions: cors.CorsOptions = {
-  origin: process.env.NODE_ENV === "production"
-    ? process.env.ALLOWED_ORIGINS?.split(",").map(o => o.trim()).filter(Boolean) || false
-    : true, // Allow all origins in development
+  origin:
+    process.env.NODE_ENV === 'production'
+      ? process.env.ALLOWED_ORIGINS?.split(',')
+          .map((o) => o.trim())
+          .filter(Boolean) || false
+      : true, // Allow all origins in development
   credentials: true,
-  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization", "x-csrf-token", "x-request-id"],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'x-csrf-token', 'x-request-id'],
 };
 app.use(cors(corsOptions));
 
@@ -80,45 +87,45 @@ app.use(cors(corsOptions));
 const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 100, // Limit each IP to 100 requests per windowMs
-  message: { error: "Too many requests, please try again later." },
+  message: { error: 'Too many requests, please try again later.' },
   standardHeaders: true,
   legacyHeaders: false,
 });
 
 // Apply rate limiting to API routes
-app.use("/api/", apiLimiter);
+app.use('/api/', apiLimiter);
 
 // Stricter rate limiting for LLM-powered endpoints (more expensive operations)
 const llmLimiter = rateLimit({
   windowMs: 60 * 1000, // 1 minute
   max: 10, // Limit each IP to 10 requests per minute for LLM endpoints
-  message: { error: "Rate limit exceeded for AI features. Please wait before trying again." },
+  message: { error: 'Rate limit exceeded for AI features. Please wait before trying again.' },
   standardHeaders: true,
   legacyHeaders: false,
 });
-app.use("/api/orchestration/", llmLimiter);
+app.use('/api/orchestration/', llmLimiter);
 
 // Authentication rate limiting to protect against brute force attacks
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 10, // Limit each IP to 10 login/register attempts per 15 minutes
-  message: { error: "Too many authentication attempts. Please try again later." },
+  message: { error: 'Too many authentication attempts. Please try again later.' },
   standardHeaders: true,
   legacyHeaders: false,
   skipSuccessfulRequests: true, // Don't count successful logins toward the limit
 });
-app.use("/api/auth/login", authLimiter);
-app.use("/api/auth/register", authLimiter);
+app.use('/api/auth/login', authLimiter);
+app.use('/api/auth/register', authLimiter);
 
 // Username enumeration protection - stricter rate limiting
 const usernameCheckLimiter = rateLimit({
   windowMs: 60 * 1000, // 1 minute
   max: 10, // Limit each IP to 10 username checks per minute
-  message: { error: "Too many username checks. Please try again later." },
+  message: { error: 'Too many username checks. Please try again later.' },
   standardHeaders: true,
   legacyHeaders: false,
 });
-app.use("/api/auth/check-username", usernameCheckLimiter);
+app.use('/api/auth/check-username', usernameCheckLimiter);
 
 app.use(express.json({ limit: '10kb' })); // Limit request body size to prevent DoS
 app.use(express.urlencoded({ extended: false, limit: '10kb' }));
@@ -133,14 +140,17 @@ setupAuth(app);
 const csrfEnabled = shouldEnableCsrf();
 if (csrfEnabled) {
   setupCsrfRoutes(app);
-  app.use('/api/', csrfProtection({
-    excludePaths: [
-      '/api/csrf-token', // Token endpoint itself
-      '/api/auth/login', // Initial login doesn't have token yet
-      '/api/auth/register', // Initial registration doesn't have token yet
-    ],
-    enabled: csrfEnabled,
-  }));
+  app.use(
+    '/api/',
+    csrfProtection({
+      excludePaths: [
+        '/api/csrf-token', // Token endpoint itself
+        '/api/auth/login', // Initial login doesn't have token yet
+        '/api/auth/register', // Initial registration doesn't have token yet
+      ],
+      enabled: csrfEnabled,
+    })
+  );
   log('CSRF protection enabled');
 } else {
   log('CSRF protection disabled (development mode)');
@@ -162,16 +172,16 @@ app.use((req, res, next) => {
     return originalResJson.apply(res, [bodyJson, ...args]);
   };
 
-  res.on("finish", () => {
+  res.on('finish', () => {
     const duration = Date.now() - start;
-    if (path.startsWith("/api")) {
+    if (path.startsWith('/api')) {
       let logLine = `${req.method} ${path} ${res.statusCode} in ${duration}ms`;
       if (capturedJsonResponse) {
         logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`;
       }
 
       if (logLine.length > 80) {
-        logLine = logLine.slice(0, 79) + "…";
+        logLine = logLine.slice(0, 79) + '…';
       }
 
       log(logLine);
@@ -191,7 +201,7 @@ app.use((req, res, next) => {
 
   app.use((err: HttpError, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
-    const message = err.message || "Internal Server Error";
+    const message = err.message || 'Internal Server Error';
 
     // Log error details server-side only (don't expose to client)
     log(`Error ${status}: ${err.message}${err.stack ? '\n' + err.stack : ''}`);
@@ -203,7 +213,7 @@ app.use((req, res, next) => {
   // importantly only setup vite in development and after
   // setting up all the other routes so the catch-all route
   // doesn't interfere with the other routes
-  if (app.get("env") === "development") {
+  if (app.get('env') === 'development') {
     await setupVite(app, server);
   } else {
     serveStatic(app);

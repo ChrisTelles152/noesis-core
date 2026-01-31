@@ -45,7 +45,7 @@ export const ErrorCodes = {
   INTERNAL_CONFIG_ERROR: 'INTERNAL_CONFIG_ERROR',
 } as const;
 
-export type ErrorCode = typeof ErrorCodes[keyof typeof ErrorCodes];
+export type ErrorCode = (typeof ErrorCodes)[keyof typeof ErrorCodes];
 
 /**
  * Structured API error response

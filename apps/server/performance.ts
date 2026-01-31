@@ -114,9 +114,13 @@ export class PerformanceMonitor {
     const stats = new Map<string, PerformanceStats>();
 
     Array.from(byEndpoint.entries()).forEach(([endpoint, metrics]) => {
-      const durations = metrics.map((m: RequestMetric) => m.duration).sort((a: number, b: number) => a - b);
+      const durations = metrics
+        .map((m: RequestMetric) => m.duration)
+        .sort((a: number, b: number) => a - b);
       const errorCount = metrics.filter((m: RequestMetric) => m.statusCode >= 500).length;
-      const slowCount = metrics.filter((m: RequestMetric) => m.duration > this.slowThreshold).length;
+      const slowCount = metrics.filter(
+        (m: RequestMetric) => m.duration > this.slowThreshold
+      ).length;
 
       stats.set(endpoint, {
         requestCount: metrics.length,

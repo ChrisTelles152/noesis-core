@@ -9,7 +9,7 @@ const initialAttentionData: AttentionData = {
   cognitiveLoad: 0.3,
   gazePoint: { x: 0, y: 0 },
   timestamp: Date.now(),
-  status: 'inactive'
+  status: 'inactive',
 };
 
 export const useAttentionTracking = () => {
@@ -18,33 +18,36 @@ export const useAttentionTracking = () => {
   const sdk = useNoesisSDK();
 
   // Start tracking attention
-  const startTracking = useCallback(async (targetElement: HTMLElement | null) => {
-    try {
-      // Register the callback to ensure we get updates
-      sdk.attention.onAttentionChange((data) => {
-        setAttentionData(data);
-      });
-      
-      // Then start tracking
-      const success = await sdk.attention.startTracking(targetElement);
-      
-      setIsTracking(success);
-      return success;
-    } catch (error) {
-      console.error('Failed to start attention tracking:', error);
-      setIsTracking(false);
-      return false;
-    }
-  }, [sdk.attention]);
+  const startTracking = useCallback(
+    async (targetElement: HTMLElement | null) => {
+      try {
+        // Register the callback to ensure we get updates
+        sdk.attention.onAttentionChange((data) => {
+          setAttentionData(data);
+        });
+
+        // Then start tracking
+        const success = await sdk.attention.startTracking(targetElement);
+
+        setIsTracking(success);
+        return success;
+      } catch (error) {
+        console.error('Failed to start attention tracking:', error);
+        setIsTracking(false);
+        return false;
+      }
+    },
+    [sdk.attention]
+  );
 
   // Stop tracking attention
   const stopTracking = useCallback(async () => {
     if (isTracking) {
       await sdk.attention.stopTracking();
       setIsTracking(false);
-      setAttentionData(prevData => ({
+      setAttentionData((prevData) => ({
         ...prevData,
-        status: 'inactive'
+        status: 'inactive',
       }));
     }
   }, [isTracking, sdk.attention]);
@@ -62,6 +65,6 @@ export const useAttentionTracking = () => {
     attentionData,
     isTracking,
     startTracking,
-    stopTracking
+    stopTracking,
   };
 };

@@ -14,7 +14,9 @@ interface WebGazerPrediction {
 }
 
 interface WebGazerInstance {
-  setGazeListener(callback: (data: WebGazerPrediction | null, elapsedTime: number) => void): WebGazerInstance;
+  setGazeListener(
+    callback: (data: WebGazerPrediction | null, elapsedTime: number) => void
+  ): WebGazerInstance;
   clearGazeListener(): WebGazerInstance;
   begin(): Promise<WebGazerInstance>;
   end(): void;
@@ -66,23 +68,23 @@ export class WebGazerAdapter {
    */
   async initialize(): Promise<boolean> {
     if (this.isInitialized) {
-      this.log("WebGazer already initialized");
+      this.log('WebGazer already initialized');
       return true;
     }
 
     try {
       // Dynamically import WebGazer to avoid SSR issues
-      const webgazerModule = await import("webgazer");
+      const webgazerModule = await import('webgazer');
       this.webgazer = webgazerModule.default as unknown as WebGazerInstance;
 
       if (!this.webgazer) {
-        throw new Error("Failed to load WebGazer module");
+        throw new Error('Failed to load WebGazer module');
       }
 
       // Configure WebGazer
       this.webgazer
-        .setRegression("ridge") // Ridge regression for gaze prediction
-        .setTracker("TFFacemesh") // TensorFlow.js facemesh model
+        .setRegression('ridge') // Ridge regression for gaze prediction
+        .setTracker('TFFacemesh') // TensorFlow.js facemesh model
         .showVideo(false) // Hide the video preview
         .showFaceOverlay(false) // Hide face overlay
         .showFaceFeedbackBox(false) // Hide feedback box
@@ -114,10 +116,10 @@ export class WebGazerAdapter {
 
       this.isInitialized = true;
       this.isActive = true;
-      this.log("WebGazer initialized successfully");
+      this.log('WebGazer initialized successfully');
       return true;
     } catch (error) {
-      this.log("Failed to initialize WebGazer:", error);
+      this.log('Failed to initialize WebGazer:', error);
       return false;
     }
   }
@@ -129,7 +131,7 @@ export class WebGazerAdapter {
     if (this.webgazer && this.isActive) {
       this.webgazer.pause();
       this.isActive = false;
-      this.log("WebGazer paused");
+      this.log('WebGazer paused');
     }
   }
 
@@ -140,7 +142,7 @@ export class WebGazerAdapter {
     if (this.webgazer && !this.isActive && this.isInitialized) {
       this.webgazer.resume();
       this.isActive = true;
-      this.log("WebGazer resumed");
+      this.log('WebGazer resumed');
     }
   }
 
@@ -158,7 +160,7 @@ export class WebGazerAdapter {
     this.gazeCallback = null;
     this.lastPrediction = null;
     this.predictionCount = 0;
-    this.log("WebGazer shut down");
+    this.log('WebGazer shut down');
   }
 
   /**
@@ -194,7 +196,7 @@ export class WebGazerAdapter {
         };
       }
     } catch (error) {
-      this.log("Error getting current prediction:", error);
+      this.log('Error getting current prediction:', error);
     }
     return null;
   }
@@ -234,7 +236,10 @@ export class WebGazerAdapter {
 // Singleton instance for global access
 let globalAdapter: WebGazerAdapter | null = null;
 
-export function getWebGazerAdapter(debug: boolean = false, showGazePoints: boolean = false): WebGazerAdapter {
+export function getWebGazerAdapter(
+  debug: boolean = false,
+  showGazePoints: boolean = false
+): WebGazerAdapter {
   if (!globalAdapter) {
     globalAdapter = new WebGazerAdapter(debug, showGazePoints);
   }

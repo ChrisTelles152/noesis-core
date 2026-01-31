@@ -90,9 +90,7 @@ describe('Environment Validation', () => {
         const result = validateEnvironment();
 
         expect(result.valid).toBe(false);
-        expect(result.errors).toContainEqual(
-          expect.stringContaining('SESSION_SECRET must be set')
-        );
+        expect(result.errors).toContainEqual(expect.stringContaining('SESSION_SECRET must be set'));
       });
 
       it('should error when SESSION_SECRET is the default value', () => {
@@ -101,9 +99,7 @@ describe('Environment Validation', () => {
         const result = validateEnvironment();
 
         expect(result.valid).toBe(false);
-        expect(result.errors).toContainEqual(
-          expect.stringContaining('SESSION_SECRET must be set')
-        );
+        expect(result.errors).toContainEqual(expect.stringContaining('SESSION_SECRET must be set'));
       });
 
       it('should error when DISABLE_CSRF is true', () => {
@@ -123,9 +119,7 @@ describe('Environment Validation', () => {
 
         const result = validateEnvironment();
 
-        expect(result.warnings).toContainEqual(
-          expect.stringContaining('ALLOWED_ORIGINS not set')
-        );
+        expect(result.warnings).toContainEqual(expect.stringContaining('ALLOWED_ORIGINS not set'));
       });
 
       it('should be valid with proper production configuration', () => {
@@ -148,7 +142,7 @@ describe('Environment Validation', () => {
         const result = validateEnvironment();
 
         expect(result.valid).toBe(false);
-        expect(result.errors.some(e => e.includes('NODE_ENV'))).toBe(true);
+        expect(result.errors.some((e) => e.includes('NODE_ENV'))).toBe(true);
       });
 
       it('should accept valid port numbers', () => {
@@ -168,7 +162,7 @@ describe('Environment Validation', () => {
         const result = validateEnvironment();
 
         expect(result.valid).toBe(false);
-        expect(result.errors.some(e => e.includes('PORT'))).toBe(true);
+        expect(result.errors.some((e) => e.includes('PORT'))).toBe(true);
       });
 
       it('should reject invalid DATABASE_URL format', () => {
@@ -178,7 +172,7 @@ describe('Environment Validation', () => {
         const result = validateEnvironment();
 
         expect(result.valid).toBe(false);
-        expect(result.errors.some(e => e.includes('DATABASE_URL'))).toBe(true);
+        expect(result.errors.some((e) => e.includes('DATABASE_URL'))).toBe(true);
       });
 
       it('should validate SESSION_SECRET minimum length', () => {
@@ -188,7 +182,7 @@ describe('Environment Validation', () => {
         const result = validateEnvironment();
 
         expect(result.valid).toBe(false);
-        expect(result.errors.some(e => e.includes('SESSION_SECRET'))).toBe(true);
+        expect(result.errors.some((e) => e.includes('SESSION_SECRET'))).toBe(true);
       });
     });
   });

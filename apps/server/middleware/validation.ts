@@ -1,5 +1,5 @@
-import { Request, Response, NextFunction } from "express";
-import { z, ZodSchema, ZodError } from "zod";
+import { Request, Response, NextFunction } from 'express';
+import { z, ZodSchema, ZodError } from 'zod';
 
 /**
  * Express middleware factory for Zod schema validation
@@ -14,15 +14,15 @@ export function validateBody<T>(schema: ZodSchema<T>) {
     } catch (error) {
       if (error instanceof ZodError) {
         res.status(400).json({
-          error: "Validation failed",
+          error: 'Validation failed',
           details: error.errors.map((e) => ({
-            path: e.path.join("."),
+            path: e.path.join('.'),
             message: e.message,
           })),
         });
       } else {
         res.status(400).json({
-          error: error instanceof Error ? error.message : "Invalid request",
+          error: error instanceof Error ? error.message : 'Invalid request',
         });
       }
     }
@@ -40,15 +40,15 @@ export function validateQuery<T>(schema: ZodSchema<T>) {
     } catch (error) {
       if (error instanceof ZodError) {
         res.status(400).json({
-          error: "Invalid query parameters",
+          error: 'Invalid query parameters',
           details: error.errors.map((e) => ({
-            path: e.path.join("."),
+            path: e.path.join('.'),
             message: e.message,
           })),
         });
       } else {
         res.status(400).json({
-          error: error instanceof Error ? error.message : "Invalid query",
+          error: error instanceof Error ? error.message : 'Invalid query',
         });
       }
     }
@@ -66,15 +66,15 @@ export function validateParams<T>(schema: ZodSchema<T>) {
     } catch (error) {
       if (error instanceof ZodError) {
         res.status(400).json({
-          error: "Invalid route parameters",
+          error: 'Invalid route parameters',
           details: error.errors.map((e) => ({
-            path: e.path.join("."),
+            path: e.path.join('.'),
             message: e.message,
           })),
         });
       } else {
         res.status(400).json({
-          error: error instanceof Error ? error.message : "Invalid parameters",
+          error: error instanceof Error ? error.message : 'Invalid parameters',
         });
       }
     }

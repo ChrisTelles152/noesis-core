@@ -110,9 +110,7 @@ describe('loadSkillGraphFromJSON - invalid graphs', () => {
   it('should throw on self-reference cycle', () => {
     const json: SkillGraphJSON = {
       version: '1.0.0',
-      skills: [
-        { id: 'a', name: 'A', prerequisites: ['a'] },
-      ],
+      skills: [{ id: 'a', name: 'A', prerequisites: ['a'] }],
     };
 
     expect(() => loadSkillGraphFromJSON(json)).toThrow(/Invalid skill graph/);
@@ -121,9 +119,7 @@ describe('loadSkillGraphFromJSON - invalid graphs', () => {
   it('should throw on missing prerequisite', () => {
     const json: SkillGraphJSON = {
       version: '1.0.0',
-      skills: [
-        { id: 'a', name: 'A', prerequisites: ['nonexistent'] },
-      ],
+      skills: [{ id: 'a', name: 'A', prerequisites: ['nonexistent'] }],
     };
 
     expect(() => loadSkillGraphFromJSON(json)).toThrow(/Invalid skill graph/);
@@ -186,7 +182,14 @@ describe('parseSkillGraph', () => {
 describe('exportSkillGraphToJSON', () => {
   it('should export graph to JSON format', () => {
     const graph = createSkillGraph();
-    graph.addSkill({ id: 'a', name: 'A', prerequisites: [], description: 'desc', category: 'cat', difficulty: 0.3 });
+    graph.addSkill({
+      id: 'a',
+      name: 'A',
+      prerequisites: [],
+      description: 'desc',
+      category: 'cat',
+      difficulty: 0.3,
+    });
     graph.addSkill({ id: 'b', name: 'B', prerequisites: ['a'] });
 
     const json = exportSkillGraphToJSON(graph);
@@ -194,7 +197,7 @@ describe('exportSkillGraphToJSON', () => {
     expect(json.version).toBe(SKILL_GRAPH_SCHEMA_VERSION);
     expect(json.skills).toHaveLength(2);
 
-    const skillA = json.skills.find(s => s.id === 'a');
+    const skillA = json.skills.find((s) => s.id === 'a');
     expect(skillA).toBeDefined();
     expect(skillA!.name).toBe('A');
     expect(skillA!.description).toBe('desc');
@@ -215,8 +218,8 @@ describe('exportSkillGraphToJSON', () => {
     const exported = exportSkillGraphToJSON(graph);
 
     expect(exported.skills).toHaveLength(2);
-    expect(exported.skills.find(s => s.id === 'x')).toBeDefined();
-    expect(exported.skills.find(s => s.id === 'y')?.prerequisites).toEqual(['x']);
+    expect(exported.skills.find((s) => s.id === 'x')).toBeDefined();
+    expect(exported.skills.find((s) => s.id === 'y')?.prerequisites).toEqual(['x']);
   });
 });
 

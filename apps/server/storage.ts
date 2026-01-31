@@ -9,18 +9,18 @@
  * - Direct import of `storage` still works for convenience
  */
 
-import bcrypt from "bcrypt";
-import { eq } from "drizzle-orm";
+import bcrypt from 'bcrypt';
+import { eq } from 'drizzle-orm';
 import {
   users,
   learningEvents,
   type User,
   type InsertUser,
   type LearningEvent,
-  type InsertLearningEvent
-} from "@shared/schema";
-import { db, isDatabaseConfigured } from "./db";
-import { getLogger, type Logger } from "./logger";
+  type InsertLearningEvent,
+} from '@shared/schema';
+import { db, isDatabaseConfigured } from './db';
+import { getLogger, type Logger } from './logger';
 
 const SALT_ROUNDS = 12;
 
@@ -65,9 +65,7 @@ export class MemStorage implements IStorage {
   }
 
   async getUserByUsername(username: string): Promise<User | undefined> {
-    return Array.from(this.users.values()).find(
-      (user) => user.username === username,
-    );
+    return Array.from(this.users.values()).find((user) => user.username === username);
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
@@ -97,7 +95,7 @@ export class MemStorage implements IStorage {
     const event: LearningEvent = {
       ...insertEvent,
       id,
-      timestamp: insertEvent.timestamp || new Date()
+      timestamp: insertEvent.timestamp || new Date(),
     };
     this.learningEvents.set(id, event);
     return event;
@@ -108,15 +106,11 @@ export class MemStorage implements IStorage {
   }
 
   async getLearningEventsByUserId(userId: number): Promise<LearningEvent[]> {
-    return Array.from(this.learningEvents.values()).filter(
-      (event) => event.userId === userId
-    );
+    return Array.from(this.learningEvents.values()).filter((event) => event.userId === userId);
   }
 
   async getLearningEventsByType(type: string): Promise<LearningEvent[]> {
-    return Array.from(this.learningEvents.values()).filter(
-      (event) => event.type === type
-    );
+    return Array.from(this.learningEvents.values()).filter((event) => event.type === type);
   }
 }
 
@@ -124,19 +118,19 @@ export class MemStorage implements IStorage {
 export class DatabaseStorage implements IStorage {
   // User methods
   async getUser(id: number): Promise<User | undefined> {
-    if (!db) throw new Error("Database not configured");
+    if (!db) throw new Error('Database not configured');
     const [user] = await db.select().from(users).where(eq(users.id, id));
     return user;
   }
 
   async getUserByUsername(username: string): Promise<User | undefined> {
-    if (!db) throw new Error("Database not configured");
+    if (!db) throw new Error('Database not configured');
     const [user] = await db.select().from(users).where(eq(users.username, username));
     return user;
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
-    if (!db) throw new Error("Database not configured");
+    if (!db) throw new Error('Database not configured');
     // Hash the password before storing
     const hashedPassword = await bcrypt.hash(insertUser.password, SALT_ROUNDS);
     const [user] = await db
@@ -157,7 +151,7 @@ export class DatabaseStorage implements IStorage {
 
   // Learning events methods
   async createLearningEvent(insertEvent: InsertLearningEvent): Promise<LearningEvent> {
-    if (!db) throw new Error("Database not configured");
+    if (!db) throw new Error('Database not configured');
     const [event] = await db
       .insert(learningEvents)
       .values({
@@ -171,28 +165,19 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getLearningEvent(id: number): Promise<LearningEvent | undefined> {
-    if (!db) throw new Error("Database not configured");
-    const [event] = await db
-      .select()
-      .from(learningEvents)
-      .where(eq(learningEvents.id, id));
+    if (!db) throw new Error('Database not configured');
+    const [event] = await db.select().from(learningEvents).where(eq(learningEvents.id, id));
     return event;
   }
 
   async getLearningEventsByUserId(userId: number): Promise<LearningEvent[]> {
-    if (!db) throw new Error("Database not configured");
-    return db
-      .select()
-      .from(learningEvents)
-      .where(eq(learningEvents.userId, userId));
+    if (!db) throw new Error('Database not configured');
+    return db.select().from(learningEvents).where(eq(learningEvents.userId, userId));
   }
 
   async getLearningEventsByType(type: string): Promise<LearningEvent[]> {
-    if (!db) throw new Error("Database not configured");
-    return db
-      .select()
-      .from(learningEvents)
-      .where(eq(learningEvents.type, type));
+    if (!db) throw new Error('Database not configured');
+    return db.select().from(learningEvents).where(eq(learningEvents.type, type));
   }
 }
 
@@ -212,10 +197,12 @@ function createStorage(options: StorageOptions = {}): IStorage {
   const useDatabase = isDatabaseConfigured && !options.forceMemory;
 
   if (useDatabase) {
-    log.info("Using PostgreSQL database storage", { module: "storage" });
+    log.info('Using PostgreSQL database storage', { module: 'storage' });
     return new DatabaseStorage();
   } else {
-    log.info("Using in-memory storage (data will not persist across restarts)", { module: "storage" });
+    log.info('Using in-memory storage (data will not persist across restarts)', {
+      module: 'storage',
+    });
     return new MemStorage();
   }
 }

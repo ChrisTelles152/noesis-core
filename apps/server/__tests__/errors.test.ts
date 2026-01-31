@@ -59,11 +59,10 @@ describe('Error Codes', () => {
     });
 
     it('should create an error with details', () => {
-      const error = createError(
-        'Invalid input',
-        ErrorCodes.VALIDATION_INVALID_INPUT,
-        { field: 'email', reason: 'Invalid format' }
-      );
+      const error = createError('Invalid input', ErrorCodes.VALIDATION_INVALID_INPUT, {
+        field: 'email',
+        reason: 'Invalid format',
+      });
 
       expect(error).toEqual({
         error: 'Invalid input',

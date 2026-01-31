@@ -17,20 +17,24 @@ function createMockRequest(overrides: Partial<Request> = {}): Request {
   } as unknown as Request;
 }
 
-function createMockResponse(): Response & { _json?: unknown; _status?: number; _cookies: Record<string, unknown> } {
+function createMockResponse(): Response & {
+  _json?: unknown;
+  _status?: number;
+  _cookies: Record<string, unknown>;
+} {
   const res = {
     _json: undefined as unknown,
     _status: 200,
     _cookies: {} as Record<string, unknown>,
-    status: vi.fn(function(this: typeof res, code: number) {
+    status: vi.fn(function (this: typeof res, code: number) {
       this._status = code;
       return this;
     }),
-    json: vi.fn(function(this: typeof res, data: unknown) {
+    json: vi.fn(function (this: typeof res, data: unknown) {
       this._json = data;
       return this;
     }),
-    cookie: vi.fn(function(this: typeof res, name: string, value: unknown, options: unknown) {
+    cookie: vi.fn(function (this: typeof res, name: string, value: unknown, options: unknown) {
       this._cookies[name] = { value, options };
       return this;
     }),
@@ -266,7 +270,10 @@ describe('CSRF Protection Middleware', () => {
       middleware(req, res, mockNext);
 
       expect(res._cookies['XSRF-TOKEN']).toBeDefined();
-      const cookie = res._cookies['XSRF-TOKEN'] as { value: string; options: Record<string, unknown> };
+      const cookie = res._cookies['XSRF-TOKEN'] as {
+        value: string;
+        options: Record<string, unknown>;
+      };
       expect(cookie.options.httpOnly).toBe(false); // Client needs to read it
       expect(cookie.options.sameSite).toBe('strict');
     });

@@ -46,7 +46,7 @@ export const SKILL_GRAPH_SCHEMA_VERSION = '1.0.0';
  */
 export function loadSkillGraphFromJSON(json: SkillGraphJSON): SkillGraph {
   // Convert JSON skills to Skill objects
-  const skills: Skill[] = json.skills.map(s => ({
+  const skills: Skill[] = json.skills.map((s) => ({
     id: s.id,
     name: s.name,
     prerequisites: s.prerequisites,
@@ -61,7 +61,7 @@ export function loadSkillGraphFromJSON(json: SkillGraphJSON): SkillGraph {
   // Validate
   const result = graph.validate();
   if (!result.valid) {
-    const messages = result.errors.map(e => e.message).join('; ');
+    const messages = result.errors.map((e) => e.message).join('; ');
     throw new Error(`Invalid skill graph: ${messages}`);
   }
 
@@ -89,7 +89,7 @@ export function parseSkillGraph(jsonString: string): SkillGraph {
  * @returns JSON object conforming to SkillGraphJSON
  */
 export function exportSkillGraphToJSON(graph: SkillGraph): SkillGraphJSON {
-  const skills = Array.from(graph.skills.values()).map(s => ({
+  const skills = Array.from(graph.skills.values()).map((s) => ({
     id: s.id,
     name: s.name,
     prerequisites: s.prerequisites,

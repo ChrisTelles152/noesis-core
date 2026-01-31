@@ -13,11 +13,7 @@
  * for the same input. No randomness.
  */
 
-import type {
-  SkillGraph,
-  DiagnosticEngine,
-  ItemSkillMapping,
-} from '../constitution.js';
+import type { SkillGraph, DiagnosticEngine, ItemSkillMapping } from '../constitution.js';
 
 /**
  * Diagnostic Engine configuration
@@ -106,10 +102,7 @@ export class DiagnosticEngineImpl implements DiagnosticEngine {
     const totalSkills = skillOrder.length;
     const baseItemsPerSkill = Math.max(
       this.config.minItemsPerSkill,
-      Math.min(
-        this.config.maxItemsPerSkill,
-        Math.floor(maxItems / Math.max(1, totalSkills))
-      )
+      Math.min(this.config.maxItemsPerSkill, Math.floor(maxItems / Math.max(1, totalSkills)))
     );
 
     // Select items for each skill in topological order
@@ -174,11 +167,21 @@ export class DiagnosticEngineImpl implements DiagnosticEngine {
       if (!mapping) continue;
 
       // Update primary skill
-      this.updateSkillResult(skillResults, mapping.primarySkillId, response.correct, mapping.difficulty);
+      this.updateSkillResult(
+        skillResults,
+        mapping.primarySkillId,
+        response.correct,
+        mapping.difficulty
+      );
 
       // Update secondary skills (with reduced weight)
       for (const secondaryId of mapping.secondarySkillIds) {
-        this.updateSkillResult(skillResults, secondaryId, response.correct, mapping.difficulty * 0.5);
+        this.updateSkillResult(
+          skillResults,
+          secondaryId,
+          response.correct,
+          mapping.difficulty * 0.5
+        );
       }
     }
 
@@ -279,7 +282,10 @@ export class DiagnosticEngineImpl implements DiagnosticEngine {
           const prereqEstimate = result.get(prereqId) || 0.3;
           // Boost prerequisite estimate (learner must have learned it)
           // Use configurable boost factor instead of hardcoded 0.9
-          result.set(prereqId, Math.max(prereqEstimate, estimate * this.config.prerequisiteBoostFactor));
+          result.set(
+            prereqId,
+            Math.max(prereqEstimate, estimate * this.config.prerequisiteBoostFactor)
+          );
         }
       }
     }
@@ -297,10 +303,7 @@ export class DiagnosticEngineImpl implements DiagnosticEngine {
   /**
    * Get diagnostic summary for a set of results
    */
-  getSummary(
-    skillGraph: SkillGraph,
-    estimates: Map<string, number>
-  ): DiagnosticSummary {
+  getSummary(skillGraph: SkillGraph, estimates: Map<string, number>): DiagnosticSummary {
     const skillOrder = skillGraph.getTopologicalOrder();
     const mastered: string[] = [];
     const learning: string[] = [];

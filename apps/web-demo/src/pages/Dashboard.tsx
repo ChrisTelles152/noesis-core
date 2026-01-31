@@ -7,7 +7,8 @@ import { useAuthContext } from '@/hooks/useAuth';
 
 export default function Dashboard() {
   const { user, isAuthenticated } = useAuthContext();
-  const { summary, summaryLoading, llmStatus, llmStatusLoading, refresh, isRefreshing } = useAnalytics();
+  const { summary, summaryLoading, llmStatus, llmStatusLoading, refresh, isRefreshing } =
+    useAnalytics();
   const [selectedRange, setSelectedRange] = useState<AnalyticsTimeRange>(getTimeRanges()[3]); // All Time
 
   const timeRanges = getTimeRanges();
@@ -65,12 +66,7 @@ export default function Dashboard() {
                   </button>
                 ))}
               </div>
-              <Button
-                onClick={refresh}
-                variant="outline"
-                disabled={isRefreshing}
-                className="gap-2"
-              >
+              <Button onClick={refresh} variant="outline" disabled={isRefreshing} className="gap-2">
                 <i className={`fas fa-sync-alt ${isRefreshing ? 'animate-spin' : ''}`}></i>
                 Refresh
               </Button>
@@ -87,9 +83,7 @@ export default function Dashboard() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-xs text-slate-500">
-                  All learning events recorded
-                </p>
+                <p className="text-xs text-slate-500">All learning events recorded</p>
               </CardContent>
             </Card>
 
@@ -97,14 +91,13 @@ export default function Dashboard() {
               <CardHeader className="pb-2">
                 <CardDescription>Average Attention</CardDescription>
                 <CardTitle className="text-3xl">
-                  {summaryLoading ? '...' : `${Math.round((summary?.averageAttention || 0) * 100)}%`}
+                  {summaryLoading
+                    ? '...'
+                    : `${Math.round((summary?.averageAttention || 0) * 100)}%`}
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <Progress
-                  value={(summary?.averageAttention || 0) * 100}
-                  className="h-2"
-                />
+                <Progress value={(summary?.averageAttention || 0) * 100} className="h-2" />
               </CardContent>
             </Card>
 
@@ -116,9 +109,7 @@ export default function Dashboard() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-xs text-slate-500">
-                  AI-powered suggestions provided
-                </p>
+                <p className="text-xs text-slate-500">AI-powered suggestions provided</p>
               </CardContent>
             </Card>
 
@@ -130,9 +121,7 @@ export default function Dashboard() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-xs text-slate-500">
-                  Attention recovery interventions
-                </p>
+                <p className="text-xs text-slate-500">Attention recovery interventions</p>
               </CardContent>
             </Card>
           </div>
@@ -162,10 +151,10 @@ export default function Dashboard() {
                             event.type === 'attention'
                               ? 'bg-blue-100 text-blue-600'
                               : event.type === 'mastery'
-                              ? 'bg-green-100 text-green-600'
-                              : event.type === 'recommendation'
-                              ? 'bg-purple-100 text-purple-600'
-                              : 'bg-orange-100 text-orange-600'
+                                ? 'bg-green-100 text-green-600'
+                                : event.type === 'recommendation'
+                                  ? 'bg-purple-100 text-purple-600'
+                                  : 'bg-orange-100 text-orange-600'
                           }`}
                         >
                           <i
@@ -173,10 +162,10 @@ export default function Dashboard() {
                               event.type === 'attention'
                                 ? 'fa-eye'
                                 : event.type === 'mastery'
-                                ? 'fa-graduation-cap'
-                                : event.type === 'recommendation'
-                                ? 'fa-lightbulb'
-                                : 'fa-bolt'
+                                  ? 'fa-graduation-cap'
+                                  : event.type === 'recommendation'
+                                    ? 'fa-lightbulb'
+                                    : 'fa-bolt'
                             }`}
                           ></i>
                         </div>
@@ -241,10 +230,7 @@ export default function Dashboard() {
                       </p>
                       <div className="space-y-2">
                         {['openai', 'anthropic', 'fallback'].map((provider) => (
-                          <div
-                            key={provider}
-                            className="flex items-center justify-between text-sm"
-                          >
+                          <div key={provider} className="flex items-center justify-between text-sm">
                             <span className="capitalize text-slate-600">{provider}</span>
                             <span
                               className={

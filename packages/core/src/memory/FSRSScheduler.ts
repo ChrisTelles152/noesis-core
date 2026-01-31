@@ -67,10 +67,7 @@ export class FSRSScheduler implements MemoryScheduler {
   private readonly params: FSRSParams;
   private readonly clock: ClockFn;
 
-  constructor(
-    params: Partial<FSRSParams> = {},
-    clock: ClockFn = () => Date.now()
-  ) {
+  constructor(params: Partial<FSRSParams> = {}, clock: ClockFn = () => Date.now()) {
     this.params = { ...DEFAULT_FSRS_PARAMS, ...params };
     this.clock = clock;
   }
@@ -100,11 +97,7 @@ export class FSRSScheduler implements MemoryScheduler {
    * @param rating - Quality of recall (1=Again, 2=Hard, 3=Good, 4=Easy)
    * @returns Updated memory state with new scheduling
    */
-  scheduleReview(
-    state: MemoryState,
-    recalled: boolean,
-    rating: 1 | 2 | 3 | 4
-  ): MemoryState {
+  scheduleReview(state: MemoryState, recalled: boolean, rating: 1 | 2 | 3 | 4): MemoryState {
     const now = this.clock();
     const elapsedDays = this.daysSince(state.lastReview, now);
 
@@ -126,20 +119,12 @@ export class FSRSScheduler implements MemoryScheduler {
     } else {
       // Review mode - update stability based on FSRS formula
       // Note: rating cannot be 1 here since that case was handled above
-      newStability = this.updateStability(
-        state.stability,
-        state.difficulty,
-        elapsedDays,
-        rating
-      );
+      newStability = this.updateStability(state.stability, state.difficulty, elapsedDays, rating);
       newState = 'review';
     }
 
     // Calculate next review interval
-    const intervalDays = this.calculateInterval(
-      newStability,
-      this.params.requestedRetention
-    );
+    const intervalDays = this.calculateInterval(newStability, this.params.requestedRetention);
 
     // Clamp interval to maximum
     const clampedInterval = Math.min(intervalDays, this.params.maxInterval);
@@ -167,7 +152,7 @@ export class FSRSScheduler implements MemoryScheduler {
    * @returns Memory states that are due, sorted by overdue amount (most overdue first)
    */
   getDueSkills(states: MemoryState[], atTime: number): MemoryState[] {
-    const due = states.filter(state => state.nextReview <= atTime);
+    const due = states.filter((state) => state.nextReview <= atTime);
 
     // Sort by how overdue they are (most overdue first) for determinism
     return due.sort((a, b) => {
@@ -295,10 +280,14 @@ export class FSRSScheduler implements MemoryScheduler {
    */
   private getRatingModifier(rating: 1 | 2 | 3 | 4): number {
     switch (rating) {
-      case 1: return 0.0; // Should not be called for rating 1
-      case 2: return 0.8;
-      case 3: return 1.0;
-      case 4: return 1.3;
+      case 1:
+        return 0.0; // Should not be called for rating 1
+      case 2:
+        return 0.8;
+      case 3:
+        return 1.0;
+      case 4:
+        return 1.3;
     }
   }
 
@@ -334,10 +323,10 @@ export class FSRSScheduler implements MemoryScheduler {
         : 0;
 
     const byState = {
-      new: states.filter(s => s.state === 'new').length,
-      learning: states.filter(s => s.state === 'learning').length,
-      review: states.filter(s => s.state === 'review').length,
-      relearning: states.filter(s => s.state === 'relearning').length,
+      new: states.filter((s) => s.state === 'new').length,
+      learning: states.filter((s) => s.state === 'learning').length,
+      review: states.filter((s) => s.state === 'review').length,
+      relearning: states.filter((s) => s.state === 'relearning').length,
     };
 
     return {

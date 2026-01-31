@@ -1,10 +1,5 @@
 {
-  "include": [
-    "apps/web-demo/src/**/*",
-    "apps/server/**/*",
-    "shared/**/*",
-    "packages/*/src/**/*"
-  ],
+  "include": ["apps/web-demo/src/**/*", "apps/server/**/*", "shared/**/*", "packages/*/src/**/*"],
   "exclude": ["node_modules", "build", "dist", "**/*.test.ts"],
   "compilerOptions": {
     "incremental": true,

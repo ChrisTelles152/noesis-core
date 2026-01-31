@@ -81,19 +81,8 @@ function sleep(ms: number): Promise<void> {
 /**
  * Make an API request with automatic error handling and retry
  */
-async function request<T>(
-  method: string,
-  path: string,
-  options: RequestOptions = {}
-): Promise<T> {
-  const {
-    body,
-    params,
-    timeout = 30000,
-    retry = 0,
-    retryDelay = 1000,
-    ...fetchOptions
-  } = options;
+async function request<T>(method: string, path: string, options: RequestOptions = {}): Promise<T> {
+  const { body, params, timeout = 30000, retry = 0, retryDelay = 1000, ...fetchOptions } = options;
 
   const requestId = generateRequestId();
   const url = buildUrl(`${API_BASE}${path}`, params);
@@ -148,8 +137,8 @@ async function request<T>(
           typeof data === 'object' && data !== null && 'error' in data
             ? (data as { error: string }).error
             : typeof data === 'object' && data !== null && 'message' in data
-            ? (data as { message: string }).message
-            : `Request failed with status ${response.status}`;
+              ? (data as { message: string }).message
+              : `Request failed with status ${response.status}`;
 
         throw new ApiError(
           errorMessage,
@@ -282,11 +271,14 @@ export const analyticsApi = {
 };
 
 export const orchestrationApi = {
-  getNextStep(learnerState: {
-    attention?: { score?: number };
-    mastery?: unknown[];
-    timestamp: number;
-  }, context?: string) {
+  getNextStep(
+    learnerState: {
+      attention?: { score?: number };
+      mastery?: unknown[];
+      timestamp: number;
+    },
+    context?: string
+  ) {
     return api.post<{
       suggestion: string;
       explanation?: string;

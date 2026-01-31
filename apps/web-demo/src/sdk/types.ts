@@ -35,7 +35,7 @@ export interface AttentionData {
   score: number;
   focusStability: number;
   cognitiveLoad: number;
-  gazePoint: { x: number, y: number };
+  gazePoint: { x: number; y: number };
   timestamp: number;
   status: 'inactive' | 'tracking' | 'error';
 }
@@ -47,7 +47,7 @@ export type AttentionChangeCallback = (data: AttentionData) => void;
 export interface MasteryOptions {
   threshold?: number;
   spacingFactor?: number;
-  initialObjectives?: { id: string, name: string }[];
+  initialObjectives?: { id: string; name: string }[];
 }
 
 export interface LearningObjective {

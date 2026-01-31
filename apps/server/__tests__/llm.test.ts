@@ -60,9 +60,7 @@ describe('LLM Provider System', () => {
     it('should return default response for unknown queries', async () => {
       const provider = new FallbackProvider();
       const result = await provider.complete({
-        messages: [
-          { role: 'user', content: 'Hello world' },
-        ],
+        messages: [{ role: 'user', content: 'Hello world' }],
       });
 
       expect(result).toBeDefined();
@@ -107,13 +105,7 @@ describe('LLM Provider System', () => {
       const provider = new FallbackProvider();
 
       // Test multiple queries
-      const queries = [
-        'recommendation',
-        'attention',
-        'engagement',
-        'random query',
-        '',
-      ];
+      const queries = ['recommendation', 'attention', 'engagement', 'random query', ''];
 
       for (const query of queries) {
         const result = await provider.complete({
@@ -127,9 +119,7 @@ describe('LLM Provider System', () => {
     it('should handle special characters in messages', async () => {
       const provider = new FallbackProvider();
       const result = await provider.complete({
-        messages: [
-          { role: 'user', content: 'What about <script>alert("xss")</script>?' },
-        ],
+        messages: [{ role: 'user', content: 'What about <script>alert("xss")</script>?' }],
       });
 
       expect(result).toBeDefined();

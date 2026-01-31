@@ -1,12 +1,12 @@
-import { useEffect, useState } from "react";
-import DocSidebar from "@/components/DocSidebar";
-import DocContent from "@/components/DocContent";
+import { useEffect, useState } from 'react';
+import DocSidebar from '@/components/DocSidebar';
+import DocContent from '@/components/DocContent';
 
 export default function Documentation() {
-  const [activeSection, setActiveSection] = useState("getting-started");
-  
+  const [activeSection, setActiveSection] = useState('getting-started');
+
   useEffect(() => {
-    document.title = "Noesis SDK - Documentation";
+    document.title = 'Noesis SDK - Documentation';
   }, []);
 
   return (
@@ -18,7 +18,7 @@ export default function Documentation() {
             Everything you need to integrate Noesis into your project
           </p>
         </div>
-        
+
         <div className="max-w-6xl mx-auto flex flex-col lg:flex-row gap-8">
           <DocSidebar activeSection={activeSection} setActiveSection={setActiveSection} />
           <DocContent activeSection={activeSection} />

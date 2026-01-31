@@ -17,7 +17,10 @@ export function DebugPanel({ enabled = true }: DebugPanelProps) {
   const [activeTab, setActiveTab] = useState<'state' | 'network' | 'sdk' | 'metrics'>('state');
 
   // Only show in development or when explicitly enabled
-  const showPanel = enabled && (process.env.NODE_ENV === 'development' || window.localStorage.getItem('debugPanel') === 'true');
+  const showPanel =
+    enabled &&
+    (process.env.NODE_ENV === 'development' ||
+      window.localStorage.getItem('debugPanel') === 'true');
 
   if (!showPanel) {
     return null;
@@ -75,9 +78,7 @@ function StatePanel() {
     <div className="space-y-4">
       <Section title="Analytics Summary">
         {summary ? (
-          <pre className="text-xs overflow-auto">
-            {JSON.stringify(summary, null, 2)}
-          </pre>
+          <pre className="text-xs overflow-auto">{JSON.stringify(summary, null, 2)}</pre>
         ) : (
           <span className="text-slate-400">Loading...</span>
         )}
@@ -130,10 +131,7 @@ function NetworkPanel() {
         ]);
         return response;
       } catch (error) {
-        setRequests((prev) => [
-          { url, status: 0, time: Date.now() - start },
-          ...prev.slice(0, 19),
-        ]);
+        setRequests((prev) => [{ url, status: 0, time: Date.now() - start }, ...prev.slice(0, 19)]);
         throw error;
       }
     };
@@ -167,11 +165,17 @@ function NetworkPanel() {
     <div className="space-y-4">
       <Section title="WebSocket">
         <div className="flex items-center gap-2">
-          <span className={`w-2 h-2 rounded-full ${
-            wsStatus === 'connected' ? 'bg-green-400' :
-            wsStatus === 'connecting' ? 'bg-yellow-400' :
-            wsStatus === 'error' ? 'bg-red-400' : 'bg-slate-400'
-          }`}></span>
+          <span
+            className={`w-2 h-2 rounded-full ${
+              wsStatus === 'connected'
+                ? 'bg-green-400'
+                : wsStatus === 'connecting'
+                  ? 'bg-yellow-400'
+                  : wsStatus === 'error'
+                    ? 'bg-red-400'
+                    : 'bg-slate-400'
+            }`}
+          ></span>
           <span className={getWsStatusColor(wsStatus)}>{wsStatus}</span>
         </div>
       </Section>
@@ -228,7 +232,7 @@ function SDKPanel() {
           <div>
             <span>Active Modules:</span>
             <div className="mt-1 flex flex-wrap gap-1">
-              {(sdkState.activeModules as string[] || []).map((mod) => (
+              {((sdkState.activeModules as string[]) || []).map((mod) => (
                 <span key={mod} className="px-2 py-0.5 bg-slate-800 rounded text-xs">
                   {mod}
                 </span>
@@ -255,7 +259,9 @@ function MetricsPanel() {
 
   useEffect(() => {
     const updateMetrics = () => {
-      const memory = (performance as unknown as { memory?: { usedJSHeapSize: number; totalJSHeapSize: number } }).memory;
+      const memory = (
+        performance as unknown as { memory?: { usedJSHeapSize: number; totalJSHeapSize: number } }
+      ).memory;
       const timing = performance.timing;
 
       setMetrics({

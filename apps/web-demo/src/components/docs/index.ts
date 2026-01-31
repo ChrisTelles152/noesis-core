@@ -32,11 +32,11 @@ export {
 // Map of section IDs to components for dynamic rendering
 export const sectionComponents: Record<string, React.ComponentType> = {
   'getting-started': GettingStartedSection,
-  'installation': InstallationSection,
+  installation: InstallationSection,
   'basic-usage': BasicUsageSection,
   'attention-tracking': AttentionTrackingSection,
   'mastery-learning': MasteryLearningSection,
   'llm-integration': LLMIntegrationSection,
   'api-reference': APIReferenceSection,
-  'examples': ExamplesSection,
+  examples: ExamplesSection,
 };
