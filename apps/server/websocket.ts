@@ -1,13 +1,18 @@
 /**
  * WebSocket Service
  * Provides real-time communication for learning events and attention updates
+ *
+ * Uses dependency injection pattern:
+ * - Configure with configureWebSocketService() before first use
+ * - Access via getWebSocketService() for DI-friendly code
+ * - Direct import of `wsService` still works for convenience
  */
 
 import { WebSocketServer, WebSocket } from 'ws';
 import type { Server } from 'http';
 import type { IncomingMessage } from 'http';
 import { parseSessionIdFromCookie, verifySessionAndGetUserId } from './auth';
-import { logger } from './logger';
+import { getLogger, type Logger } from './logger';
 
 // Message types
 export interface WSMessage {
@@ -37,13 +42,30 @@ interface WSClient {
   lastPing: number;
 }
 
-// Maximum concurrent WebSocket connections to prevent memory exhaustion
-const MAX_CLIENTS = 1000;
+// Default maximum concurrent WebSocket connections
+const DEFAULT_MAX_CLIENTS = 1000;
 
-class WebSocketService {
+/**
+ * WebSocket service configuration options
+ */
+export interface WebSocketServiceOptions {
+  /** Maximum concurrent clients (default: 1000) */
+  maxClients?: number;
+  /** Logger instance (default: uses getLogger()) */
+  logger?: Logger;
+}
+
+export class WebSocketService {
   private wss: WebSocketServer | null = null;
   private clients: Map<WebSocket, WSClient> = new Map();
   private heartbeatInterval: NodeJS.Timeout | null = null;
+  private maxClients: number;
+  private logger: Logger;
+
+  constructor(options: WebSocketServiceOptions = {}) {
+    this.maxClients = options.maxClients ?? DEFAULT_MAX_CLIENTS;
+    this.logger = options.logger ?? getLogger();
+  }
 
   /**
    * Initialize WebSocket server
@@ -63,7 +85,7 @@ class WebSocketService {
       this.checkHeartbeats();
     }, 30000);
 
-    logger.info("WebSocket server initialized", { module: "websocket", path: "/ws" });
+    this.logger.info("WebSocket server initialized", { module: "websocket", path: "/ws" });
   }
 
   /**
@@ -71,10 +93,10 @@ class WebSocketService {
    */
   private async handleConnection(socket: WebSocket, request: IncomingMessage): Promise<void> {
     // Reject if we have too many clients (DoS protection)
-    if (this.clients.size >= MAX_CLIENTS) {
-      logger.warn("WebSocket connection rejected - max clients reached", {
+    if (this.clients.size >= this.maxClients) {
+      this.logger.warn("WebSocket connection rejected - max clients reached", {
         module: "websocket",
-        maxClients: MAX_CLIENTS,
+        maxClients: this.maxClients,
         currentClients: this.clients.size,
       });
       socket.close(1013, 'Server too busy');
@@ -88,7 +110,7 @@ class WebSocketService {
     };
 
     this.clients.set(socket, client);
-    logger.info("WebSocket client connected", { module: "websocket", totalClients: this.clients.size });
+    this.logger.info("WebSocket client connected", { module: "websocket", totalClients: this.clients.size });
 
     // Try to authenticate from HTTP upgrade request cookies
     const cookieHeader = request.headers.cookie;
@@ -98,7 +120,7 @@ class WebSocketService {
       const userId = await verifySessionAndGetUserId(sessionId);
       if (userId) {
         client.userId = userId;
-        logger.info("WebSocket client auto-authenticated from session", { module: "websocket", userId });
+        this.logger.info("WebSocket client auto-authenticated from session", { module: "websocket", userId });
       }
     }
 
@@ -122,12 +144,12 @@ class WebSocketService {
     // Handle client disconnect
     socket.on('close', () => {
       this.clients.delete(socket);
-      logger.info("WebSocket client disconnected", { module: "websocket", totalClients: this.clients.size });
+      this.logger.info("WebSocket client disconnected", { module: "websocket", totalClients: this.clients.size });
     });
 
     // Handle errors
     socket.on('error', (error) => {
-      logger.error("WebSocket client error", { module: "websocket" }, error);
+      this.logger.error("WebSocket client error", { module: "websocket" }, error);
       this.clients.delete(socket);
     });
 
@@ -189,7 +211,7 @@ class WebSocketService {
                 payload: { userId: verifiedUserId, method: 'session' },
                 timestamp: Date.now(),
               });
-              logger.info("WebSocket client authenticated via session", { module: "websocket", userId: verifiedUserId });
+              this.logger.info("WebSocket client authenticated via session", { module: "websocket", userId: verifiedUserId });
               break;
             } else {
               this.sendToClient(socket, {
@@ -204,7 +226,7 @@ class WebSocketService {
           // Fall back to userId (development only)
           if (providedUserId) {
             if (process.env.NODE_ENV === 'production') {
-              logger.error("SECURITY: Client-provided userId rejected in production", { module: "websocket" });
+              this.logger.error("SECURITY: Client-provided userId rejected in production", { module: "websocket" });
               this.sendToClient(socket, {
                 type: 'auth-error',
                 payload: { error: 'Session authentication required in production' },
@@ -213,7 +235,7 @@ class WebSocketService {
               break;
             }
 
-            logger.warn("DEV: Accepting client-provided userId without verification", { module: "websocket" });
+            this.logger.warn("DEV: Accepting client-provided userId without verification", { module: "websocket" });
             client.userId = providedUserId;
             this.sendToClient(socket, {
               type: 'authenticated',
@@ -230,10 +252,10 @@ class WebSocketService {
           break;
 
         default:
-          logger.debug("Unknown WebSocket message type", { module: "websocket", type: message.type });
+          this.logger.debug("Unknown WebSocket message type", { module: "websocket", type: message.type });
       }
     } catch (error) {
-      logger.error("Error parsing WebSocket message", { module: "websocket" }, error instanceof Error ? error : undefined);
+      this.logger.error("Error parsing WebSocket message", { module: "websocket" }, error instanceof Error ? error : undefined);
     }
   }
 
@@ -355,7 +377,7 @@ class WebSocketService {
 
     Array.from(this.clients.entries()).forEach(([socket, client]) => {
       if (now - client.lastPing > timeout) {
-        logger.info("WebSocket client timed out, disconnecting", { module: "websocket" });
+        this.logger.info("WebSocket client timed out, disconnecting", { module: "websocket" });
         socket.terminate();
         this.clients.delete(socket);
       } else {
@@ -406,13 +428,56 @@ class WebSocketService {
     }
 
     this.clients.clear();
-    logger.info("WebSocket server shutdown complete", { module: "websocket" });
+    this.logger.info("WebSocket server shutdown complete", { module: "websocket" });
   }
 }
 
-// Singleton instance
-export const wsService = new WebSocketService();
+// Singleton management
+let wsServiceInstance: WebSocketService | null = null;
+let wsServiceOptions: WebSocketServiceOptions = {};
+
+/**
+ * Configure the WebSocket service before first access.
+ */
+export function configureWebSocketService(options: WebSocketServiceOptions): void {
+  wsServiceOptions = options;
+  wsServiceInstance = null;
+}
+
+/**
+ * Get the WebSocket service instance (creates on first access).
+ */
+export function getWebSocketService(): WebSocketService {
+  if (!wsServiceInstance) {
+    wsServiceInstance = new WebSocketService(wsServiceOptions);
+  }
+  return wsServiceInstance;
+}
+
+/**
+ * Reset the WebSocket service singleton (for testing)
+ */
+export function resetWebSocketService(): void {
+  if (wsServiceInstance) {
+    wsServiceInstance.shutdown();
+  }
+  wsServiceInstance = null;
+  wsServiceOptions = {};
+}
+
+// Default instance for convenience (uses getter internally)
+export const wsService = new Proxy({} as WebSocketService, {
+  get(_target, prop) {
+    const instance = getWebSocketService();
+    const value = (instance as unknown as Record<string | symbol, unknown>)[prop];
+    // Bind methods to preserve 'this' context
+    if (typeof value === 'function') {
+      return value.bind(instance);
+    }
+    return value;
+  },
+});
 
 export function initializeWebSocket(server: Server): void {
-  wsService.initialize(server);
+  getWebSocketService().initialize(server);
 }

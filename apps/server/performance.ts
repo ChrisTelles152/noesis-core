@@ -1,12 +1,17 @@
 /**
  * Performance Monitoring
  * Track and report application performance metrics
+ *
+ * Uses dependency injection pattern:
+ * - Configure with configurePerformanceMonitor() before first use
+ * - Access via getPerformanceMonitor() for DI-friendly code
+ * - Direct import of `performanceMonitor` still works for convenience
  */
 
 import type { Request, Response, NextFunction } from 'express';
 
 // Metric types
-interface RequestMetric {
+export interface RequestMetric {
   path: string;
   method: string;
   statusCode: number;
@@ -14,7 +19,7 @@ interface RequestMetric {
   timestamp: number;
 }
 
-interface PerformanceStats {
+export interface PerformanceStats {
   requestCount: number;
   averageResponseTime: number;
   p50ResponseTime: number;
@@ -24,10 +29,25 @@ interface PerformanceStats {
   slowRequests: number;
 }
 
-class PerformanceMonitor {
+/**
+ * Performance monitor configuration options
+ */
+export interface PerformanceMonitorOptions {
+  /** Maximum metrics to retain (default: 10000) */
+  maxMetrics?: number;
+  /** Threshold in ms for slow requests (default: 1000) */
+  slowThreshold?: number;
+}
+
+export class PerformanceMonitor {
   private metrics: RequestMetric[] = [];
-  private maxMetrics = 10000;
-  private slowThreshold = 1000; // 1 second
+  private maxMetrics: number;
+  private slowThreshold: number;
+
+  constructor(options: PerformanceMonitorOptions = {}) {
+    this.maxMetrics = options.maxMetrics ?? 10000;
+    this.slowThreshold = options.slowThreshold ?? 1000;
+  }
 
   /**
    * Record a request metric
@@ -157,8 +177,48 @@ class PerformanceMonitor {
   }
 }
 
-// Singleton instance
-export const performanceMonitor = new PerformanceMonitor();
+// Singleton management
+let monitorInstance: PerformanceMonitor | null = null;
+let monitorOptions: PerformanceMonitorOptions = {};
+
+/**
+ * Configure the performance monitor before first access.
+ */
+export function configurePerformanceMonitor(options: PerformanceMonitorOptions): void {
+  monitorOptions = options;
+  monitorInstance = null;
+}
+
+/**
+ * Get the performance monitor instance (creates on first access).
+ */
+export function getPerformanceMonitor(): PerformanceMonitor {
+  if (!monitorInstance) {
+    monitorInstance = new PerformanceMonitor(monitorOptions);
+  }
+  return monitorInstance;
+}
+
+/**
+ * Reset the performance monitor singleton (for testing)
+ */
+export function resetPerformanceMonitor(): void {
+  monitorInstance = null;
+  monitorOptions = {};
+}
+
+// Default instance for convenience (uses getter internally)
+export const performanceMonitor = new Proxy({} as PerformanceMonitor, {
+  get(_target, prop) {
+    const instance = getPerformanceMonitor();
+    const value = (instance as unknown as Record<string | symbol, unknown>)[prop];
+    // Bind methods to preserve 'this' context
+    if (typeof value === 'function') {
+      return value.bind(instance);
+    }
+    return value;
+  },
+});
 
 /**
  * Performance tracking middleware

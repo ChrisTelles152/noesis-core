@@ -1,11 +1,16 @@
 /**
  * Centralized Logging System
  * Provides structured logging with levels and context
+ *
+ * Uses dependency injection pattern:
+ * - Configure with configureLogger() before first use
+ * - Access via getLogger() for DI-friendly code
+ * - Direct import of `logger` still works for convenience
  */
 
 export type LogLevel = 'debug' | 'info' | 'warn' | 'error';
 
-interface LogContext {
+export interface LogContext {
   [key: string]: unknown;
 }
 
@@ -21,6 +26,16 @@ interface LogEntry {
   };
 }
 
+/**
+ * Logger configuration options
+ */
+export interface LoggerOptions {
+  /** Minimum log level (default: 'info' or LOG_LEVEL env var) */
+  minLevel?: LogLevel;
+  /** Whether to use production format (default: based on NODE_ENV) */
+  isProduction?: boolean;
+}
+
 const LOG_LEVELS: Record<LogLevel, number> = {
   debug: 0,
   info: 1,
@@ -28,13 +43,13 @@ const LOG_LEVELS: Record<LogLevel, number> = {
   error: 3,
 };
 
-class Logger {
+export class Logger {
   private minLevel: LogLevel;
   private isProduction: boolean;
 
-  constructor() {
-    this.minLevel = (process.env.LOG_LEVEL as LogLevel) || 'info';
-    this.isProduction = process.env.NODE_ENV === 'production';
+  constructor(options: LoggerOptions = {}) {
+    this.minLevel = options.minLevel ?? (process.env.LOG_LEVEL as LogLevel) ?? 'info';
+    this.isProduction = options.isProduction ?? process.env.NODE_ENV === 'production';
   }
 
   private shouldLog(level: LogLevel): boolean {
@@ -158,8 +173,50 @@ class ChildLogger {
   }
 }
 
-// Singleton logger instance
-export const logger = new Logger();
+// Singleton management
+let loggerInstance: Logger | null = null;
+let loggerOptions: LoggerOptions = {};
+
+/**
+ * Configure the logger before first access.
+ * Call this early in application startup to customize logging behavior.
+ */
+export function configureLogger(options: LoggerOptions): void {
+  loggerOptions = options;
+  loggerInstance = null; // Reset so next getLogger() uses new options
+}
+
+/**
+ * Get the logger instance (creates on first access).
+ * Prefer this in DI-friendly code.
+ */
+export function getLogger(): Logger {
+  if (!loggerInstance) {
+    loggerInstance = new Logger(loggerOptions);
+  }
+  return loggerInstance;
+}
+
+/**
+ * Reset the logger singleton (for testing)
+ */
+export function resetLogger(): void {
+  loggerInstance = null;
+  loggerOptions = {};
+}
+
+// Default logger instance for convenience (uses getLogger internally)
+export const logger = new Proxy({} as Logger, {
+  get(_target, prop) {
+    const instance = getLogger();
+    const value = (instance as unknown as Record<string | symbol, unknown>)[prop];
+    // Bind methods to preserve 'this' context
+    if (typeof value === 'function') {
+      return value.bind(instance);
+    }
+    return value;
+  },
+});
 
 /**
  * Express error handler middleware
