@@ -141,7 +141,7 @@ const isLookingAtTarget = Math.random() < 0.7; // 70% chance
 |----------|-------|
 | `server/routes.ts:10` | `apiKey: process.env.OPENAI_API_KEY \|\| "default_key"` |
 | `client/src/hooks/useNoesisSDK.ts:14` | `apiKey: import.meta.env.VITE_OPENAI_API_KEY \|\| "default_key"` |
-| `server/storage.ts:33` | Hardcoded `password: "password123"` |
+| ~~`server/storage.ts:33`~~ | ~~Hardcoded password~~ **FIXED** - now uses bcrypt (12 rounds) |
 
 #### Demo-Only User IDs
 | Location | Issue |
@@ -160,7 +160,7 @@ Based on README, documentation, and code comments, these features are mentioned 
 | **Multi-LLM Support** | README: "Compatible with OpenAI, Claude, local" | Only OpenAI implemented |
 | **API Reference Docs** | `DocSidebar.tsx:16` lists section | No content in DocContent.tsx |
 | **Examples Docs** | `DocSidebar.tsx:17` lists section | No content in DocContent.tsx |
-| **Password Hashing** | Users table has password field | Stored as plaintext |
+| **Password Hashing** | Users table has password field | ✅ **IMPLEMENTED** - bcrypt with 12 salt rounds |
 
 ### 2.3 Dead Code & Orphaned Modules
 
@@ -290,7 +290,7 @@ const result = JSON.parse(completion.choices[0].message.content);
 
 #### Security Concerns
 
-1. **Plaintext Passwords:** `server/storage.ts:33` stores "password123" without hashing
+1. ~~**Plaintext Passwords:**~~ ✅ **FIXED** - passwords now hashed with bcrypt (12 rounds)
 2. **Default API Keys:** Fallback to "default_key" could mask configuration errors
 3. **No Rate Limiting:** API endpoints have no rate limiting
 4. **No Input Sanitization:** User inputs not sanitized before storage
