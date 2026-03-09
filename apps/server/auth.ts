@@ -1,6 +1,7 @@
 import passport from 'passport';
 import { Strategy as LocalStrategy } from 'passport-local';
-import { storage } from './storage';
+import { Strategy as GoogleStrategy } from 'passport-google-oauth20';
+import { storage, getStorage } from './storage';
 import type { User } from '@shared/schema';
 import type { Express, Request, Response, NextFunction } from 'express';
 import session from 'express-session';
@@ -43,6 +44,52 @@ passport.use(
     }
   })
 );
+
+// Configure Google OAuth Strategy (if credentials are provided)
+if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
+  const callbackURL = process.env.GOOGLE_CALLBACK_URL || '/api/auth/google/callback';
+  passport.use(
+    new GoogleStrategy(
+      {
+        clientID: process.env.GOOGLE_CLIENT_ID,
+        clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+        callbackURL,
+      },
+      async (_accessToken, _refreshToken, profile, done) => {
+        try {
+          const store = getStorage() as any;
+          const googleId = profile.id;
+          const email = profile.emails?.[0]?.value || '';
+          const displayName = profile.displayName || '';
+          const avatarUrl = profile.photos?.[0]?.value || '';
+
+          // Check if user already exists with this Google ID
+          let user = store.getUserByGoogleId
+            ? await store.getUserByGoogleId(googleId)
+            : undefined;
+
+          if (!user) {
+            // Create new user from Google profile
+            if (store.createGoogleUser) {
+              user = await store.createGoogleUser({ googleId, email, displayName, avatarUrl });
+            } else {
+              // Fallback: create with username derived from email
+              user = await store.createUser({
+                username: email.split('@')[0] + '_g' + googleId.slice(-6),
+                password: require('crypto').randomBytes(32).toString('hex'),
+              });
+            }
+          }
+
+          return done(null, user);
+        } catch (error) {
+          return done(error as Error);
+        }
+      }
+    )
+  );
+  logger.info('Google OAuth strategy configured', { module: 'auth' });
+}
 
 // Serialize user to session
 passport.serializeUser((user: Express.User, done) => {
@@ -339,6 +386,36 @@ function registerAuthRoutes(app: Express): void {
       res.status(401).json({ error: 'Not authenticated' });
     }
   });
+
+  // Google OAuth routes
+  if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
+    app.get('/api/auth/google', passport.authenticate('google', {
+      scope: ['profile', 'email'],
+    }));
+
+    app.get('/api/auth/google/callback',
+      passport.authenticate('google', { failureRedirect: '/login?error=google_auth_failed' }),
+      (req: Request, res: Response) => {
+        // Successful authentication, redirect to app
+        res.redirect('/');
+      }
+    );
+
+    // Check if Google auth is available (for frontend to show/hide button)
+    app.get('/api/auth/providers', (_req: Request, res: Response) => {
+      res.json({
+        local: true,
+        google: true,
+      });
+    });
+  } else {
+    app.get('/api/auth/providers', (_req: Request, res: Response) => {
+      res.json({
+        local: true,
+        google: false,
+      });
+    });
+  }
 
   // Check if username is available
   app.get('/api/auth/check-username/:username', async (req: Request, res: Response) => {
