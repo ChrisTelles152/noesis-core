@@ -21,6 +21,7 @@ import {
 } from '@shared/schema';
 import { db, isDatabaseConfigured } from './db';
 import { getLogger, type Logger } from './logger';
+import { SqliteStorage } from './sqlite-storage';
 
 const SALT_ROUNDS = 12;
 
@@ -194,9 +195,15 @@ export interface StorageOptions {
 // Storage factory with options
 function createStorage(options: StorageOptions = {}): IStorage {
   const log = options.logger ?? getLogger();
-  const useDatabase = isDatabaseConfigured && !options.forceMemory;
 
-  if (useDatabase) {
+  // Priority: SQLite > PostgreSQL > Memory
+  const useSqlite = !!process.env.SQLITE_PATH && !options.forceMemory;
+  const useDatabase = isDatabaseConfigured && !options.forceMemory && !useSqlite;
+
+  if (useSqlite) {
+    log.info(`Using SQLite storage at ${process.env.SQLITE_PATH}`, { module: 'storage' });
+    return new SqliteStorage(process.env.SQLITE_PATH);
+  } else if (useDatabase) {
     log.info('Using PostgreSQL database storage', { module: 'storage' });
     return new DatabaseStorage();
   } else {

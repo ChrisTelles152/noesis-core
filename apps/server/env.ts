@@ -80,9 +80,9 @@ export function validateEnvironment(): ValidationResult {
     }
 
     // Check for database
-    if (!env.DATABASE_URL) {
+    if (!env.DATABASE_URL && !process.env.SQLITE_PATH) {
       warnings.push(
-        'No DATABASE_URL configured. Using in-memory storage. ' +
+        'No DATABASE_URL or SQLITE_PATH configured. Using in-memory storage. ' +
           'Data will not persist across restarts.'
       );
     }
@@ -161,7 +161,9 @@ export function logEnvironmentStatus(log: (message: string) => void): boolean {
   }
 
   // Log database status
-  if (process.env.DATABASE_URL) {
+  if (process.env.SQLITE_PATH) {
+    log(`Database: SQLite (${process.env.SQLITE_PATH})`);
+  } else if (process.env.DATABASE_URL) {
     log('Database: PostgreSQL (configured)');
   } else {
     log('Database: In-memory storage');
