@@ -40,3 +40,9 @@ vite.config.ts.*
 
 # Misc
 *.tar.gz
+
+# SQLite data
+data/*.sqlite
+data/*.sqlite-shm
+data/*.sqlite-wal
+.env
