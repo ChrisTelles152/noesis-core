@@ -45,7 +45,11 @@ export class SqliteStorage implements IStorage {
       CREATE TABLE IF NOT EXISTS users (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         username TEXT NOT NULL UNIQUE,
-        password TEXT NOT NULL
+        password TEXT,
+        email TEXT,
+        google_id TEXT UNIQUE,
+        display_name TEXT,
+        avatar_url TEXT
       );
 
       CREATE TABLE IF NOT EXISTS learning_events (
@@ -95,7 +99,7 @@ export class SqliteStorage implements IStorage {
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
-    const hashedPassword = await bcrypt.hash(insertUser.password, SALT_ROUNDS);
+    const hashedPassword = insertUser.password ? await bcrypt.hash(insertUser.password, SALT_ROUNDS) : null;
     const result = this.db.prepare(
       'INSERT INTO users (username, password) VALUES (?, ?)'
     ).run(insertUser.username, hashedPassword);
@@ -103,8 +107,30 @@ export class SqliteStorage implements IStorage {
     return {
       id: result.lastInsertRowid as number,
       username: insertUser.username,
-      password: hashedPassword,
+      password: hashedPassword || '',
     };
+  }
+
+  async getUserByGoogleId(googleId: string): Promise<User | undefined> {
+    const row = this.db.prepare('SELECT * FROM users WHERE google_id = ?').get(googleId) as User | undefined;
+    return row;
+  }
+
+  async createGoogleUser(profile: { googleId: string; email: string; displayName: string; avatarUrl?: string }): Promise<User> {
+    const username = profile.email.split('@')[0] + '_' + profile.googleId.slice(-6);
+    const result = this.db.prepare(
+      'INSERT INTO users (username, password, email, google_id, display_name, avatar_url) VALUES (?, ?, ?, ?, ?, ?)'
+    ).run(username, null, profile.email, profile.googleId, profile.displayName, profile.avatarUrl || null);
+
+    return {
+      id: result.lastInsertRowid as number,
+      username,
+      password: '',
+    };
+  }
+
+  async linkGoogleAccount(userId: number, googleId: string, email: string): Promise<void> {
+    this.db.prepare('UPDATE users SET google_id = ?, email = ? WHERE id = ?').run(googleId, email, userId);
   }
 
   async verifyPassword(username: string, password: string): Promise<User | null> {
