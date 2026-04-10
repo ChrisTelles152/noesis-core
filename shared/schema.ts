@@ -119,3 +119,20 @@ export const insertMasteryProgressSchema = createInsertSchema(masteryProgress).p
 
 export type InsertMasteryProgress = z.infer<typeof insertMasteryProgressSchema>;
 export type MasteryProgress = typeof masteryProgress.$inferSelect;
+
+// Core engine state persistence (one row per user, upserted on save)
+export const engineStates = pgTable(
+  'engine_states',
+  {
+    id: serial('id').primaryKey(),
+    userId: integer('user_id')
+      .notNull()
+      .unique()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    state: text('state').notNull(), // JSON string from engine.exportState()
+    updatedAt: timestamp('updated_at').notNull().defaultNow(),
+  },
+  (table) => [index('engine_states_user_id_idx').on(table.userId)]
+);
+
+export type EngineState = typeof engineStates.$inferSelect;

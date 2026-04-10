@@ -29,6 +29,7 @@ vi.mock('../storage', () => {
     data: unknown;
     timestamp: Date;
   }> = [];
+  const engineStates = new Map<number, string>();
   let currentUserId = 1;
   let currentEventId = 1;
 
@@ -67,9 +68,16 @@ vi.mock('../storage', () => {
       getLearningEventsByUserId: vi.fn(async (userId: number) => {
         return events.filter((e) => e.userId === userId);
       }),
+      saveEngineState: vi.fn(async (userId: number, state: string) => {
+        engineStates.set(userId, state);
+      }),
+      loadEngineState: vi.fn(async (userId: number) => {
+        return engineStates.get(userId) ?? null;
+      }),
       _reset: () => {
         users.clear();
         events.length = 0;
+        engineStates.clear();
         currentUserId = 1;
         currentEventId = 1;
       },
@@ -296,6 +304,50 @@ describe('API Routes', () => {
       });
 
       expect(response.status).toBe(200);
+    });
+  });
+
+  describe('PUT /api/engine/state', () => {
+    it('should save engine state for authenticated user', async () => {
+      const state = JSON.stringify({ version: '1.0.0', learnerModels: [] });
+      const response = await agent.put('/api/engine/state').send({ state });
+
+      expect(response.status).toBe(200);
+      expect(response.body).toEqual({ saved: true });
+    });
+
+    it('should return 400 for empty state', async () => {
+      const response = await agent.put('/api/engine/state').send({ state: '' });
+
+      expect(response.status).toBe(400);
+    });
+
+    it('should return 400 for missing state field', async () => {
+      const response = await agent.put('/api/engine/state').send({});
+
+      expect(response.status).toBe(400);
+    });
+  });
+
+  describe('GET /api/engine/state', () => {
+    it('should load previously saved state', async () => {
+      const state = JSON.stringify({ version: '1.0.0', learnerModels: [{ id: 'test' }] });
+      await agent.put('/api/engine/state').send({ state });
+
+      const response = await agent.get('/api/engine/state');
+
+      expect(response.status).toBe(200);
+      expect(response.body.state).toBe(state);
+    });
+
+    it('should return 404 when no state exists', async () => {
+      // Use a fresh mock where no state has been saved for this user
+      // Reset the engine states to simulate no prior save
+      (storage as any).loadEngineState.mockResolvedValueOnce(null);
+
+      const response = await agent.get('/api/engine/state');
+
+      expect(response.status).toBe(404);
     });
   });
 });
