@@ -237,6 +237,12 @@ export interface SessionConfig {
   enforceSpacedRetrieval: boolean;
   /** Whether to require transfer tests before progression */
   requireTransferTests: boolean;
+  /**
+   * Enable knock-out review selection: prefer reviews whose encompassed
+   * skills overlap with other due reviews, reducing total review count.
+   * Uses greedy set-cover. Default false (linear selection).
+   */
+  enableKnockOutReviews?: boolean;
 }
 
 /**

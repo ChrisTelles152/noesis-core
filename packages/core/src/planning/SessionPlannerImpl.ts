@@ -104,6 +104,11 @@ export class SessionPlannerImpl implements SessionPlanner {
     if (mergedConfig.enforceSpacedRetrieval) {
       const dueStates = this.getDueStates(memoryStates, now);
       if (dueStates.length > 0) {
+        // Knock-out mode: pick the due review that covers the most other due skills
+        if (mergedConfig.enableKnockOutReviews) {
+          const best = this.selectBestKnockOutReview(dueStates, skillGraph, now);
+          if (best) return best;
+        }
         const mostOverdue = dueStates[0];
         return {
           type: 'review',
@@ -172,16 +177,29 @@ export class SessionPlannerImpl implements SessionPlanner {
           (s) => !plannedSkills.has(s.skillId)
         );
 
-        for (const state of dueStates) {
-          if (itemCount >= mergedConfig.targetItems) break;
-          actions.push({
-            type: 'review',
-            skillId: state.skillId,
-            reason: 'Spaced retrieval due',
-            priority: this.calculateOverduePriority(state, now),
-          });
-          plannedSkills.add(state.skillId);
-          itemCount++;
+        if (mergedConfig.enableKnockOutReviews && dueStates.length > 0) {
+          // Knock-out mode: greedy set-cover to minimize total reviews
+          const knockOutActions = this.selectKnockOutReviews(
+            dueStates, skillGraph, now, mergedConfig.targetItems - itemCount
+          );
+          for (const action of knockOutActions) {
+            if (itemCount >= mergedConfig.targetItems) break;
+            actions.push(action);
+            if (action.skillId) plannedSkills.add(action.skillId);
+            itemCount++;
+          }
+        } else {
+          for (const state of dueStates) {
+            if (itemCount >= mergedConfig.targetItems) break;
+            actions.push({
+              type: 'review',
+              skillId: state.skillId,
+              reason: 'Spaced retrieval due',
+              priority: this.calculateOverduePriority(state, now),
+            });
+            plannedSkills.add(state.skillId);
+            itemCount++;
+          }
         }
       }
 
@@ -445,6 +463,96 @@ export class SessionPlannerImpl implements SessionPlanner {
   /**
    * Get session statistics
    */
+  /**
+   * Select a single best knock-out review (for getNextAction).
+   * Picks the due skill whose encompassed skills overlap most with other due skills.
+   */
+  private selectBestKnockOutReview(
+    dueStates: MemoryState[],
+    skillGraph: SkillGraph,
+    now: number
+  ): SessionAction | undefined {
+    const dueIds = new Set(dueStates.map((s) => s.skillId));
+    let bestSkill: MemoryState | undefined;
+    let bestCoverage = 0;
+
+    for (const state of dueStates) {
+      const encompassed = skillGraph.getEncompassedSkills(state.skillId);
+      const coverage = encompassed.filter((id) => dueIds.has(id)).length;
+      if (coverage > bestCoverage || (coverage === bestCoverage && !bestSkill)) {
+        bestCoverage = coverage;
+        bestSkill = state;
+      }
+    }
+
+    // Only use knock-out if it actually covers something beyond itself
+    if (bestSkill && bestCoverage > 0) {
+      return {
+        type: 'review',
+        skillId: bestSkill.skillId,
+        reason: `Knock-out review (covers ${bestCoverage} other due skill${bestCoverage > 1 ? 's' : ''})`,
+        priority: this.calculateOverduePriority(bestSkill, now),
+      };
+    }
+    return undefined;
+  }
+
+  /**
+   * Greedy set-cover selection for knock-out reviews (for planSession).
+   * Picks reviews that cover the most other due skills, capped at 50% of budget.
+   */
+  private selectKnockOutReviews(
+    dueStates: MemoryState[],
+    skillGraph: SkillGraph,
+    now: number,
+    budget: number
+  ): SessionAction[] {
+    const actions: SessionAction[] = [];
+    const remaining = new Set(dueStates.map((s) => s.skillId));
+    const stateMap = new Map(dueStates.map((s) => [s.skillId, s]));
+    const maxKnockOuts = Math.floor(budget * 0.5); // Cap: at most 50% of budget knocked out
+    let knockedOut = 0;
+
+    while (remaining.size > 0 && actions.length < budget) {
+      // Find the skill that covers the most remaining due skills
+      let bestSkillId: string | undefined;
+      let bestCoverage: string[] = [];
+
+      for (const skillId of remaining) {
+        const encompassed = skillGraph.getEncompassedSkills(skillId);
+        const coverage = encompassed.filter((id) => remaining.has(id));
+        if (coverage.length > bestCoverage.length ||
+            (coverage.length === bestCoverage.length && (!bestSkillId || skillId < bestSkillId))) {
+          bestSkillId = skillId;
+          bestCoverage = coverage;
+        }
+      }
+
+      if (!bestSkillId) break;
+
+      const state = stateMap.get(bestSkillId)!;
+      const coveredCount = Math.min(bestCoverage.length, maxKnockOuts - knockedOut);
+      const coveredSkills = bestCoverage.slice(0, coveredCount);
+
+      actions.push({
+        type: 'review',
+        skillId: bestSkillId,
+        reason: coveredSkills.length > 0
+          ? `Knock-out review (covers ${coveredSkills.length} other due skill${coveredSkills.length > 1 ? 's' : ''})`
+          : 'Spaced retrieval due',
+        priority: this.calculateOverduePriority(state, now),
+      });
+
+      remaining.delete(bestSkillId);
+      for (const covered of coveredSkills) {
+        remaining.delete(covered);
+        knockedOut++;
+      }
+    }
+
+    return actions;
+  }
+
   getSessionStats(actions: SessionAction[]): SessionStats {
     const byType = {
       practice: actions.filter((a) => a.type === 'practice').length,
