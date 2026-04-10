@@ -30,10 +30,7 @@ import type {
  * losslessly reconstructed. The top-level `type` uses a `core:` prefix
  * to distinguish from legacy server event types (e.g., 'attention', 'recommendation').
  */
-export function coreEventToLearningEvent(
-  userId: number,
-  event: NoesisEvent
-): InsertLearningEvent {
+export function coreEventToLearningEvent(userId: number, event: NoesisEvent): InsertLearningEvent {
   return {
     userId,
     type: `core:${event.type}`,
@@ -50,18 +47,17 @@ export function coreEventToLearningEvent(
  * Returns null if the LearningEvent doesn't contain a core event
  * (i.e., it's a legacy server event like 'attention' or 'recommendation').
  */
-export function learningEventToCoreEvent(
-  event: LearningEvent
-): NoesisEvent | null {
+export function learningEventToCoreEvent(event: LearningEvent): NoesisEvent | null {
   const data = event.data as Record<string, unknown> | null;
   if (!data || !data._coreEvent) {
     return null;
   }
 
   // _coreEvent is stored as a JSON string for type safety with LearningEventData
-  const coreEvent = typeof data._coreEvent === 'string'
-    ? (JSON.parse(data._coreEvent) as Record<string, unknown>)
-    : (data._coreEvent as Record<string, unknown>);
+  const coreEvent =
+    typeof data._coreEvent === 'string'
+      ? (JSON.parse(data._coreEvent) as Record<string, unknown>)
+      : (data._coreEvent as Record<string, unknown>);
 
   // Validate minimum required fields
   if (
@@ -139,23 +135,32 @@ export function validateNoesisEvent(
   // Check type-specific fields
   switch (e.type) {
     case 'practice': {
-      if (typeof e.skillId !== 'string') return { valid: false, error: 'practice: missing skillId' };
+      if (typeof e.skillId !== 'string')
+        return { valid: false, error: 'practice: missing skillId' };
       if (typeof e.itemId !== 'string') return { valid: false, error: 'practice: missing itemId' };
-      if (typeof e.correct !== 'boolean') return { valid: false, error: 'practice: missing correct' };
-      if (typeof e.responseTimeMs !== 'number') return { valid: false, error: 'practice: missing responseTimeMs' };
+      if (typeof e.correct !== 'boolean')
+        return { valid: false, error: 'practice: missing correct' };
+      if (typeof e.responseTimeMs !== 'number')
+        return { valid: false, error: 'practice: missing responseTimeMs' };
       return { valid: true, event: e as unknown as PracticeEvent };
     }
     case 'diagnostic': {
-      if (!Array.isArray(e.skillsAssessed)) return { valid: false, error: 'diagnostic: missing skillsAssessed' };
+      if (!Array.isArray(e.skillsAssessed))
+        return { valid: false, error: 'diagnostic: missing skillsAssessed' };
       if (!Array.isArray(e.results)) return { valid: false, error: 'diagnostic: missing results' };
       return { valid: true, event: e as unknown as DiagnosticEvent };
     }
     case 'transfer_test': {
-      if (typeof e.testId !== 'string') return { valid: false, error: 'transfer_test: missing testId' };
-      if (typeof e.skillId !== 'string') return { valid: false, error: 'transfer_test: missing skillId' };
-      if (typeof e.transferType !== 'string') return { valid: false, error: 'transfer_test: missing transferType' };
-      if (typeof e.score !== 'number') return { valid: false, error: 'transfer_test: missing score' };
-      if (typeof e.passed !== 'boolean') return { valid: false, error: 'transfer_test: missing passed' };
+      if (typeof e.testId !== 'string')
+        return { valid: false, error: 'transfer_test: missing testId' };
+      if (typeof e.skillId !== 'string')
+        return { valid: false, error: 'transfer_test: missing skillId' };
+      if (typeof e.transferType !== 'string')
+        return { valid: false, error: 'transfer_test: missing transferType' };
+      if (typeof e.score !== 'number')
+        return { valid: false, error: 'transfer_test: missing score' };
+      if (typeof e.passed !== 'boolean')
+        return { valid: false, error: 'transfer_test: missing passed' };
       return { valid: true, event: e as unknown as TransferTestEvent };
     }
     case 'session_start':

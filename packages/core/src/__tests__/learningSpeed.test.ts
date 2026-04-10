@@ -54,7 +54,7 @@ describe('Per-User Learning Speed', () => {
     it('should produce longer intervals with speed > 1.0', () => {
       const graph = createSkillGraph(createTestSkills());
       const startTime = 1000000;
-      let time = startTime;
+      const time = startTime;
       const clock = () => time;
       const idGen = createDeterministicIdGenerator('evt');
       const ctx = createEventFactoryContext(clock, idGen);
@@ -63,11 +63,23 @@ describe('Per-User Learning Speed', () => {
       const engineDefault = createDeterministicEngine(graph, {}, startTime);
 
       // Engine with fast speed
-      const engineFast = createDeterministicEngine(createSkillGraph(createTestSkills()), {}, startTime);
+      const engineFast = createDeterministicEngine(
+        createSkillGraph(createTestSkills()),
+        {},
+        startTime
+      );
       engineFast.setLearningSpeed('learner-1', 'arithmetic', 1.8);
 
       // Same practice event for both
-      const event = createPracticeEvent(ctx, 'learner-1', 'session-1', 'arithmetic', 'item-1', true, 5000);
+      const event = createPracticeEvent(
+        ctx,
+        'learner-1',
+        'session-1',
+        'arithmetic',
+        'item-1',
+        true,
+        5000
+      );
 
       engineDefault.processEvent(event);
       engineFast.processEvent(event);
@@ -90,15 +102,31 @@ describe('Per-User Learning Speed', () => {
       const ctx = createEventFactoryContext(clock, idGen);
 
       const engineDefault = createDeterministicEngine(graph, {}, startTime);
-      const engineSlow = createDeterministicEngine(createSkillGraph(createTestSkills()), {}, startTime);
+      const engineSlow = createDeterministicEngine(
+        createSkillGraph(createTestSkills()),
+        {},
+        startTime
+      );
       engineSlow.setLearningSpeed('learner-1', 'arithmetic', 0.6);
 
-      const event = createPracticeEvent(ctx, 'learner-1', 'session-1', 'arithmetic', 'item-1', true, 5000);
+      const event = createPracticeEvent(
+        ctx,
+        'learner-1',
+        'session-1',
+        'arithmetic',
+        'item-1',
+        true,
+        5000
+      );
       engineDefault.processEvent(event);
       engineSlow.processEvent(event);
 
-      const defaultNext = engineDefault.getMemoryStates('learner-1').find((s) => s.skillId === 'arithmetic')!.nextReview;
-      const slowNext = engineSlow.getMemoryStates('learner-1').find((s) => s.skillId === 'arithmetic')!.nextReview;
+      const defaultNext = engineDefault
+        .getMemoryStates('learner-1')
+        .find((s) => s.skillId === 'arithmetic')!.nextReview;
+      const slowNext = engineSlow
+        .getMemoryStates('learner-1')
+        .find((s) => s.skillId === 'arithmetic')!.nextReview;
 
       // Slow learner should have an earlier nextReview (shorter interval)
       expect(slowNext).toBeLessThan(defaultNext);
@@ -121,7 +149,15 @@ describe('Per-User Learning Speed', () => {
 
       // Generate enough practice events
       for (let i = 0; i < 10; i++) {
-        const event = createPracticeEvent(ctx, 'learner-1', 'session-1', 'arithmetic', `item-${i}`, true, 3000);
+        const event = createPracticeEvent(
+          ctx,
+          'learner-1',
+          'session-1',
+          'arithmetic',
+          `item-${i}`,
+          true,
+          3000
+        );
         engine.processEvent(event);
       }
 

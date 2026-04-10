@@ -98,7 +98,12 @@ export interface SkillGraphValidationResult {
 }
 
 export interface SkillGraphError {
-  type: 'CYCLE_DETECTED' | 'MISSING_PREREQUISITE' | 'DUPLICATE_SKILL' | 'INVALID_ENCOMPASSED_SKILL' | 'ENCOMPASSING_CYCLE';
+  type:
+    | 'CYCLE_DETECTED'
+    | 'MISSING_PREREQUISITE'
+    | 'DUPLICATE_SKILL'
+    | 'INVALID_ENCOMPASSED_SKILL'
+    | 'ENCOMPASSING_CYCLE';
   message: string;
   affectedSkills: string[];
 }
@@ -196,7 +201,12 @@ export interface MemoryScheduler {
    * @param learningSpeed - Per-user speed multiplier (default 1.0). Range [0.5, 2.0].
    *   Speed > 1.0 = easy topic, longer intervals. Speed < 1.0 = hard topic, shorter intervals.
    */
-  scheduleReview(state: MemoryState, recalled: boolean, rating: 1 | 2 | 3 | 4, learningSpeed?: number): MemoryState;
+  scheduleReview(
+    state: MemoryState,
+    recalled: boolean,
+    rating: 1 | 2 | 3 | 4,
+    learningSpeed?: number
+  ): MemoryState;
   /** Get skills due for review at a given time */
   getDueSkills(states: MemoryState[], atTime: number): MemoryState[];
   /** Calculate retention probability at a given time */
@@ -437,7 +447,12 @@ export interface ImplicitCreditEvent extends BaseEvent {
 /**
  * Union type of all events
  */
-export type NoesisEvent = PracticeEvent | DiagnosticEvent | TransferTestEvent | SessionEvent | ImplicitCreditEvent;
+export type NoesisEvent =
+  | PracticeEvent
+  | DiagnosticEvent
+  | TransferTestEvent
+  | SessionEvent
+  | ImplicitCreditEvent;
 
 // =============================================================================
 // DIAGNOSTIC ENGINE TYPES

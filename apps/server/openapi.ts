@@ -36,7 +36,10 @@ export const openApiSpec = {
     { name: 'Analytics', description: 'Learning analytics and metrics' },
     { name: 'Learning Events', description: 'Learning event tracking' },
     { name: 'System', description: 'System status and health' },
-    { name: 'Core Engine', description: 'Core learning engine event storage and state persistence' },
+    {
+      name: 'Core Engine',
+      description: 'Core learning engine event storage and state persistence',
+    },
   ],
   paths: {
     '/auth/login': {
@@ -189,7 +192,8 @@ export const openApiSpec = {
       get: {
         tags: ['Authentication'],
         summary: 'Initiate Google OAuth flow',
-        description: 'Redirects to Google for authentication. Only available when GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET are configured.',
+        description:
+          'Redirects to Google for authentication. Only available when GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET are configured.',
         security: [],
         responses: {
           302: { description: 'Redirect to Google OAuth consent screen' },
@@ -200,7 +204,8 @@ export const openApiSpec = {
       get: {
         tags: ['Authentication'],
         summary: 'Google OAuth callback',
-        description: 'Handles the OAuth callback from Google. Redirects to / on success or /login?error=google_auth_failed on failure.',
+        description:
+          'Handles the OAuth callback from Google. Redirects to / on success or /login?error=google_auth_failed on failure.',
         security: [],
         parameters: [
           { name: 'code', in: 'query', schema: { type: 'string' } },
@@ -388,7 +393,8 @@ export const openApiSpec = {
       post: {
         tags: ['Core Engine'],
         summary: 'Store a single typed NoesisEvent',
-        description: 'Validates and stores a canonical core engine event. The full NoesisEvent is preserved in data._coreEvent for lossless replay.',
+        description:
+          'Validates and stores a canonical core engine event. The full NoesisEvent is preserved in data._coreEvent for lossless replay.',
         requestBody: {
           required: true,
           content: {
@@ -444,7 +450,8 @@ export const openApiSpec = {
       post: {
         tags: ['Core Engine'],
         summary: 'Store up to 100 NoesisEvents',
-        description: 'Each event is validated individually. Valid events are stored; invalid ones are reported in the response.',
+        description:
+          'Each event is validated individually. Valid events are stored; invalid ones are reported in the response.',
         requestBody: {
           required: true,
           content: {
@@ -492,7 +499,8 @@ export const openApiSpec = {
       put: {
         tags: ['Core Engine'],
         summary: 'Save full engine state snapshot',
-        description: 'Upserts the JSON string from engine.exportState(). Contains BKT probabilities, FSRS schedules, transfer results, and event log.',
+        description:
+          'Upserts the JSON string from engine.exportState(). Contains BKT probabilities, FSRS schedules, transfer results, and event log.',
         requestBody: {
           required: true,
           content: {
@@ -683,11 +691,15 @@ export const openApiSpec = {
       },
       NoesisEvent: {
         type: 'object',
-        description: 'A canonical core engine event (practice, diagnostic, transfer_test, session_start, session_end)',
+        description:
+          'A canonical core engine event (practice, diagnostic, transfer_test, session_start, session_end)',
         required: ['id', 'type', 'learnerId', 'timestamp', 'sessionId'],
         properties: {
           id: { type: 'string' },
-          type: { type: 'string', enum: ['practice', 'diagnostic', 'transfer_test', 'session_start', 'session_end'] },
+          type: {
+            type: 'string',
+            enum: ['practice', 'diagnostic', 'transfer_test', 'session_start', 'session_end'],
+          },
           learnerId: { type: 'string' },
           timestamp: { type: 'number' },
           sessionId: { type: 'string' },

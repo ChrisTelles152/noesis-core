@@ -47,7 +47,12 @@ function setupAllDueEngine(now: number) {
   engine.processEvent(
     createPracticeEvent(
       createEventFactoryContext(() => time, createDeterministicIdGenerator('now')),
-      'learner-1', 'session-2', 'a', 'item-refresh', true, 5000
+      'learner-1',
+      'session-2',
+      'a',
+      'item-refresh',
+      true,
+      5000
     )
   );
 
@@ -61,8 +66,11 @@ describe('Knock-Out Review Selection (Phase 3)', () => {
     const engine = setupAllDueEngine(now);
 
     const config: SessionConfig = {
-      maxDurationMinutes: 30, targetItems: 10, masteryThreshold: 0.85,
-      enforceSpacedRetrieval: true, requireTransferTests: false,
+      maxDurationMinutes: 30,
+      targetItems: 10,
+      masteryThreshold: 0.85,
+      enforceSpacedRetrieval: true,
+      requireTransferTests: false,
       enableKnockOutReviews: true,
     };
 
@@ -81,8 +89,11 @@ describe('Knock-Out Review Selection (Phase 3)', () => {
     const engine = setupAllDueEngine(now);
 
     const config: SessionConfig = {
-      maxDurationMinutes: 30, targetItems: 10, masteryThreshold: 0.85,
-      enforceSpacedRetrieval: true, requireTransferTests: false,
+      maxDurationMinutes: 30,
+      targetItems: 10,
+      masteryThreshold: 0.85,
+      enforceSpacedRetrieval: true,
+      requireTransferTests: false,
       enableKnockOutReviews: false,
     };
 
@@ -98,8 +109,11 @@ describe('Knock-Out Review Selection (Phase 3)', () => {
     const engine = setupAllDueEngine(now);
 
     const config: SessionConfig = {
-      maxDurationMinutes: 30, targetItems: 20, masteryThreshold: 0.85,
-      enforceSpacedRetrieval: true, requireTransferTests: false,
+      maxDurationMinutes: 30,
+      targetItems: 20,
+      masteryThreshold: 0.85,
+      enforceSpacedRetrieval: true,
+      requireTransferTests: false,
       enableKnockOutReviews: true,
     };
 
@@ -129,13 +143,21 @@ describe('Knock-Out Review Selection (Phase 3)', () => {
     engine.processEvent(
       createPracticeEvent(
         createEventFactoryContext(() => time, createDeterministicIdGenerator('r')),
-        'learner-1', 's2', 'p', 'i3', true, 5000
+        'learner-1',
+        's2',
+        'p',
+        'i3',
+        true,
+        5000
       )
     );
 
     const config: SessionConfig = {
-      maxDurationMinutes: 30, targetItems: 10, masteryThreshold: 0.85,
-      enforceSpacedRetrieval: true, requireTransferTests: false,
+      maxDurationMinutes: 30,
+      targetItems: 10,
+      masteryThreshold: 0.85,
+      enforceSpacedRetrieval: true,
+      requireTransferTests: false,
       enableKnockOutReviews: true,
     };
 

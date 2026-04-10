@@ -38,56 +38,80 @@ describe('computeRating', () => {
     });
 
     it('should return 4 (Easy) for high confidence + fast response', () => {
-      expect(computeRating(makePracticeEvent({
-        correct: true,
-        confidence: 0.9,
-        responseTimeMs: 3000, // < 10000 * 0.5 = 5000
-      }))).toBe(4);
+      expect(
+        computeRating(
+          makePracticeEvent({
+            correct: true,
+            confidence: 0.9,
+            responseTimeMs: 3000, // < 10000 * 0.5 = 5000
+          })
+        )
+      ).toBe(4);
     });
 
     it('should return 3 (Good) for high confidence but slow response', () => {
       // High confidence but slow — not "easy", just "good"
-      expect(computeRating(makePracticeEvent({
-        correct: true,
-        confidence: 0.9,
-        responseTimeMs: 8000, // > 5000 threshold but < 20000 "hard" threshold
-      }))).toBe(3);
+      expect(
+        computeRating(
+          makePracticeEvent({
+            correct: true,
+            confidence: 0.9,
+            responseTimeMs: 8000, // > 5000 threshold but < 20000 "hard" threshold
+          })
+        )
+      ).toBe(3);
     });
   });
 
   describe('correct answers with response time only (no confidence)', () => {
     it('should return 2 (Hard) for very slow response', () => {
-      expect(computeRating(makePracticeEvent({
-        correct: true,
-        confidence: undefined,
-        responseTimeMs: 25000, // > 10000 * 2.0 = 20000
-      }))).toBe(2);
+      expect(
+        computeRating(
+          makePracticeEvent({
+            correct: true,
+            confidence: undefined,
+            responseTimeMs: 25000, // > 10000 * 2.0 = 20000
+          })
+        )
+      ).toBe(2);
     });
 
     it('should return 3 (Good) for normal response time', () => {
-      expect(computeRating(makePracticeEvent({
-        correct: true,
-        confidence: undefined,
-        responseTimeMs: 8000,
-      }))).toBe(3);
+      expect(
+        computeRating(
+          makePracticeEvent({
+            correct: true,
+            confidence: undefined,
+            responseTimeMs: 8000,
+          })
+        )
+      ).toBe(3);
     });
   });
 
   describe('fallback behavior (no confidence, no responseTime)', () => {
     it('should return 3 (Good) for correct with no metadata', () => {
-      expect(computeRating(makePracticeEvent({
-        correct: true,
-        confidence: undefined,
-        responseTimeMs: undefined,
-      }))).toBe(3);
+      expect(
+        computeRating(
+          makePracticeEvent({
+            correct: true,
+            confidence: undefined,
+            responseTimeMs: undefined,
+          })
+        )
+      ).toBe(3);
     });
 
     it('should return 1 (Again) for incorrect with no metadata', () => {
-      expect(computeRating(makePracticeEvent({
-        correct: false,
-        confidence: undefined,
-        responseTimeMs: undefined,
-      }))).toBe(1);
+      expect(
+        computeRating(
+          makePracticeEvent({
+            correct: false,
+            confidence: undefined,
+            responseTimeMs: undefined,
+          })
+        )
+      ).toBe(1);
     });
   });
 
@@ -100,7 +124,9 @@ describe('computeRating', () => {
       };
 
       // Confidence 0.5 is "hard" with strict config but "good" with default
-      expect(computeRating(makePracticeEvent({ correct: true, confidence: 0.5 }), strictConfig)).toBe(2);
+      expect(
+        computeRating(makePracticeEvent({ correct: true, confidence: 0.5 }), strictConfig)
+      ).toBe(2);
       expect(computeRating(makePracticeEvent({ correct: true, confidence: 0.5 }))).toBe(3);
     });
   });
@@ -115,11 +141,15 @@ describe('computeRating', () => {
 
     it('should handle responseTimeMs of 0 as no data', () => {
       // responseTimeMs=0 should be treated as absent (guard: > 0)
-      expect(computeRating(makePracticeEvent({
-        correct: true,
-        confidence: undefined,
-        responseTimeMs: 0,
-      }))).toBe(3);
+      expect(
+        computeRating(
+          makePracticeEvent({
+            correct: true,
+            confidence: undefined,
+            responseTimeMs: 0,
+          })
+        )
+      ).toBe(3);
     });
   });
 });

@@ -135,9 +135,7 @@ export class SessionPlannerImpl implements SessionPlanner {
 
     // Priority 3.5: Prerequisite re-validation probes
     if (mergedConfig.prerequisiteRevalidationEnabled) {
-      const probeAction = this.getPrerequisiteProbeAction(
-        learnerModel, skillGraph, mergedConfig
-      );
+      const probeAction = this.getPrerequisiteProbeAction(learnerModel, skillGraph, mergedConfig);
       if (probeAction) {
         return probeAction;
       }
@@ -190,7 +188,10 @@ export class SessionPlannerImpl implements SessionPlanner {
         if (mergedConfig.enableKnockOutReviews && dueStates.length > 0) {
           // Knock-out mode: greedy set-cover to minimize total reviews
           const knockOutActions = this.selectKnockOutReviews(
-            dueStates, skillGraph, now, mergedConfig.targetItems - itemCount
+            dueStates,
+            skillGraph,
+            now,
+            mergedConfig.targetItems - itemCount
           );
           for (const action of knockOutActions) {
             if (itemCount >= mergedConfig.targetItems) break;
@@ -578,8 +579,10 @@ export class SessionPlannerImpl implements SessionPlanner {
       for (const skillId of remaining) {
         const encompassed = skillGraph.getEncompassedSkills(skillId);
         const coverage = encompassed.filter((id) => remaining.has(id));
-        if (coverage.length > bestCoverage.length ||
-            (coverage.length === bestCoverage.length && (!bestSkillId || skillId < bestSkillId))) {
+        if (
+          coverage.length > bestCoverage.length ||
+          (coverage.length === bestCoverage.length && (!bestSkillId || skillId < bestSkillId))
+        ) {
           bestSkillId = skillId;
           bestCoverage = coverage;
         }
@@ -587,16 +590,18 @@ export class SessionPlannerImpl implements SessionPlanner {
 
       if (!bestSkillId) break;
 
-      const state = stateMap.get(bestSkillId)!;
+      const state = stateMap.get(bestSkillId);
+      if (!state) break;
       const coveredCount = Math.min(bestCoverage.length, maxKnockOuts - knockedOut);
       const coveredSkills = bestCoverage.slice(0, coveredCount);
 
       actions.push({
         type: 'review',
         skillId: bestSkillId,
-        reason: coveredSkills.length > 0
-          ? `Knock-out review (covers ${coveredSkills.length} other due skill${coveredSkills.length > 1 ? 's' : ''})`
-          : 'Spaced retrieval due',
+        reason:
+          coveredSkills.length > 0
+            ? `Knock-out review (covers ${coveredSkills.length} other due skill${coveredSkills.length > 1 ? 's' : ''})`
+            : 'Spaced retrieval due',
         priority: this.calculateOverduePriority(state, now),
       });
 
