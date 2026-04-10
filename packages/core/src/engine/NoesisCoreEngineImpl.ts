@@ -587,6 +587,34 @@ export class NoesisCoreEngineImpl implements NoesisCoreEngine {
   }
 
   /**
+   * Get effective mastery for a skill, accounting for prerequisite subgraph health.
+   * Returns the minimum of the skill's own pMastery and the minimum pMastery
+   * among all its transitive prerequisites. A skill is only truly mastered
+   * if its entire foundation is solid.
+   *
+   * Pure computation — no stored state, no cache.
+   */
+  getEffectiveMastery(learnerId: string, skillId: string): number {
+    const model = this.learnerModels.get(learnerId);
+    if (!model) return 0;
+
+    const ownMastery = model.skillProbabilities.get(skillId)?.pMastery ?? 0;
+    const prereqs = this.graph.getAllPrerequisites(skillId);
+
+    if (prereqs.length === 0) return ownMastery;
+
+    let minPrereqMastery = ownMastery;
+    for (const prereqId of prereqs) {
+      const prereqMastery = model.skillProbabilities.get(prereqId)?.pMastery ?? 0;
+      if (prereqMastery < minPrereqMastery) {
+        minPrereqMastery = prereqMastery;
+      }
+    }
+
+    return minPrereqMastery;
+  }
+
+  /**
    * Set the learning speed multiplier for a specific learner+skill.
    * Speed > 1.0 = topic is easy, longer review intervals.
    * Speed < 1.0 = topic is hard, shorter review intervals.

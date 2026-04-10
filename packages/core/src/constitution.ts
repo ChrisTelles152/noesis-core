@@ -212,7 +212,7 @@ export interface MemoryScheduler {
  */
 export interface SessionAction {
   /** Type of action */
-  type: 'practice' | 'review' | 'diagnostic' | 'transfer_test' | 'rest';
+  type: 'practice' | 'review' | 'diagnostic' | 'transfer_test' | 'prerequisite_probe' | 'rest';
   /** Target skill ID (if applicable) */
   skillId?: string;
   /** Specific item/question ID (if applicable) */
@@ -243,6 +243,16 @@ export interface SessionConfig {
    * Uses greedy set-cover. Default false (linear selection).
    */
   enableKnockOutReviews?: boolean;
+  /**
+   * Enable prerequisite re-validation: periodically probe prerequisite
+   * skills when a mastered skill's foundation has decayed. Default false.
+   */
+  prerequisiteRevalidationEnabled?: boolean;
+  /**
+   * Mastery threshold below which a prerequisite triggers re-validation.
+   * Default 0.7.
+   */
+  prerequisiteRevalidationThreshold?: number;
 }
 
 /**
