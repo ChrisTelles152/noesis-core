@@ -1684,4 +1684,74 @@ describe('Critical Path: BKT diagnostic initialization followed by practice', ()
     const geometryMastery = modelAfterWrong.skillProbabilities.get('geometry')!.pMastery;
     expect(geometryMastery).toBe(0.3); // default pInit, untouched
   });
+
+  it('registerTransferTests preserves custom planner config', () => {
+    // Create engine with a custom planner config (non-default masteryThreshold)
+    const graph = createSkillGraph(createTestSkills());
+    const customThreshold = 0.95;
+    const engine = createNoesisCoreEngine(graph, {
+      planner: { masteryThreshold: customThreshold },
+    });
+
+    // Master 'arithmetic' to above 0.85 but below 0.95
+    // With default BKT params, 2 correct answers reach ~0.92
+    engine.processEvent({
+      id: 'e1',
+      type: 'practice' as const,
+      learnerId: 'learner1',
+      sessionId: 's1',
+      timestamp: 1000,
+      skillId: 'arithmetic',
+      itemId: 'item1',
+      correct: true,
+      responseTimeMs: 1000,
+    });
+    engine.processEvent({
+      id: 'e2',
+      type: 'practice' as const,
+      learnerId: 'learner1',
+      sessionId: 's1',
+      timestamp: 2000,
+      skillId: 'arithmetic',
+      itemId: 'item2',
+      correct: true,
+      responseTimeMs: 1000,
+    });
+
+    const model = engine.getLearnerModel('learner1')!;
+    const arithmeticMastery = model.skillProbabilities.get('arithmetic')!.pMastery;
+    // Should be ~0.92 — above default 0.85 threshold but below our custom 0.95
+    expect(arithmeticMastery).toBeGreaterThan(0.85);
+    expect(arithmeticMastery).toBeLessThan(0.95);
+
+    // Register transfer tests — this previously discarded the planner config
+    engine.registerTransferTests(createTestTransferTests());
+
+    // With custom threshold 0.95, arithmetic is NOT mastered, so 'algebra'
+    // should NOT be offered as a new skill (prereqs not met).
+    // But 'arithmetic' should be offered for consolidation practice.
+    const config = {
+      maxDurationMinutes: 30,
+      targetItems: 20,
+      masteryThreshold: customThreshold,
+      enforceSpacedRetrieval: false,
+      requireTransferTests: false,
+    };
+    const action = engine.getNextAction('learner1', config);
+
+    // The key assertion: if registerTransferTests preserved the custom config,
+    // 'arithmetic' won't be considered mastered (it's below 0.95).
+    // The planner should suggest consolidation on arithmetic, not introduce algebra.
+    // If the bug were still present (config reset to default 0.85), arithmetic
+    // would be considered mastered and algebra might be offered.
+    expect(action.type).not.toBe('rest');
+    if (action.skillId === 'algebra') {
+      // This would mean arithmetic was treated as mastered (default 0.85 threshold used)
+      // which proves the config was lost — fail the test
+      throw new Error(
+        'algebra was offered as new skill, meaning arithmetic was treated as mastered ' +
+          'at 0.85 threshold instead of custom 0.95 — registerTransferTests lost the config'
+      );
+    }
+  });
 });
