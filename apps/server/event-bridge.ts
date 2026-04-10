@@ -58,7 +58,10 @@ export function learningEventToCoreEvent(
     return null;
   }
 
-  const coreEvent = data._coreEvent as Record<string, unknown>;
+  // _coreEvent is stored as a JSON string for type safety with LearningEventData
+  const coreEvent = typeof data._coreEvent === 'string'
+    ? (JSON.parse(data._coreEvent) as Record<string, unknown>)
+    : (data._coreEvent as Record<string, unknown>);
 
   // Validate minimum required fields
   if (
