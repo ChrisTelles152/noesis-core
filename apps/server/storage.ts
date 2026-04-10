@@ -14,6 +14,7 @@ import { eq } from 'drizzle-orm';
 import {
   users,
   learningEvents,
+  engineStates,
   type User,
   type InsertUser,
   type LearningEvent,
@@ -47,12 +48,17 @@ export interface IStorage {
   getLearningEvent(id: number): Promise<LearningEvent | undefined>;
   getLearningEventsByUserId(userId: number): Promise<LearningEvent[]>;
   getLearningEventsByType(type: string): Promise<LearningEvent[]>;
+
+  // Core engine state persistence
+  saveEngineState(userId: number, state: string): Promise<void>;
+  loadEngineState(userId: number): Promise<string | null>;
 }
 
 // In-memory storage implementation (used when DATABASE_URL is not set)
 export class MemStorage implements IStorage {
   private users: Map<number, User>;
   private learningEvents: Map<number, LearningEvent>;
+  private engineStates: Map<number, string>;
   currentUserId: number;
   currentEventId: number;
   private initialized: Promise<void>;
@@ -60,6 +66,7 @@ export class MemStorage implements IStorage {
   constructor() {
     this.users = new Map();
     this.learningEvents = new Map();
+    this.engineStates = new Map();
     this.currentUserId = 1;
     this.currentEventId = 1;
 
@@ -145,6 +152,15 @@ export class MemStorage implements IStorage {
 
   async getLearningEventsByType(type: string): Promise<LearningEvent[]> {
     return Array.from(this.learningEvents.values()).filter((event) => event.type === type);
+  }
+
+  // Core engine state persistence
+  async saveEngineState(userId: number, state: string): Promise<void> {
+    this.engineStates.set(userId, state);
+  }
+
+  async loadEngineState(userId: number): Promise<string | null> {
+    return this.engineStates.get(userId) ?? null;
   }
 }
 
@@ -237,6 +253,25 @@ export class DatabaseStorage implements IStorage {
   async getLearningEventsByType(type: string): Promise<LearningEvent[]> {
     if (!db) throw new Error('Database not configured');
     return db.select().from(learningEvents).where(eq(learningEvents.type, type));
+  }
+
+  // Core engine state persistence
+  async saveEngineState(userId: number, state: string): Promise<void> {
+    if (!db) throw new Error('Database not configured');
+    // Upsert: insert or update on conflict
+    await db
+      .insert(engineStates)
+      .values({ userId, state, updatedAt: new Date() })
+      .onConflictDoUpdate({
+        target: engineStates.userId,
+        set: { state, updatedAt: new Date() },
+      });
+  }
+
+  async loadEngineState(userId: number): Promise<string | null> {
+    if (!db) throw new Error('Database not configured');
+    const [row] = await db.select().from(engineStates).where(eq(engineStates.userId, userId));
+    return row?.state ?? null;
   }
 }
 

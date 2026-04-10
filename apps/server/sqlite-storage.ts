@@ -84,6 +84,15 @@ export class SqliteStorage implements IStorage {
       CREATE INDEX IF NOT EXISTS idx_mastery_progress_user_id ON mastery_progress(user_id);
       CREATE INDEX IF NOT EXISTS idx_mastery_progress_objective_id ON mastery_progress(objective_id);
       CREATE INDEX IF NOT EXISTS idx_mastery_progress_user_objective ON mastery_progress(user_id, objective_id);
+
+      CREATE TABLE IF NOT EXISTS engine_states (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE,
+        state TEXT NOT NULL,
+        updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_engine_states_user_id ON engine_states(user_id);
     `);
   }
 
@@ -190,6 +199,20 @@ export class SqliteStorage implements IStorage {
       data: typeof row.data === 'string' ? JSON.parse(row.data) : row.data,
       timestamp: new Date(row.timestamp),
     };
+  }
+
+  // Core engine state persistence
+  async saveEngineState(userId: number, state: string): Promise<void> {
+    this.db.prepare(
+      `INSERT INTO engine_states (user_id, state, updated_at)
+       VALUES (?, ?, datetime('now'))
+       ON CONFLICT(user_id) DO UPDATE SET state = excluded.state, updated_at = datetime('now')`
+    ).run(userId, state);
+  }
+
+  async loadEngineState(userId: number): Promise<string | null> {
+    const row = this.db.prepare('SELECT state FROM engine_states WHERE user_id = ?').get(userId) as { state: string } | undefined;
+    return row?.state ?? null;
   }
 
   close(): void {
