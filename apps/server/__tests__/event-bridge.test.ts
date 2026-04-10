@@ -92,14 +92,15 @@ describe('Event Bridge', () => {
       expect(result.userId).toBe(42);
       expect(result.type).toBe('core:practice');
       expect(result.timestamp).toEqual(new Date(1700000000000));
-      expect((result.data as Record<string, unknown>)._coreEvent).toEqual(practiceEvent);
+      // _coreEvent is stored as a JSON string for JSONB compatibility
+      expect(JSON.parse((result.data as Record<string, unknown>)._coreEvent as string)).toEqual(practiceEvent);
     });
 
     it('should convert a diagnostic event', () => {
       const result = coreEventToLearningEvent(42, diagnosticEvent);
 
       expect(result.type).toBe('core:diagnostic');
-      expect((result.data as Record<string, unknown>)._coreEvent).toEqual(diagnosticEvent);
+      expect(JSON.parse((result.data as Record<string, unknown>)._coreEvent as string)).toEqual(diagnosticEvent);
     });
 
     it('should convert a transfer_test event', () => {
