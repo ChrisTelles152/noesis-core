@@ -55,7 +55,7 @@
 | # | Finding | Source | Effort | Type | Status |
 |---|---------|--------|--------|------|--------|
 | M1 | **Core engine state never persisted to database** — Server never calls `engine.exportState()` / `importState()`. BKT/FSRS states live only in-memory, lost on restart. `NoesisStateStore` interface exists but isn't wired up server-side. | Investigation Prompt 4 | L | NEEDS_HUMAN | BACKLOG |
-| M2 | **Server learning events incompatible with core engine events** — Server stores `{userId, type, data, timestamp}`. Core expects `NoesisEvent` with `{id, type, learnerId, sessionId, skillId, correct, ...}`. Cannot replay from server DB. | Investigation Prompt 4 | L | NEEDS_HUMAN | BACKLOG |
+| M2 | **Server learning events incompatible with core engine events** — Server stores `{userId, type, data, timestamp}`. Core expects `NoesisEvent` with `{id, type, learnerId, sessionId, skillId, correct, ...}`. Cannot replay from server DB. | Investigation Prompt 4 | L | Engineering | **DONE** — event-bridge.ts converts between formats; new endpoints POST/GET /api/core/events; 23 tests `1e973f6` |
 | M3 | **Two competing spaced repetition systems** — Core uses FSRS, SDK has `MasteryTracker` with incompatible exponential spacing formula. Both track mastery independently. | Algorithm Audit, Prompt 1 | L | NEEDS_HUMAN | **DONE** — MasteryTracker deprecated with @deprecated JSDoc, CoreEngineAdapter is canonical. recordPractice() syncs to both for backward compat `6581587` |
 | M4 | **PostgreSQL schema missing Google OAuth columns** — `shared/schema.ts` lacks `email`, `google_id`, `display_name`, `avatar_url`. Only affects PostgreSQL backend (pilot uses SQLite). | Data Model audit | M | Engineering | **DONE** — columns added to Drizzle schema |
 | M5 | **`IStorage` interface missing Google OAuth methods** — `getUserByGoogleId`, `createGoogleUser`, `linkGoogleAccount` only on `SqliteStorage`. `auth.ts` uses `(store as any)` cast. | Data Model audit | M | Engineering | **DONE** — interface updated, all 3 backends implement, auth.ts type-safe |
@@ -102,6 +102,7 @@
 | M10 | `63aec43` | Replace ~1,200 lines of duplicate SDK code with re-exports |
 | M11 | `9171218` | Add superseded notice to CODEBASE_ANALYSIS.md with current doc pointers |
 | M3 | `6581587` | Deprecate MasteryTracker, mark CoreEngineAdapter as canonical, sync recordPractice to both |
+| M2 | `1e973f6` | Event bridge: converter between server LearningEvent and core NoesisEvent, 3 new endpoints, 23 tests |
 
 ---
 
