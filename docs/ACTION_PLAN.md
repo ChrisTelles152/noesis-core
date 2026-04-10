@@ -1,6 +1,6 @@
 # Action Plan — Noesis Core
 
-> Last updated: 2026-04-10 (Phase 2 execution)
+> Last updated: 2026-04-10 (Phase 4 — execution complete)
 >
 > **Source docs analyzed:**
 > - `CODEBASE_ANALYSIS.md` — January 2026 comprehensive analysis
@@ -20,8 +20,8 @@
 |----------|-------|------------|-------------|------|
 | CRITICAL | 1 | 1 | 0 | 1 |
 | HIGH | 1 | 1 | 0 | 1 |
-| MEDIUM | 12 | 7 | 5 | 3 |
-| LOW | 6 | 6 | 0 | 0 |
+| MEDIUM | 12 | 7 | 5 | 5 |
+| LOW | 6 | 6 | 0 | 2 |
 
 ---
 
@@ -65,7 +65,7 @@
 | M9 | **README.md test count stale** — Claims "115 tests across 6 test files"; actual is 801 tests across 35 files. | `README.md` | S | Engineering | **DONE** — updated to "795+ tests across 35 files" |
 | M10 | **Duplicate SDK code in `apps/web-demo/src/sdk/`** — ~1,280 lines of near-identical copies from packages. Should import from packages instead. | `SIMPLIFICATION_AUDIT.md` | M | Engineering | BACKLOG |
 | M11 | **CODEBASE_ANALYSIS.md is stale** — References old directory structure, old stats, and items already fixed. | `CODEBASE_ANALYSIS.md` | M | Engineering | BACKLOG |
-| M12 | **MIGRATION_REPORT.md checklist stale** — Phase 1-3 items all unchecked but implemented. | `MIGRATION_REPORT.md:293-308` | S | Engineering | BACKLOG |
+| M12 | **MIGRATION_REPORT.md checklist stale** — Phase 1-3 items all unchecked but implemented. | `MIGRATION_REPORT.md:293-308` | S | Engineering | **DONE** — items marked complete |
 
 ---
 
@@ -73,7 +73,7 @@
 
 | # | Finding | Source | Effort | Type | Status |
 |---|---------|--------|--------|------|--------|
-| L1 | **CORE_PUBLISH_READINESS.md test count stale** — Says "47 tests" | `docs/architecture/` | S | Engineering | BACKLOG |
+| L1 | **CORE_PUBLISH_READINESS.md test count stale** — Says "47 tests" | `docs/architecture/` | S | Engineering | **DONE** — updated to 241 tests |
 | L2 | **OpenAPI spec missing Google OAuth routes** — `/auth/google` and `/auth/google/callback` not in spec | `openapi.ts` | S | Engineering | BACKLOG |
 | L3 | **SkillGraph cycle detection can over-report cycle nodes** — GRAY nodes left from early DFS termination; cycle existence always correctly detected | Algorithm Audit | M | Engineering | BACKLOG |
 | L4 | **Diagnostic secondary skill weight applied to difficulty, not accuracy** — `difficulty * 0.5` halves difficulty weight for secondary skills; small effect | Algorithm Audit | S | Engineering | BACKLOG |
@@ -86,9 +86,16 @@
 
 | # | Commit | Description |
 |---|--------|-------------|
-| C1 | `d2ee83a` | Delete `ecosystem.config.cjs` — hardcoded secrets (by another session) |
+| C1 | `d2ee83a` | Delete `ecosystem.config.cjs` — hardcoded secrets |
 | H1 | `db7d051` | Fix `SkillGraph.removeSkill()` dangling references + 3 tests |
+| M4-M6 | `42f379e` | PostgreSQL schema OAuth columns, IStorage interface, all backends implement OAuth, nullable password |
+| M9 | `42f379e` | README test count updated |
+| — | `42f379e` | OpenAPI spec fixes, CoreEngineAdapter.updateSkillGraph state preservation, auth.ts type safety |
+| — | `ab6fa8f` | Fix Express.User type for OAuth + SqliteStorage null password check |
+| — | `e3e0c30` | Update stale docs (CORE_PUBLISH_READINESS, MIGRATION_REPORT, README features) |
 | — | `155ccee` | Write `docs/ALGORITHM_AUDIT.md` + update `docs/ACTION_PLAN.md` |
+| — | `4118de3` | 5 high-priority missing tests + testing strategy doc |
+| — | `b2ec874` | Simplification audit doc |
 
 ---
 
