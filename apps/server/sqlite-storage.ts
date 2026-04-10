@@ -107,7 +107,11 @@ export class SqliteStorage implements IStorage {
     return {
       id: result.lastInsertRowid as number,
       username: insertUser.username,
-      password: hashedPassword || '',
+      password: hashedPassword,
+      email: null,
+      googleId: null,
+      displayName: null,
+      avatarUrl: null,
     };
   }
 
@@ -125,7 +129,11 @@ export class SqliteStorage implements IStorage {
     return {
       id: result.lastInsertRowid as number,
       username,
-      password: '',
+      password: null,
+      email: profile.email,
+      googleId: profile.googleId,
+      displayName: profile.displayName,
+      avatarUrl: profile.avatarUrl || null,
     };
   }
 

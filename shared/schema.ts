@@ -2,11 +2,15 @@ import { pgTable, text, serial, integer, jsonb, timestamp, index } from 'drizzle
 import { createInsertSchema } from 'drizzle-zod';
 import { z } from 'zod';
 
-// Users table
+// Users table — columns match SQLite schema in sqlite-storage.ts
 export const users = pgTable('users', {
   id: serial('id').primaryKey(),
   username: text('username').notNull().unique(),
-  password: text('password').notNull(),
+  password: text('password'), // nullable: Google OAuth users have no password
+  email: text('email'),
+  googleId: text('google_id').unique(),
+  displayName: text('display_name'),
+  avatarUrl: text('avatar_url'),
 });
 
 export const insertUserSchema = createInsertSchema(users).pick({
