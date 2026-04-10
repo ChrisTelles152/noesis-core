@@ -38,7 +38,17 @@ export class SkillGraphImpl implements SkillGraph {
    * Remove a skill from the graph
    */
   removeSkill(skillId: string): boolean {
-    return this.skills.delete(skillId);
+    const deleted = this.skills.delete(skillId);
+    if (deleted) {
+      // Clean up dangling prerequisite references in remaining skills
+      for (const [, skill] of this.skills) {
+        const idx = skill.prerequisites.indexOf(skillId);
+        if (idx !== -1) {
+          skill.prerequisites = skill.prerequisites.filter((id) => id !== skillId);
+        }
+      }
+    }
+    return deleted;
   }
 
   /**

@@ -221,6 +221,46 @@ describe('SkillGraph', () => {
     expect(graph1.getTopologicalOrder()).toEqual(graph2.getTopologicalOrder());
     expect(graph1.getAllPrerequisites('calculus')).toEqual(graph2.getAllPrerequisites('calculus'));
   });
+
+  it('should clean up dangling prerequisite references when removing a skill', () => {
+    // Given: A → B → C (arithmetic is prereq of algebra, algebra is prereq of calculus)
+    const graph = createSkillGraph(createTestSkills());
+
+    // When: we remove 'algebra' which is a prerequisite of 'calculus' and 'statistics'
+    const removed = graph.removeSkill('algebra');
+    expect(removed).toBe(true);
+
+    // Then: 'algebra' should no longer appear in any skill's prerequisites
+    const calculus = graph.getSkill('calculus');
+    expect(calculus).toBeDefined();
+    expect(calculus!.prerequisites).not.toContain('algebra');
+
+    const statistics = graph.getSkill('statistics');
+    expect(statistics).toBeDefined();
+    expect(statistics!.prerequisites).not.toContain('algebra');
+
+    // And: the graph should still be valid (no MISSING_PREREQUISITE errors for 'algebra')
+    const result = graph.validate();
+    expect(result.valid).toBe(true);
+  });
+
+  it('should handle removing a skill with no dependents', () => {
+    const graph = createSkillGraph(createTestSkills());
+
+    // 'calculus' is a leaf node — no other skill lists it as a prerequisite
+    const removed = graph.removeSkill('calculus');
+    expect(removed).toBe(true);
+    expect(graph.skills.size).toBe(4);
+
+    const result = graph.validate();
+    expect(result.valid).toBe(true);
+  });
+
+  it('should return false when removing a non-existent skill', () => {
+    const graph = createSkillGraph(createTestSkills());
+    expect(graph.removeSkill('nonexistent')).toBe(false);
+    expect(graph.skills.size).toBe(5);
+  });
 });
 
 // =============================================================================
