@@ -97,8 +97,9 @@
 | — | `4118de3` | 5 high-priority missing tests + testing strategy doc |
 | — | `b2ec874` | Simplification audit doc |
 | L4,L5 | `0aad194` | Fix diagnostic secondary skill weighting + variable typo |
-| L2 | (hook) | Add Google OAuth routes to OpenAPI spec |
-| M10 | `2989bd0`, `db12d44` | Replace ~1,200 lines of duplicate SDK code with re-exports |
+| L2 | `6d8f1a6` | Add Google OAuth routes to OpenAPI spec |
+| L3 | `1f8caf6` | Fix SkillGraph cycle detection: DFS no longer early-returns, finds all cycles |
+| M10 | `63aec43` | Replace ~1,200 lines of duplicate SDK code with re-exports |
 | M11 | `9171218` | Add superseded notice to CODEBASE_ANALYSIS.md with current doc pointers |
 
 ---
