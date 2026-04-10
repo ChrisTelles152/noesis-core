@@ -39,11 +39,80 @@ import { createFSRSScheduler, type FSRSParams } from '../memory/index.js';
 import { SessionPlannerImpl, type SessionPlannerConfig } from '../planning/index.js';
 import { createTransferGate, type TransferGateConfig } from '../transfer/index.js';
 import { createDiagnosticEngine, type DiagnosticConfig } from '../diagnostic/index.js';
-import type { ClockFn, IdGeneratorFn } from '../events/index.js';
+import type { ClockFn, IdGeneratorFn, EventFactoryContext } from '../events/index.js';
+import { createEventFactoryContext, createImplicitCreditEvent } from '../events/index.js';
 
 /**
  * Core engine configuration
  */
+/**
+ * Configuration for converting practice events to FSRS ratings.
+ * Uses confidence and response time when available, falls back to
+ * binary correct/incorrect (rating 3 or 1) when they're absent.
+ */
+export interface RatingConfig {
+  /** Confidence below this → Hard (2) when correct. Default 0.4 */
+  hardConfidenceThreshold: number;
+  /** Confidence above this → Easy (4) when correct. Default 0.8 */
+  easyConfidenceThreshold: number;
+  /** Baseline response time in ms for difficulty assessment. Default 10000 */
+  baselineResponseTimeMs: number;
+  /** Response time > baseline * this factor → Hard (2). Default 2.0 */
+  hardResponseTimeFactor: number;
+  /** Response time < baseline * this factor → Easy (4). Default 0.5 */
+  easyResponseTimeFactor: number;
+}
+
+export const DEFAULT_RATING_CONFIG: RatingConfig = {
+  hardConfidenceThreshold: 0.4,
+  easyConfidenceThreshold: 0.8,
+  baselineResponseTimeMs: 10000,
+  hardResponseTimeFactor: 2.0,
+  easyResponseTimeFactor: 0.5,
+};
+
+/**
+ * Compute FSRS rating from a practice event.
+ * Pure function — deterministic given the same inputs.
+ *
+ * Rating scale:
+ * - 1 (Again): incorrect answer
+ * - 2 (Hard): correct but low confidence or slow response
+ * - 3 (Good): correct with normal performance
+ * - 4 (Easy): correct with high confidence and fast response
+ */
+export function computeRating(
+  event: PracticeEvent,
+  config: RatingConfig = DEFAULT_RATING_CONFIG
+): 1 | 2 | 3 | 4 {
+  if (!event.correct) return 1;
+
+  const confidence = event.confidence;
+  const responseTimeMs = event.responseTimeMs;
+  const hasConfidence = confidence !== undefined;
+  const hasResponseTime = responseTimeMs !== undefined && responseTimeMs > 0;
+
+  // Check for Hard (2): low confidence OR very slow
+  if (hasConfidence && confidence < config.hardConfidenceThreshold) return 2;
+  if (
+    hasResponseTime &&
+    responseTimeMs > config.baselineResponseTimeMs * config.hardResponseTimeFactor
+  )
+    return 2;
+
+  // Check for Easy (4): high confidence AND fast
+  if (
+    hasConfidence &&
+    confidence >= config.easyConfidenceThreshold &&
+    (!hasResponseTime ||
+      responseTimeMs < config.baselineResponseTimeMs * config.easyResponseTimeFactor)
+  )
+    return 4;
+
+  // Default: Good (3)
+  return 3;
+}
+
 export interface CoreEngineConfig {
   /** BKT parameters for learner modeling */
   bkt?: Partial<BKTParams>;
@@ -55,6 +124,13 @@ export interface CoreEngineConfig {
   transfer?: Partial<TransferGateConfig>;
   /** Diagnostic engine configuration */
   diagnostic?: Partial<DiagnosticConfig>;
+  /** Rating conversion configuration */
+  rating?: Partial<RatingConfig>;
+  /** Fraction of interval credit given to encompassed skills (0-1). Default 0.5 */
+  implicitCreditFraction?: number;
+  /** Minimum learning speed required to receive implicit credit. Default 1.0.
+   *  Learners below this speed on a skill must practice it explicitly. */
+  implicitCreditMinSpeed?: number;
 }
 
 /**
@@ -67,6 +143,8 @@ interface SerializedState {
   memoryStates: Map<string, MemoryState[]>;
   transferResults: TransferTestResult[];
   eventLog: NoesisEvent[];
+  /** Per-user per-skill learning speed multipliers (added in v1.1) */
+  learnerSpeeds?: Array<[string, Array<[string, number]>]>;
 }
 
 /**
@@ -76,13 +154,18 @@ export class NoesisCoreEngineImpl implements NoesisCoreEngine {
   readonly graph: SkillGraph;
   readonly learnerEngine: LearnerModelEngine;
   readonly memoryScheduler: MemoryScheduler;
-  readonly sessionPlanner: SessionPlanner;
+  sessionPlanner: SessionPlanner;
   readonly transferGate: TransferGate;
   readonly diagnosticEngine: DiagnosticEngine;
 
   private readonly clock: ClockFn;
   // idGenerator can be used for creating events within the engine
   private readonly idGenerator: IdGeneratorFn;
+  private readonly plannerConfig: Partial<SessionPlannerConfig>;
+  private readonly ratingConfig: RatingConfig;
+  private readonly implicitCreditFraction: number;
+  private readonly implicitCreditMinSpeed: number;
+  private readonly eventContext: EventFactoryContext;
 
   // Internal state
   private learnerModels: Map<string, LearnerModel> = new Map();
@@ -91,6 +174,8 @@ export class NoesisCoreEngineImpl implements NoesisCoreEngine {
   private transferTests: TransferTest[] = [];
   private itemMappings: ItemSkillMapping[] = [];
   private eventLog: NoesisEvent[] = [];
+  // Per-user, per-skill learning speed multipliers (learnerId → skillId → speed)
+  private learnerSpeeds: Map<string, Map<string, number>> = new Map();
 
   constructor(
     skillGraph: SkillGraph,
@@ -101,6 +186,11 @@ export class NoesisCoreEngineImpl implements NoesisCoreEngine {
     this.graph = skillGraph;
     this.clock = clock;
     this.idGenerator = idGenerator;
+    this.plannerConfig = config.planner || {};
+    this.ratingConfig = { ...DEFAULT_RATING_CONFIG, ...config.rating };
+    this.implicitCreditFraction = config.implicitCreditFraction ?? 0.5;
+    this.implicitCreditMinSpeed = config.implicitCreditMinSpeed ?? 1.0;
+    this.eventContext = createEventFactoryContext(clock, idGenerator);
 
     // Initialize components
     this.learnerEngine = createBKTEngine(config.bkt, clock);
@@ -110,7 +200,7 @@ export class NoesisCoreEngineImpl implements NoesisCoreEngine {
 
     // Session planner needs transfer data
     this.sessionPlanner = new SessionPlannerImpl(
-      config.planner,
+      this.plannerConfig,
       this.transferTests,
       this.transferResults
     );
@@ -138,6 +228,9 @@ export class NoesisCoreEngineImpl implements NoesisCoreEngine {
       case 'session_end':
         this.processSessionEvent(event);
         break;
+      case 'implicit_credit':
+        this.processImplicitCreditEvent(event as import('../constitution.js').ImplicitCreditEvent);
+        break;
     }
   }
 
@@ -164,12 +257,57 @@ export class NoesisCoreEngineImpl implements NoesisCoreEngine {
       states = [...states, skillState];
     }
 
-    // Convert correct to rating (simplified: correct=Good(3), incorrect=Again(1))
-    const rating: 1 | 2 | 3 | 4 = correct ? 3 : 1;
-    const updatedState = this.memoryScheduler.scheduleReview(skillState, correct, rating);
+    // Convert practice event to FSRS rating using confidence + response time
+    const rating = computeRating(event, this.ratingConfig);
+    // Look up per-user learning speed for this skill
+    const learningSpeed = this.learnerSpeeds.get(learnerId)?.get(skillId);
+    const updatedState = this.memoryScheduler.scheduleReview(
+      skillState,
+      correct,
+      rating,
+      learningSpeed
+    );
 
     // Replace the state in the array
     states = states.map((s) => (s.skillId === skillId ? updatedState : s));
+
+    // Implicit credit propagation (FIRe-inspired): when a skill is practiced
+    // correctly, encompassed skills get their nextReview shifted forward.
+    if (correct && this.implicitCreditFraction > 0) {
+      const encompassed = this.graph.getEncompassedSkills(skillId);
+      for (const targetId of encompassed) {
+        const targetState = states.find((s) => s.skillId === targetId);
+        if (!targetState) continue;
+
+        // Skip credit for learners struggling with this skill (speed < minSpeed)
+        const targetSpeed = this.learnerSpeeds.get(learnerId)?.get(targetId) ?? 1.0;
+        if (targetSpeed < this.implicitCreditMinSpeed) continue;
+
+        // Shift nextReview forward by creditFraction * remaining interval
+        const remainingInterval = targetState.nextReview - targetState.lastReview;
+        if (remainingInterval <= 0) continue;
+
+        const shiftMs = Math.round(remainingInterval * this.implicitCreditFraction);
+        const newNextReview = targetState.nextReview + shiftMs;
+
+        states = states.map((s) =>
+          s.skillId === targetId ? { ...s, nextReview: newNextReview } : s
+        );
+
+        // Log implicit credit event for replay determinism
+        const creditEvent = createImplicitCreditEvent(
+          this.eventContext,
+          learnerId,
+          event.sessionId,
+          skillId,
+          targetId,
+          this.implicitCreditFraction,
+          shiftMs
+        );
+        this.eventLog.push(creditEvent);
+      }
+    }
+
     this.memoryStates.set(learnerId, states);
   }
 
@@ -222,7 +360,23 @@ export class NoesisCoreEngineImpl implements NoesisCoreEngine {
    */
   private processSessionEvent(_event: SessionEvent): void {
     // Session events are logged but don't directly modify learner state
-    // They could be used for analytics or session tracking
+  }
+
+  /**
+   * Process an implicit credit event (during replay).
+   * Applies the nextReview shift to the target skill.
+   */
+  private processImplicitCreditEvent(
+    event: import('../constitution.js').ImplicitCreditEvent
+  ): void {
+    const { learnerId, targetSkillId, nextReviewShiftMs } = event;
+    const states = this.memoryStates.get(learnerId);
+    if (!states) return;
+
+    const updated = states.map((s) =>
+      s.skillId === targetSkillId ? { ...s, nextReview: s.nextReview + nextReviewShiftMs } : s
+    );
+    this.memoryStates.set(learnerId, updated);
   }
 
   /**
@@ -275,10 +429,9 @@ export class NoesisCoreEngineImpl implements NoesisCoreEngine {
   registerTransferTests(tests: TransferTest[]): void {
     this.transferTests = tests;
 
-    // Re-create session planner with updated tests
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (this as any).sessionPlanner = new SessionPlannerImpl(
-      {},
+    // Re-create session planner with updated tests, preserving original config
+    this.sessionPlanner = new SessionPlannerImpl(
+      this.plannerConfig,
       this.transferTests,
       this.transferResults
     );
@@ -319,9 +472,15 @@ export class NoesisCoreEngineImpl implements NoesisCoreEngine {
     // Convert Map to array for JSON serialization
     const memoryStatesArray: [string, MemoryState[]][] = Array.from(this.memoryStates.entries());
 
+    // Serialize learner speeds
+    const learnerSpeedsArray: [string, [string, number][]][] = Array.from(
+      this.learnerSpeeds.entries()
+    ).map(([learnerId, speeds]) => [learnerId, Array.from(speeds.entries())]);
+
     return JSON.stringify({
       ...serialized,
       memoryStates: memoryStatesArray,
+      learnerSpeeds: learnerSpeedsArray,
     });
   }
 
@@ -346,6 +505,14 @@ export class NoesisCoreEngineImpl implements NoesisCoreEngine {
 
     // Restore event log
     this.eventLog = parsed.eventLog;
+
+    // Restore learner speeds (backward compatible — missing in old serialized data)
+    this.learnerSpeeds.clear();
+    if (parsed.learnerSpeeds) {
+      for (const [learnerId, speedEntries] of parsed.learnerSpeeds) {
+        this.learnerSpeeds.set(learnerId, new Map(speedEntries));
+      }
+    }
   }
 
   /**
@@ -358,6 +525,7 @@ export class NoesisCoreEngineImpl implements NoesisCoreEngine {
     this.memoryStates.clear();
     this.transferResults = [];
     this.eventLog = [];
+    this.learnerSpeeds.clear();
 
     // Replay each event in order
     for (const event of events) {
@@ -435,6 +603,92 @@ export class NoesisCoreEngineImpl implements NoesisCoreEngine {
       averageMastery: totalSkills > 0 ? totalMastery / totalSkills : 0,
       totalEvents: model.totalEvents,
     };
+  }
+
+  /**
+   * Get effective mastery for a skill, accounting for prerequisite subgraph health.
+   * Returns the minimum of the skill's own pMastery and the minimum pMastery
+   * among all its transitive prerequisites. A skill is only truly mastered
+   * if its entire foundation is solid.
+   *
+   * Pure computation — no stored state, no cache.
+   */
+  getEffectiveMastery(learnerId: string, skillId: string): number {
+    const model = this.learnerModels.get(learnerId);
+    if (!model) return 0;
+
+    const ownMastery = model.skillProbabilities.get(skillId)?.pMastery ?? 0;
+    const prereqs = this.graph.getAllPrerequisites(skillId);
+
+    if (prereqs.length === 0) return ownMastery;
+
+    let minPrereqMastery = ownMastery;
+    for (const prereqId of prereqs) {
+      const prereqMastery = model.skillProbabilities.get(prereqId)?.pMastery ?? 0;
+      if (prereqMastery < minPrereqMastery) {
+        minPrereqMastery = prereqMastery;
+      }
+    }
+
+    return minPrereqMastery;
+  }
+
+  /**
+   * Set the learning speed multiplier for a specific learner+skill.
+   * Speed > 1.0 = topic is easy, longer review intervals.
+   * Speed < 1.0 = topic is hard, shorter review intervals.
+   * Clamped to [0.5, 2.0].
+   */
+  setLearningSpeed(learnerId: string, skillId: string, speed: number): void {
+    const clamped = Math.max(0.5, Math.min(2.0, speed));
+    let skillSpeeds = this.learnerSpeeds.get(learnerId);
+    if (!skillSpeeds) {
+      skillSpeeds = new Map();
+      this.learnerSpeeds.set(learnerId, skillSpeeds);
+    }
+    skillSpeeds.set(skillId, clamped);
+  }
+
+  /**
+   * Get the learning speed for a learner+skill (default 1.0).
+   */
+  getLearningSpeed(learnerId: string, skillId: string): number {
+    return this.learnerSpeeds.get(learnerId)?.get(skillId) ?? 1.0;
+  }
+
+  /**
+   * Calibrate learning speed for a learner+skill based on practice history.
+   * Computes the ratio of actual retention to predicted retention.
+   * Returns a suggested speed — does NOT auto-apply it.
+   *
+   * Requires at least `minEvents` practice events for the skill to produce
+   * a meaningful calibration. Returns 1.0 if insufficient data.
+   */
+  calibrateLearningSpeed(learnerId: string, skillId: string, minEvents: number = 5): number {
+    const practiceEvents = this.eventLog.filter(
+      (e): e is PracticeEvent =>
+        e.type === 'practice' &&
+        e.learnerId === learnerId &&
+        (e as PracticeEvent).skillId === skillId
+    );
+
+    if (practiceEvents.length < minEvents) return 1.0;
+
+    // Compare actual success rate vs predicted retention at time of each review
+    const states = this.memoryStates.get(learnerId) || [];
+    const skillState = states.find((s) => s.skillId === skillId);
+    if (!skillState) return 1.0;
+
+    // Simple calibration: ratio of actual accuracy to expected retention
+    const correctCount = practiceEvents.filter((e) => e.correct).length;
+    const actualAccuracy = correctCount / practiceEvents.length;
+    const predictedRetention = this.memoryScheduler.getRetention(skillState, this.clock());
+
+    if (predictedRetention <= 0) return 1.0;
+
+    // Speed = actual / predicted, clamped to [0.5, 2.0]
+    const rawSpeed = actualAccuracy / predictedRetention;
+    return Math.max(0.5, Math.min(2.0, rawSpeed));
   }
 
   /**

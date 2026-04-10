@@ -57,6 +57,13 @@ export interface Skill {
   description?: string;
   /** IDs of prerequisite skills (must be mastered before this skill) */
   prerequisites: string[];
+  /**
+   * IDs of skills implicitly practiced when this skill is practiced.
+   * Separate from prerequisites: "A encompasses B" means practicing A
+   * gives implicit review credit to B (FIRe-inspired trickle-down).
+   * Example: "long_division" encompasses ["multiplication", "subtraction"].
+   */
+  encompassedSkills?: string[];
   /** Skill category/type for grouping */
   category?: string;
   /** Estimated difficulty (0-1) */
@@ -79,6 +86,10 @@ export interface SkillGraph {
   getDependents(skillId: string): string[];
   /** Check if skill A is a prerequisite of skill B */
   isPrerequisiteOf(skillA: string, skillB: string): boolean;
+  /** Get directly encompassed skills (one level) */
+  getEncompassedSkills(skillId: string): string[];
+  /** Get all encompassed skills (transitive closure) */
+  getAllEncompassedSkills(skillId: string): string[];
 }
 
 export interface SkillGraphValidationResult {
@@ -87,7 +98,12 @@ export interface SkillGraphValidationResult {
 }
 
 export interface SkillGraphError {
-  type: 'CYCLE_DETECTED' | 'MISSING_PREREQUISITE' | 'DUPLICATE_SKILL';
+  type:
+    | 'CYCLE_DETECTED'
+    | 'MISSING_PREREQUISITE'
+    | 'DUPLICATE_SKILL'
+    | 'INVALID_ENCOMPASSED_SKILL'
+    | 'ENCOMPASSING_CYCLE';
   message: string;
   affectedSkills: string[];
 }
@@ -180,8 +196,17 @@ export interface MemoryState {
 export interface MemoryScheduler {
   /** Create initial memory state for a skill */
   createState(skillId: string): MemoryState;
-  /** Schedule next review based on recall result */
-  scheduleReview(state: MemoryState, recalled: boolean, rating: 1 | 2 | 3 | 4): MemoryState;
+  /**
+   * Schedule next review based on recall result.
+   * @param learningSpeed - Per-user speed multiplier (default 1.0). Range [0.5, 2.0].
+   *   Speed > 1.0 = easy topic, longer intervals. Speed < 1.0 = hard topic, shorter intervals.
+   */
+  scheduleReview(
+    state: MemoryState,
+    recalled: boolean,
+    rating: 1 | 2 | 3 | 4,
+    learningSpeed?: number
+  ): MemoryState;
   /** Get skills due for review at a given time */
   getDueSkills(states: MemoryState[], atTime: number): MemoryState[];
   /** Calculate retention probability at a given time */
@@ -197,7 +222,7 @@ export interface MemoryScheduler {
  */
 export interface SessionAction {
   /** Type of action */
-  type: 'practice' | 'review' | 'diagnostic' | 'transfer_test' | 'rest';
+  type: 'practice' | 'review' | 'diagnostic' | 'transfer_test' | 'prerequisite_probe' | 'rest';
   /** Target skill ID (if applicable) */
   skillId?: string;
   /** Specific item/question ID (if applicable) */
@@ -222,6 +247,22 @@ export interface SessionConfig {
   enforceSpacedRetrieval: boolean;
   /** Whether to require transfer tests before progression */
   requireTransferTests: boolean;
+  /**
+   * Enable knock-out review selection: prefer reviews whose encompassed
+   * skills overlap with other due reviews, reducing total review count.
+   * Uses greedy set-cover. Default false (linear selection).
+   */
+  enableKnockOutReviews?: boolean;
+  /**
+   * Enable prerequisite re-validation: periodically probe prerequisite
+   * skills when a mastered skill's foundation has decayed. Default false.
+   */
+  prerequisiteRevalidationEnabled?: boolean;
+  /**
+   * Mastery threshold below which a prerequisite triggers re-validation.
+   * Default 0.7.
+   */
+  prerequisiteRevalidationThreshold?: number;
 }
 
 /**
@@ -387,9 +428,31 @@ export interface SessionEvent extends BaseEvent {
 }
 
 /**
+ * Implicit credit event — generated when practicing a skill gives
+ * fractional review credit to an encompassed skill (FIRe-inspired).
+ * These events are logged for replay determinism and analytics.
+ */
+export interface ImplicitCreditEvent extends BaseEvent {
+  type: 'implicit_credit';
+  /** The skill that was explicitly practiced */
+  sourceSkillId: string;
+  /** The encompassed skill receiving credit */
+  targetSkillId: string;
+  /** Fraction of credit applied (0-1) */
+  creditFraction: number;
+  /** How much nextReview was shifted forward (ms) */
+  nextReviewShiftMs: number;
+}
+
+/**
  * Union type of all events
  */
-export type NoesisEvent = PracticeEvent | DiagnosticEvent | TransferTestEvent | SessionEvent;
+export type NoesisEvent =
+  | PracticeEvent
+  | DiagnosticEvent
+  | TransferTestEvent
+  | SessionEvent
+  | ImplicitCreditEvent;
 
 // =============================================================================
 // DIAGNOSTIC ENGINE TYPES

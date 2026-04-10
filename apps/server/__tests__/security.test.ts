@@ -37,11 +37,13 @@ describe('Security Tests', () => {
       }
     });
 
-    it('should reject input missing required fields', () => {
-      const invalidInput = { username: 'testuser' };
-      const result = insertUserSchema.safeParse(invalidInput);
+    it('should allow input without password (for OAuth users)', () => {
+      // Password is nullable in the schema to support Google OAuth users.
+      // Password validation for local registration is enforced at the route level.
+      const oauthInput = { username: 'testuser' };
+      const result = insertUserSchema.safeParse(oauthInput);
 
-      expect(result.success).toBe(false);
+      expect(result.success).toBe(true);
     });
   });
 

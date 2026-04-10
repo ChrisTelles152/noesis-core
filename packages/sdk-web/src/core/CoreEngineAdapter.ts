@@ -272,12 +272,21 @@ export class CoreEngineAdapter {
   }
 
   /**
-   * Update the skill graph
+   * Update the skill graph.
+   * Preserves existing learner state by exporting before and importing after recreation.
    */
   updateSkillGraph(skills: Skill[]): void {
+    // Preserve existing state across engine recreation
+    const savedState = this.engine.exportState();
     this.graph = createSkillGraph(skills);
-    // Re-create engine with new graph
     this.engine = createNoesisCoreEngine(this.graph, {}, this.clock);
+    try {
+      this.engine.importState(savedState);
+    } catch {
+      // If import fails (e.g., incompatible state), start fresh — this is safer
+      // than crashing. The event log in this adapter still holds the history.
+      this.log('Warning: could not restore state after skill graph update, starting fresh');
+    }
     this.log('Skill graph updated');
   }
 

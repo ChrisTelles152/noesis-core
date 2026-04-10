@@ -25,7 +25,11 @@ declare global {
     interface User {
       id: number;
       username: string;
-      password: string;
+      password: string | null;
+      email: string | null;
+      googleId: string | null;
+      displayName: string | null;
+      avatarUrl: string | null;
     }
   }
 }
@@ -57,28 +61,17 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
       },
       async (_accessToken, _refreshToken, profile, done) => {
         try {
-          const store = getStorage() as any;
+          const store = getStorage();
           const googleId = profile.id;
           const email = profile.emails?.[0]?.value || '';
           const displayName = profile.displayName || '';
           const avatarUrl = profile.photos?.[0]?.value || '';
 
           // Check if user already exists with this Google ID
-          let user = store.getUserByGoogleId
-            ? await store.getUserByGoogleId(googleId)
-            : undefined;
+          let user = await store.getUserByGoogleId(googleId);
 
           if (!user) {
-            // Create new user from Google profile
-            if (store.createGoogleUser) {
-              user = await store.createGoogleUser({ googleId, email, displayName, avatarUrl });
-            } else {
-              // Fallback: create with username derived from email
-              user = await store.createUser({
-                username: email.split('@')[0] + '_g' + googleId.slice(-6),
-                password: require('crypto').randomBytes(32).toString('hex'),
-              });
-            }
+            user = await store.createGoogleUser({ googleId, email, displayName, avatarUrl });
           }
 
           return done(null, user);
@@ -389,11 +382,15 @@ function registerAuthRoutes(app: Express): void {
 
   // Google OAuth routes
   if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
-    app.get('/api/auth/google', passport.authenticate('google', {
-      scope: ['profile', 'email'],
-    }));
+    app.get(
+      '/api/auth/google',
+      passport.authenticate('google', {
+        scope: ['profile', 'email'],
+      })
+    );
 
-    app.get('/api/auth/google/callback',
+    app.get(
+      '/api/auth/google/callback',
       passport.authenticate('google', { failureRedirect: '/login?error=google_auth_failed' }),
       (req: Request, res: Response) => {
         // Successful authentication, redirect to app
