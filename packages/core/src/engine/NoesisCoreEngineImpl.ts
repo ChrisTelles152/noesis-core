@@ -44,6 +44,60 @@ import type { ClockFn, IdGeneratorFn } from '../events/index.js';
 /**
  * Core engine configuration
  */
+/**
+ * Configuration for converting practice events to FSRS ratings.
+ * Uses confidence and response time when available, falls back to
+ * binary correct/incorrect (rating 3 or 1) when they're absent.
+ */
+export interface RatingConfig {
+  /** Confidence below this → Hard (2) when correct. Default 0.4 */
+  hardConfidenceThreshold: number;
+  /** Confidence above this → Easy (4) when correct. Default 0.8 */
+  easyConfidenceThreshold: number;
+  /** Baseline response time in ms for difficulty assessment. Default 10000 */
+  baselineResponseTimeMs: number;
+  /** Response time > baseline * this factor → Hard (2). Default 2.0 */
+  hardResponseTimeFactor: number;
+  /** Response time < baseline * this factor → Easy (4). Default 0.5 */
+  easyResponseTimeFactor: number;
+}
+
+export const DEFAULT_RATING_CONFIG: RatingConfig = {
+  hardConfidenceThreshold: 0.4,
+  easyConfidenceThreshold: 0.8,
+  baselineResponseTimeMs: 10000,
+  hardResponseTimeFactor: 2.0,
+  easyResponseTimeFactor: 0.5,
+};
+
+/**
+ * Compute FSRS rating from a practice event.
+ * Pure function — deterministic given the same inputs.
+ *
+ * Rating scale:
+ * - 1 (Again): incorrect answer
+ * - 2 (Hard): correct but low confidence or slow response
+ * - 3 (Good): correct with normal performance
+ * - 4 (Easy): correct with high confidence and fast response
+ */
+export function computeRating(event: PracticeEvent, config: RatingConfig = DEFAULT_RATING_CONFIG): 1 | 2 | 3 | 4 {
+  if (!event.correct) return 1;
+
+  const hasConfidence = event.confidence !== undefined;
+  const hasResponseTime = event.responseTimeMs !== undefined && event.responseTimeMs > 0;
+
+  // Check for Hard (2): low confidence OR very slow
+  if (hasConfidence && event.confidence! < config.hardConfidenceThreshold) return 2;
+  if (hasResponseTime && event.responseTimeMs! > config.baselineResponseTimeMs * config.hardResponseTimeFactor) return 2;
+
+  // Check for Easy (4): high confidence AND fast
+  if (hasConfidence && event.confidence! >= config.easyConfidenceThreshold &&
+      (!hasResponseTime || event.responseTimeMs! < config.baselineResponseTimeMs * config.easyResponseTimeFactor)) return 4;
+
+  // Default: Good (3)
+  return 3;
+}
+
 export interface CoreEngineConfig {
   /** BKT parameters for learner modeling */
   bkt?: Partial<BKTParams>;
@@ -55,6 +109,8 @@ export interface CoreEngineConfig {
   transfer?: Partial<TransferGateConfig>;
   /** Diagnostic engine configuration */
   diagnostic?: Partial<DiagnosticConfig>;
+  /** Rating conversion configuration */
+  rating?: Partial<RatingConfig>;
 }
 
 /**
@@ -84,6 +140,7 @@ export class NoesisCoreEngineImpl implements NoesisCoreEngine {
   // idGenerator can be used for creating events within the engine
   private readonly idGenerator: IdGeneratorFn;
   private readonly plannerConfig: Partial<SessionPlannerConfig>;
+  private readonly ratingConfig: RatingConfig;
 
   // Internal state
   private learnerModels: Map<string, LearnerModel> = new Map();
@@ -103,6 +160,7 @@ export class NoesisCoreEngineImpl implements NoesisCoreEngine {
     this.clock = clock;
     this.idGenerator = idGenerator;
     this.plannerConfig = config.planner || {};
+    this.ratingConfig = { ...DEFAULT_RATING_CONFIG, ...config.rating };
 
     // Initialize components
     this.learnerEngine = createBKTEngine(config.bkt, clock);
@@ -166,8 +224,8 @@ export class NoesisCoreEngineImpl implements NoesisCoreEngine {
       states = [...states, skillState];
     }
 
-    // Convert correct to rating (simplified: correct=Good(3), incorrect=Again(1))
-    const rating: 1 | 2 | 3 | 4 = correct ? 3 : 1;
+    // Convert practice event to FSRS rating using confidence + response time
+    const rating = computeRating(event, this.ratingConfig);
     const updatedState = this.memoryScheduler.scheduleReview(skillState, correct, rating);
 
     // Replace the state in the array
