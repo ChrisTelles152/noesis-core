@@ -166,21 +166,23 @@ export class DiagnosticEngineImpl implements DiagnosticEngine {
       const mapping = itemLookup.get(response.itemId);
       if (!mapping) continue;
 
-      // Update primary skill
+      // Update primary skill (full weight)
       this.updateSkillResult(
         skillResults,
         mapping.primarySkillId,
         response.correct,
-        mapping.difficulty
+        mapping.difficulty,
+        1.0
       );
 
-      // Update secondary skills (with reduced weight)
+      // Update secondary skills (half weight — affects accuracy and difficulty equally)
       for (const secondaryId of mapping.secondarySkillIds) {
         this.updateSkillResult(
           skillResults,
           secondaryId,
           response.correct,
-          mapping.difficulty * 0.5
+          mapping.difficulty,
+          0.5
         );
       }
     }
@@ -213,12 +215,14 @@ export class DiagnosticEngineImpl implements DiagnosticEngine {
 
   /**
    * Update skill result with a response
+   * @param weight - How much this response counts (1.0 for primary, 0.5 for secondary skills)
    */
   private updateSkillResult(
     results: Map<string, SkillResult>,
     skillId: string,
     correct: boolean,
-    difficulty: number
+    difficulty: number,
+    weight: number = 1.0
   ): void {
     const existing = results.get(skillId) || {
       skillId,
@@ -229,9 +233,9 @@ export class DiagnosticEngineImpl implements DiagnosticEngine {
 
     results.set(skillId, {
       skillId,
-      itemsAttempted: existing.itemsAttempted + 1,
-      itemsCorrect: existing.itemsCorrect + (correct ? 1 : 0),
-      totalDifficulty: existing.totalDifficulty + difficulty,
+      itemsAttempted: existing.itemsAttempted + weight,
+      itemsCorrect: existing.itemsCorrect + (correct ? weight : 0),
+      totalDifficulty: existing.totalDifficulty + difficulty * weight,
     });
   }
 

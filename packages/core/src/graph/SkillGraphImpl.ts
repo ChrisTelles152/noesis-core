@@ -172,14 +172,14 @@ export class SkillGraphImpl implements SkillGraph {
 
     // Start with skills that have no prerequisites (in-degree 0)
     // Collect all zero-degree skills first
-    const zeroDegreeSkilss: string[] = [];
+    const zeroDegreeSkills: string[] = [];
     for (const [skillId, degree] of inDegree) {
       if (degree === 0) {
-        zeroDegreeSkilss.push(skillId);
+        zeroDegreeSkills.push(skillId);
       }
     }
     // Sort once for determinism
-    zeroDegreeSkilss.sort();
+    zeroDegreeSkills.sort();
 
     const result: string[] = [];
     const processed = new Set<string>();
@@ -187,7 +187,7 @@ export class SkillGraphImpl implements SkillGraph {
     // Use a sorted approach: process skills in sorted order at each level
     // Instead of sorting the queue every iteration (O(n² log n)),
     // we collect all newly-available skills per level and sort once
-    let currentLevel = zeroDegreeSkilss;
+    let currentLevel = zeroDegreeSkills;
 
     while (currentLevel.length > 0) {
       const nextLevel: string[] = [];
