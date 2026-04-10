@@ -36,6 +36,7 @@ export const openApiSpec = {
     { name: 'Analytics', description: 'Learning analytics and metrics' },
     { name: 'Learning Events', description: 'Learning event tracking' },
     { name: 'System', description: 'System status and health' },
+    { name: 'Core Engine', description: 'Core learning engine event storage and state persistence' },
   ],
   paths: {
     '/auth/login': {
@@ -370,6 +371,7 @@ export const openApiSpec = {
       get: {
         tags: ['System'],
         summary: 'Get LLM provider status',
+        security: [],
         responses: {
           200: {
             description: 'LLM status',
@@ -379,6 +381,170 @@ export const openApiSpec = {
               },
             },
           },
+        },
+      },
+    },
+    '/core/events': {
+      post: {
+        tags: ['Core Engine'],
+        summary: 'Store a single typed NoesisEvent',
+        description: 'Validates and stores a canonical core engine event. The full NoesisEvent is preserved in data._coreEvent for lossless replay.',
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: { $ref: '#/components/schemas/NoesisEvent' },
+            },
+          },
+        },
+        responses: {
+          201: {
+            description: 'Event stored',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    id: { type: 'integer' },
+                    coreEventId: { type: 'string' },
+                    type: { type: 'string' },
+                  },
+                },
+              },
+            },
+          },
+          400: { description: 'Validation error (missing fields, unknown event type)' },
+          401: { description: 'Authentication required' },
+        },
+      },
+      get: {
+        tags: ['Core Engine'],
+        summary: 'Retrieve all core events for current user',
+        description: 'Extracts stored NoesisEvents from learning_events, sorted by timestamp.',
+        responses: {
+          200: {
+            description: 'Core events',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    count: { type: 'integer' },
+                    events: { type: 'array', items: { $ref: '#/components/schemas/NoesisEvent' } },
+                  },
+                },
+              },
+            },
+          },
+          401: { description: 'Authentication required' },
+        },
+      },
+    },
+    '/core/events/batch': {
+      post: {
+        tags: ['Core Engine'],
+        summary: 'Store up to 100 NoesisEvents',
+        description: 'Each event is validated individually. Valid events are stored; invalid ones are reported in the response.',
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'array',
+                items: { $ref: '#/components/schemas/NoesisEvent' },
+                minItems: 1,
+                maxItems: 100,
+              },
+            },
+          },
+        },
+        responses: {
+          201: {
+            description: 'Batch result',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    stored: { type: 'integer' },
+                    results: {
+                      type: 'array',
+                      items: {
+                        type: 'object',
+                        properties: {
+                          coreEventId: { type: 'string' },
+                          stored: { type: 'boolean' },
+                          error: { type: 'string' },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+          400: { description: 'Invalid request' },
+          401: { description: 'Authentication required' },
+        },
+      },
+    },
+    '/engine/state': {
+      put: {
+        tags: ['Core Engine'],
+        summary: 'Save full engine state snapshot',
+        description: 'Upserts the JSON string from engine.exportState(). Contains BKT probabilities, FSRS schedules, transfer results, and event log.',
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                required: ['state'],
+                properties: {
+                  state: { type: 'string', minLength: 1 },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          200: {
+            description: 'State saved',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    saved: { type: 'boolean' },
+                  },
+                },
+              },
+            },
+          },
+          400: { description: 'Invalid request' },
+          401: { description: 'Authentication required' },
+        },
+      },
+      get: {
+        tags: ['Core Engine'],
+        summary: 'Load saved engine state',
+        description: 'Returns the previously saved engine state snapshot for engine.importState().',
+        responses: {
+          200: {
+            description: 'Engine state',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    state: { type: 'string' },
+                  },
+                },
+              },
+            },
+          },
+          401: { description: 'Authentication required' },
+          404: { description: 'No engine state found for this user' },
         },
       },
     },
@@ -513,6 +679,32 @@ export const openApiSpec = {
           activeProvider: { type: 'string' },
           configuredProviders: { type: 'array', items: { type: 'string' } },
           hasLLMProvider: { type: 'boolean' },
+        },
+      },
+      NoesisEvent: {
+        type: 'object',
+        description: 'A canonical core engine event (practice, diagnostic, transfer_test, session_start, session_end)',
+        required: ['id', 'type', 'learnerId', 'timestamp', 'sessionId'],
+        properties: {
+          id: { type: 'string' },
+          type: { type: 'string', enum: ['practice', 'diagnostic', 'transfer_test', 'session_start', 'session_end'] },
+          learnerId: { type: 'string' },
+          timestamp: { type: 'number' },
+          sessionId: { type: 'string' },
+          skillId: { type: 'string' },
+          itemId: { type: 'string' },
+          correct: { type: 'boolean' },
+          responseTimeMs: { type: 'number' },
+          confidence: { type: 'number' },
+          errorCategory: { type: 'string' },
+          testId: { type: 'string' },
+          transferType: { type: 'string', enum: ['near', 'far'] },
+          score: { type: 'number' },
+          passed: { type: 'boolean' },
+          skillsAssessed: { type: 'array', items: { type: 'string' } },
+          results: { type: 'array', items: { type: 'object' } },
+          config: { type: 'object' },
+          summary: { type: 'object' },
         },
       },
     },
