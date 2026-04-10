@@ -1,6 +1,6 @@
 # Action Plan — Noesis Core
 
-> Last updated: 2026-04-10 (Phase 4 — third pass complete)
+> Last updated: 2026-04-10 (Phase 4 — fourth pass complete)
 >
 > **Source docs analyzed:**
 > - `CODEBASE_ANALYSIS.md` — January 2026 comprehensive analysis
@@ -8,6 +8,9 @@
 > - `docs/API_REFERENCE.md` — API surface documentation (Prompt 2 session)
 > - `docs/SIMPLIFICATION_AUDIT.md` — Simplification recommendations (Prompt 3 session)
 > - `docs/ALGORITHM_AUDIT.md` — Algorithm correctness analysis (Prompt 1 session)
+> - `docs/API_GAP_ANALYSIS.md` — Pilot readiness gap analysis (Prompt 2 session)
+> - `docs/DATA_MODEL_AUDIT.md` — Data model & state persistence audit (Prompt 4 session)
+> - `docs/TESTING_STRATEGY.md` — Testing coverage analysis (Prompt 5 session)
 > - `docs/INVESTIGATION_PROMPTS.md` — 5 investigation prompts
 > - `docs/architecture/*` — Architecture docs (constitution, publish readiness, migration)
 > - Full source code verification of all findings against actual codebase
@@ -19,9 +22,9 @@
 | Severity | Count | Actionable | Needs Human | Done |
 |----------|-------|------------|-------------|------|
 | CRITICAL | 2 | 2 | 0 | 2 |
-| HIGH | 1 | 1 | 0 | 1 |
+| HIGH | 2 | 2 | 0 | 2 |
 | MEDIUM | 12 | 7 | 5 | 10 |
-| LOW | 6 | 6 | 0 | 5 |
+| LOW | 7 | 7 | 0 | 6 |
 
 ---
 
@@ -39,6 +42,7 @@
 | # | Finding | Source | Effort | Status |
 |---|---------|--------|--------|--------|
 | H1 | **`SkillGraph.removeSkill()` leaves dangling prerequisite references** — Calls `this.skills.delete(skillId)` but does NOT clean up references to that skill in other skills' `prerequisites` arrays. After removal, `validate()` reports `MISSING_PREREQUISITE` errors. | Algorithm Audit (`SkillGraphImpl.ts:40-42`) | S | **DONE** — fix + tests added |
+| H2 | **OpenAPI spec missing 5 core engine endpoints** — `POST/GET /api/core/events`, `POST /api/core/events/batch`, `PUT/GET /api/engine/state` all implemented but not in the OpenAPI spec. Also missing `NoesisEvent` schema and `Core Engine` tag. | `API_GAP_ANALYSIS.md` (item 9) | S | **DONE** — 5 endpoints + schema + tag added `e04f1bb` |
 
 ### Previously reported HIGH items — resolved
 
@@ -80,6 +84,7 @@
 | L4 | **Diagnostic secondary skill weight applied to difficulty, not accuracy** — `difficulty * 0.5` halves difficulty weight for secondary skills; small effect | Algorithm Audit | S | Engineering | **DONE** — weight now applies to attempts, correctness, and difficulty equally `0aad194` |
 | L5 | **Variable typo: `zeroDegreeSkilss`** in `SkillGraphImpl.ts:169` | Algorithm Audit | S | Engineering | **DONE** — fixed to `zeroDegreeSkills` `0aad194` |
 | L6 | **Overengineered infrastructure for pilot** — ~3,400 lines of performance monitoring, K8s probes, WebSocket DoS protection, 3 storage backends. See SIMPLIFICATION_AUDIT.md. | `SIMPLIFICATION_AUDIT.md` | L | NEEDS_HUMAN | BACKLOG |
+| L7 | **DATA_MODEL_AUDIT.md critical gaps stale** — Gap 1 (state persistence) and Gap 2 (event compatibility) are now resolved. Audit text still says "nobody calls them" and "cannot replay." | `DATA_MODEL_AUDIT.md` | S | Engineering | BACKLOG |
 
 ---
 
@@ -104,7 +109,8 @@
 | M11 | `9171218` | Add superseded notice to CODEBASE_ANALYSIS.md with current doc pointers |
 | M3 | `6581587` | Deprecate MasteryTracker, mark CoreEngineAdapter as canonical, sync recordPractice to both |
 | M2 | `1e973f6` | Event bridge: converter between server LearningEvent and core NoesisEvent, 3 new endpoints, 23 tests |
-| C2 | `a2aec6b` | Fix `registerTransferTests()` preserving custom planner config + test |
+| C2 | `ead9c8c` | Fix `registerTransferTests()` preserving custom planner config + test |
+| H2 | `e04f1bb` | Add 5 missing endpoints to OpenAPI spec (core events + engine state) |
 
 ---
 
