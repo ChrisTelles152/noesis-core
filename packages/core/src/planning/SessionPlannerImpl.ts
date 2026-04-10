@@ -133,6 +133,16 @@ export class SessionPlannerImpl implements SessionPlanner {
       return errorAction;
     }
 
+    // Priority 3.5: Prerequisite re-validation probes
+    if (mergedConfig.prerequisiteRevalidationEnabled) {
+      const probeAction = this.getPrerequisiteProbeAction(
+        learnerModel, skillGraph, mergedConfig
+      );
+      if (probeAction) {
+        return probeAction;
+      }
+    }
+
     // Priority 4: New skill introduction (smallest leverage gap)
     const newSkillAction = this.getNewSkillAction(learnerModel, skillGraph);
     if (newSkillAction) {
@@ -464,6 +474,53 @@ export class SessionPlannerImpl implements SessionPlanner {
    * Get session statistics
    */
   /**
+   * Get a prerequisite probe action when a mastered skill's foundation has decayed.
+   * Scans topological order for skills where:
+   * - The skill itself has pMastery >= threshold (appears mastered)
+   * - But some prerequisite has pMastery < revalidation threshold
+   * Returns a probe action for the weakest prerequisite.
+   */
+  private getPrerequisiteProbeAction(
+    learnerModel: LearnerModel,
+    skillGraph: SkillGraph,
+    config: SessionPlannerConfig
+  ): SessionAction | undefined {
+    const revalThreshold = config.prerequisiteRevalidationThreshold ?? 0.7;
+    const skillOrder = skillGraph.getTopologicalOrder();
+
+    // Check from most advanced skills backward
+    for (let i = skillOrder.length - 1; i >= 0; i--) {
+      const skillId = skillOrder[i];
+      const pMastery = learnerModel.skillProbabilities.get(skillId)?.pMastery ?? 0;
+
+      if (pMastery < config.masteryThreshold) continue; // Only check mastered skills
+
+      const prereqs = skillGraph.getAllPrerequisites(skillId);
+      let weakestPrereq: string | undefined;
+      let weakestMastery = Infinity;
+
+      for (const prereqId of prereqs) {
+        const prereqMastery = learnerModel.skillProbabilities.get(prereqId)?.pMastery ?? 0;
+        if (prereqMastery < revalThreshold && prereqMastery < weakestMastery) {
+          weakestMastery = prereqMastery;
+          weakestPrereq = prereqId;
+        }
+      }
+
+      if (weakestPrereq) {
+        return {
+          type: 'prerequisite_probe',
+          skillId: weakestPrereq,
+          reason: `Prerequisite re-validation: "${weakestPrereq}" has decayed (${(weakestMastery * 100).toFixed(0)}%) while dependent "${skillId}" appears mastered`,
+          priority: 55,
+        };
+      }
+    }
+
+    return undefined;
+  }
+
+  /**
    * Select a single best knock-out review (for getNextAction).
    * Picks the due skill whose encompassed skills overlap most with other due skills.
    */
@@ -559,6 +616,7 @@ export class SessionPlannerImpl implements SessionPlanner {
       review: actions.filter((a) => a.type === 'review').length,
       diagnostic: actions.filter((a) => a.type === 'diagnostic').length,
       transfer_test: actions.filter((a) => a.type === 'transfer_test').length,
+      prerequisite_probe: actions.filter((a) => a.type === 'prerequisite_probe').length,
       rest: actions.filter((a) => a.type === 'rest').length,
     };
 
@@ -584,6 +642,7 @@ export interface SessionStats {
     review: number;
     diagnostic: number;
     transfer_test: number;
+    prerequisite_probe: number;
     rest: number;
   };
   uniqueSkills: number;
