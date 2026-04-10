@@ -76,13 +76,14 @@ export class NoesisCoreEngineImpl implements NoesisCoreEngine {
   readonly graph: SkillGraph;
   readonly learnerEngine: LearnerModelEngine;
   readonly memoryScheduler: MemoryScheduler;
-  readonly sessionPlanner: SessionPlanner;
+  sessionPlanner: SessionPlanner;
   readonly transferGate: TransferGate;
   readonly diagnosticEngine: DiagnosticEngine;
 
   private readonly clock: ClockFn;
   // idGenerator can be used for creating events within the engine
   private readonly idGenerator: IdGeneratorFn;
+  private readonly plannerConfig: Partial<SessionPlannerConfig>;
 
   // Internal state
   private learnerModels: Map<string, LearnerModel> = new Map();
@@ -101,6 +102,7 @@ export class NoesisCoreEngineImpl implements NoesisCoreEngine {
     this.graph = skillGraph;
     this.clock = clock;
     this.idGenerator = idGenerator;
+    this.plannerConfig = config.planner || {};
 
     // Initialize components
     this.learnerEngine = createBKTEngine(config.bkt, clock);
@@ -110,7 +112,7 @@ export class NoesisCoreEngineImpl implements NoesisCoreEngine {
 
     // Session planner needs transfer data
     this.sessionPlanner = new SessionPlannerImpl(
-      config.planner,
+      this.plannerConfig,
       this.transferTests,
       this.transferResults
     );
@@ -275,10 +277,9 @@ export class NoesisCoreEngineImpl implements NoesisCoreEngine {
   registerTransferTests(tests: TransferTest[]): void {
     this.transferTests = tests;
 
-    // Re-create session planner with updated tests
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (this as any).sessionPlanner = new SessionPlannerImpl(
-      {},
+    // Re-create session planner with updated tests, preserving original config
+    this.sessionPlanner = new SessionPlannerImpl(
+      this.plannerConfig,
       this.transferTests,
       this.transferResults
     );
