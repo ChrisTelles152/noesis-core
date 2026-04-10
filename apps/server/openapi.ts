@@ -184,6 +184,32 @@ export const openApiSpec = {
         },
       },
     },
+    '/auth/google': {
+      get: {
+        tags: ['Authentication'],
+        summary: 'Initiate Google OAuth flow',
+        description: 'Redirects to Google for authentication. Only available when GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET are configured.',
+        security: [],
+        responses: {
+          302: { description: 'Redirect to Google OAuth consent screen' },
+        },
+      },
+    },
+    '/auth/google/callback': {
+      get: {
+        tags: ['Authentication'],
+        summary: 'Google OAuth callback',
+        description: 'Handles the OAuth callback from Google. Redirects to / on success or /login?error=google_auth_failed on failure.',
+        security: [],
+        parameters: [
+          { name: 'code', in: 'query', schema: { type: 'string' } },
+          { name: 'state', in: 'query', schema: { type: 'string' } },
+        ],
+        responses: {
+          302: { description: 'Redirect to / (success) or /login (failure)' },
+        },
+      },
+    },
     '/csrf-token': {
       get: {
         tags: ['System'],
