@@ -143,7 +143,7 @@ export class SqliteStorage implements IStorage {
 
   async verifyPassword(username: string, password: string): Promise<User | null> {
     const user = await this.getUserByUsername(username);
-    if (!user) return null;
+    if (!user || !user.password) return null;
     const isValid = await bcrypt.compare(password, user.password);
     return isValid ? user : null;
   }

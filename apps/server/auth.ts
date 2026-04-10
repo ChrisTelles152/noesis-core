@@ -25,7 +25,11 @@ declare global {
     interface User {
       id: number;
       username: string;
-      password: string;
+      password: string | null;
+      email: string | null;
+      googleId: string | null;
+      displayName: string | null;
+      avatarUrl: string | null;
     }
   }
 }
