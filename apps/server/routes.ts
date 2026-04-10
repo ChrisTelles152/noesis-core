@@ -6,6 +6,11 @@ import { getCurrentUserId, requireAuth } from './auth';
 import { getLLMManager, configureLLMManager, type LLMLogger } from '@noesis/adapters-llm';
 import { createError as _createError, ErrorCodes as _ErrorCodes } from './errors';
 import { logger } from './logger';
+import {
+  coreEventToLearningEvent,
+  extractCoreEvents,
+  validateNoesisEvent,
+} from './event-bridge';
 
 // Configure the LLM Manager with the server's structured logger
 const llmLogger: LLMLogger = {
@@ -371,6 +376,129 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(400).json({
         error: error instanceof Error ? error.message : 'Invalid request',
       });
+    }
+  });
+
+  // Core engine event endpoints — store/retrieve typed NoesisEvents
+  // These enable the server to persist core engine state that can be replayed.
+
+  app.post('/api/core/events', requireAuth, async (req, res) => {
+    try {
+      const validation = validateNoesisEvent(req.body);
+      if (!validation.valid) {
+        return res.status(400).json({ error: validation.error });
+      }
+
+      const userId = getUserIdFromRequest(req);
+      const insertEvent = coreEventToLearningEvent(userId, validation.event);
+      const stored = await storage.createLearningEvent(insertEvent);
+
+      res.status(201).json({
+        id: stored.id,
+        coreEventId: validation.event.id,
+        type: validation.event.type,
+      });
+    } catch (error) {
+      logger.error(
+        'Error storing core event',
+        { module: 'routes' },
+        error instanceof Error ? error : undefined
+      );
+      res.status(400).json({
+        error: error instanceof Error ? error.message : 'Invalid request',
+      });
+    }
+  });
+
+  app.post('/api/core/events/batch', requireAuth, async (req, res) => {
+    try {
+      const batchSchema = z.array(z.unknown()).min(1).max(100);
+      const rawEvents = batchSchema.parse(req.body);
+
+      const userId = getUserIdFromRequest(req);
+      const results: Array<{ coreEventId: string; stored: boolean; error?: string }> = [];
+
+      for (const raw of rawEvents) {
+        const validation = validateNoesisEvent(raw);
+        if (!validation.valid) {
+          results.push({ coreEventId: '', stored: false, error: validation.error });
+          continue;
+        }
+        const insertEvent = coreEventToLearningEvent(userId, validation.event);
+        await storage.createLearningEvent(insertEvent);
+        results.push({ coreEventId: validation.event.id, stored: true });
+      }
+
+      res.status(201).json({ stored: results.filter((r) => r.stored).length, results });
+    } catch (error) {
+      logger.error(
+        'Error storing core events batch',
+        { module: 'routes' },
+        error instanceof Error ? error : undefined
+      );
+      res.status(400).json({
+        error: error instanceof Error ? error.message : 'Invalid request',
+      });
+    }
+  });
+
+  app.get('/api/core/events', requireAuth, async (req, res) => {
+    try {
+      const userId = getUserIdFromRequest(req);
+      const allEvents = await storage.getLearningEventsByUserId(userId);
+      const coreEvents = extractCoreEvents(allEvents);
+
+      res.json({ count: coreEvents.length, events: coreEvents });
+    } catch (error) {
+      logger.error(
+        'Error fetching core events',
+        { module: 'routes' },
+        error instanceof Error ? error : undefined
+      );
+      res.status(500).json({ error: 'Failed to fetch core events' });
+    }
+  });
+
+  // Core engine state persistence — save/load the full engine snapshot
+  // This allows BKT skill probabilities, FSRS memory states, and review
+  // schedules to survive browser close and server restart.
+  app.put('/api/engine/state', requireAuth, async (req, res) => {
+    try {
+      const stateSchema = z.object({
+        state: z.string().min(1),
+      });
+      const { state } = stateSchema.parse(req.body);
+      const userId = getUserIdFromRequest(req);
+      await storage.saveEngineState(userId, state);
+      res.json({ saved: true });
+    } catch (error) {
+      logger.error(
+        'Error saving engine state',
+        { module: 'routes' },
+        error instanceof Error ? error : undefined
+      );
+      res.status(400).json({
+        error: error instanceof Error ? error.message : 'Invalid request',
+      });
+    }
+  });
+
+  app.get('/api/engine/state', requireAuth, async (req, res) => {
+    try {
+      const userId = getUserIdFromRequest(req);
+      const state = await storage.loadEngineState(userId);
+      if (state === null) {
+        res.status(404).json({ error: 'No engine state found' });
+        return;
+      }
+      res.json({ state });
+    } catch (error) {
+      logger.error(
+        'Error loading engine state',
+        { module: 'routes' },
+        error instanceof Error ? error : undefined
+      );
+      res.status(500).json({ error: 'Failed to load engine state' });
     }
   });
 
