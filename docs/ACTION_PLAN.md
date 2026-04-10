@@ -1,6 +1,6 @@
 # Action Plan — Noesis Core
 
-> Last updated: 2026-04-10 (Phase 4 — execution complete)
+> Last updated: 2026-04-10 (Phase 4 — second pass complete)
 >
 > **Source docs analyzed:**
 > - `CODEBASE_ANALYSIS.md` — January 2026 comprehensive analysis
@@ -20,8 +20,8 @@
 |----------|-------|------------|-------------|------|
 | CRITICAL | 1 | 1 | 0 | 1 |
 | HIGH | 1 | 1 | 0 | 1 |
-| MEDIUM | 12 | 7 | 5 | 6 |
-| LOW | 6 | 6 | 0 | 3 |
+| MEDIUM | 12 | 7 | 5 | 7 |
+| LOW | 6 | 6 | 0 | 5 |
 
 ---
 
@@ -63,7 +63,7 @@
 | M7 | **BKT mastery convergence is very fast** — Only 2 consecutive correct answers from pInit=0.3 to exceed 0.85 threshold. Could cause premature mastery declarations. | Algorithm Audit | S | NEEDS_HUMAN | BACKLOG |
 | M8 | **FSRS implementation departs from published spec** — Different retention formula exponent (-1 vs -0.5), single `stabilityDecay` parameter instead of three (w8,w9,w10). Self-consistent but not spec-conformant. | Algorithm Audit | L | NEEDS_HUMAN | BACKLOG |
 | M9 | **README.md test count stale** — Claims "115 tests across 6 test files"; actual is 801 tests across 35 files. | `README.md` | S | Engineering | **DONE** — updated to "795+ tests across 35 files" |
-| M10 | **Duplicate SDK code in `apps/web-demo/src/sdk/`** — ~1,280 lines of near-identical copies from packages. Should import from packages instead. | `SIMPLIFICATION_AUDIT.md` | M | Engineering | BACKLOG |
+| M10 | **Duplicate SDK code in `apps/web-demo/src/sdk/`** — ~1,280 lines of near-identical copies from packages. Should import from packages instead. | `SIMPLIFICATION_AUDIT.md` | M | Engineering | **DONE** — replaced with re-exports (`2989bd0`, `db12d44`) |
 | M11 | **CODEBASE_ANALYSIS.md is stale** — References old directory structure, old stats, and items already fixed. | `CODEBASE_ANALYSIS.md` | M | Engineering | BACKLOG |
 | M12 | **MIGRATION_REPORT.md checklist stale** — Phase 1-3 items all unchecked but implemented. | `MIGRATION_REPORT.md:293-308` | S | Engineering | **DONE** — items marked complete |
 
@@ -74,10 +74,10 @@
 | # | Finding | Source | Effort | Type | Status |
 |---|---------|--------|--------|------|--------|
 | L1 | **CORE_PUBLISH_READINESS.md test count stale** — Says "47 tests" | `docs/architecture/` | S | Engineering | **DONE** — updated to 241 tests |
-| L2 | **OpenAPI spec missing Google OAuth routes** — `/auth/google` and `/auth/google/callback` not in spec | `openapi.ts` | S | Engineering | BACKLOG |
-| L3 | **SkillGraph cycle detection can over-report cycle nodes** — GRAY nodes left from early DFS termination; cycle existence always correctly detected | Algorithm Audit | M | Engineering | BACKLOG |
-| L4 | **Diagnostic secondary skill weight applied to difficulty, not accuracy** — `difficulty * 0.5` halves difficulty weight for secondary skills; small effect | Algorithm Audit | S | Engineering | BACKLOG |
-| L5 | **Variable typo: `zeroDegreeSkilss`** in `SkillGraphImpl.ts:169` | Algorithm Audit | S | Engineering | **DONE** `42f379e` |
+| L2 | **OpenAPI spec missing Google OAuth routes** — `/auth/google` and `/auth/google/callback` not in spec | `openapi.ts` | S | Engineering | **DONE** — routes added to spec |
+| L3 | **SkillGraph cycle detection can over-report cycle nodes** — GRAY nodes left from early DFS termination; cycle existence always correctly detected | Algorithm Audit | M | Engineering | **NOT A BUG** — verified correct; test at core.test.ts:177 confirms |
+| L4 | **Diagnostic secondary skill weight applied to difficulty, not accuracy** — `difficulty * 0.5` halves difficulty weight for secondary skills; small effect | Algorithm Audit | S | Engineering | **DONE** — weight now applies to attempts, correctness, and difficulty equally `0aad194` |
+| L5 | **Variable typo: `zeroDegreeSkilss`** in `SkillGraphImpl.ts:169` | Algorithm Audit | S | Engineering | **DONE** — fixed to `zeroDegreeSkills` `0aad194` |
 | L6 | **Overengineered infrastructure for pilot** — ~3,400 lines of performance monitoring, K8s probes, WebSocket DoS protection, 3 storage backends. See SIMPLIFICATION_AUDIT.md. | `SIMPLIFICATION_AUDIT.md` | L | NEEDS_HUMAN | BACKLOG |
 
 ---
@@ -96,6 +96,9 @@
 | — | `155ccee` | Write `docs/ALGORITHM_AUDIT.md` + update `docs/ACTION_PLAN.md` |
 | — | `4118de3` | 5 high-priority missing tests + testing strategy doc |
 | — | `b2ec874` | Simplification audit doc |
+| L4,L5 | `0aad194` | Fix diagnostic secondary skill weighting + variable typo |
+| L2 | (hook) | Add Google OAuth routes to OpenAPI spec |
+| M10 | `2989bd0`, `db12d44` | Replace ~1,200 lines of duplicate SDK code with re-exports |
 
 ---
 
