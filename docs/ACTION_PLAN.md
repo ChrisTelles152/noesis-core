@@ -86,10 +86,9 @@
 
 | # | Commit | Description |
 |---|--------|-------------|
-| C1 | `d2ee83a` | Delete `ecosystem.config.cjs` — hardcoded secrets |
 | C1 | `d2ee83a` | Delete `ecosystem.config.cjs` — hardcoded secrets (by another session) |
 | H1 | `db7d051` | Fix `SkillGraph.removeSkill()` dangling references + 3 tests |
-| — | `TBD` | Write `docs/ALGORITHM_AUDIT.md` + commit all analysis docs |
+| — | `155ccee` | Write `docs/ALGORITHM_AUDIT.md` + update `docs/ACTION_PLAN.md` |
 
 ---
 
