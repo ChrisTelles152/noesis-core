@@ -1,6 +1,6 @@
 # Action Plan — Noesis Core
 
-> Last updated: 2026-04-10 (Phase 4 — second pass complete)
+> Last updated: 2026-04-10 (Phase 4 — third pass complete)
 >
 > **Source docs analyzed:**
 > - `CODEBASE_ANALYSIS.md` — January 2026 comprehensive analysis
@@ -18,7 +18,7 @@
 
 | Severity | Count | Actionable | Needs Human | Done |
 |----------|-------|------------|-------------|------|
-| CRITICAL | 1 | 1 | 0 | 1 |
+| CRITICAL | 2 | 2 | 0 | 2 |
 | HIGH | 1 | 1 | 0 | 1 |
 | MEDIUM | 12 | 7 | 5 | 10 |
 | LOW | 6 | 6 | 0 | 5 |
@@ -30,6 +30,7 @@
 | # | Finding | Source | Effort | Status |
 |---|---------|--------|--------|--------|
 | C1 | **Hardcoded secrets in `ecosystem.config.cjs`** — Contains `SESSION_SECRET` and `OPENAI_API_KEY` in plaintext, committed to git history. File also not needed (Docker/systemd preferred for deployment). Secrets in git history should be rotated. | `SIMPLIFICATION_AUDIT.md` | S | **DONE** — file deleted |
+| C2 | **`registerTransferTests()` discards custom planner config** — Re-creates `SessionPlannerImpl` with empty `{}` config, silently losing any custom `SessionPlannerConfig` (mastery thresholds, weights, etc.) passed at engine construction. Also used `(this as any)` cast to bypass readonly. | `ALGORITHM_AUDIT.md` (Critical Issue #1) | S | **DONE** — stores `plannerConfig` in constructor, reuses it in `registerTransferTests()`, removed dirty cast `a2aec6b` |
 
 ---
 
@@ -103,6 +104,7 @@
 | M11 | `9171218` | Add superseded notice to CODEBASE_ANALYSIS.md with current doc pointers |
 | M3 | `6581587` | Deprecate MasteryTracker, mark CoreEngineAdapter as canonical, sync recordPractice to both |
 | M2 | `1e973f6` | Event bridge: converter between server LearningEvent and core NoesisEvent, 3 new endpoints, 23 tests |
+| C2 | `a2aec6b` | Fix `registerTransferTests()` preserving custom planner config + test |
 
 ---
 
