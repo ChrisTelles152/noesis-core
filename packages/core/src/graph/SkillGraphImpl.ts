@@ -113,7 +113,7 @@ export class SkillGraphImpl implements SkillGraph {
       color.set(skillId, WHITE);
     }
 
-    const dfs = (skillId: string, path: string[]): boolean => {
+    const dfs = (skillId: string, path: string[]): void => {
       color.set(skillId, GRAY);
       path.push(skillId);
 
@@ -124,23 +124,19 @@ export class SkillGraphImpl implements SkillGraph {
 
           const prereqColor = color.get(prereqId);
           if (prereqColor === GRAY) {
-            // Found a cycle - mark all nodes in path from prereqId
+            // Found a cycle - mark all nodes in the cycle path
             const cycleStart = path.indexOf(prereqId);
             for (let i = cycleStart; i < path.length; i++) {
               cycleNodes.add(path[i]);
             }
-            return true;
           } else if (prereqColor === WHITE) {
-            if (dfs(prereqId, path)) {
-              return true;
-            }
+            dfs(prereqId, path);
           }
         }
       }
 
       path.pop();
       color.set(skillId, BLACK);
-      return false;
     };
 
     // Run DFS from each unvisited node

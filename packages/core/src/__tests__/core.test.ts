@@ -174,6 +174,27 @@ describe('SkillGraph', () => {
     expect(result.errors[0].type).toBe('CYCLE_DETECTED');
   });
 
+  it('should only report nodes actually in a cycle, not adjacent nodes', () => {
+    // Graph: d -> a -> b -> c -> a (cycle is a,b,c; d is NOT in the cycle)
+    const skills: Skill[] = [
+      { id: 'a', name: 'A', prerequisites: ['c'] },
+      { id: 'b', name: 'B', prerequisites: ['a'] },
+      { id: 'c', name: 'C', prerequisites: ['b'] },
+      { id: 'd', name: 'D', prerequisites: ['a'] }, // depends on cycle but not part of it
+    ];
+    const graph = createSkillGraph(skills);
+    const result = graph.validate();
+    expect(result.valid).toBe(false);
+    const cycleError = result.errors.find((e) => e.type === 'CYCLE_DETECTED');
+    expect(cycleError).toBeDefined();
+    // d should NOT be reported as part of the cycle
+    expect(cycleError!.affectedSkills).not.toContain('d');
+    // a, b, c should be in the cycle
+    expect(cycleError!.affectedSkills).toContain('a');
+    expect(cycleError!.affectedSkills).toContain('b');
+    expect(cycleError!.affectedSkills).toContain('c');
+  });
+
   it('should return topological order', () => {
     const graph = createSkillGraph(createTestSkills());
     const order = graph.getTopologicalOrder();
