@@ -20,7 +20,7 @@
 |----------|-------|------------|-------------|------|
 | CRITICAL | 1 | 1 | 0 | 1 |
 | HIGH | 1 | 1 | 0 | 1 |
-| MEDIUM | 12 | 7 | 5 | 8 |
+| MEDIUM | 12 | 7 | 5 | 10 |
 | LOW | 6 | 6 | 0 | 5 |
 
 ---
@@ -54,7 +54,7 @@
 
 | # | Finding | Source | Effort | Type | Status |
 |---|---------|--------|--------|------|--------|
-| M1 | **Core engine state never persisted to database** — Server never calls `engine.exportState()` / `importState()`. BKT/FSRS states live only in-memory, lost on restart. `NoesisStateStore` interface exists but isn't wired up server-side. | Investigation Prompt 4 | L | NEEDS_HUMAN | BACKLOG |
+| M1 | **Core engine state never persisted to database** — Server never calls `engine.exportState()` / `importState()`. BKT/FSRS states live only in-memory, lost on restart. `NoesisStateStore` interface exists but isn't wired up server-side. | Investigation Prompt 4 | L | Engineering | **DONE** — engine_states table, IStorage save/load methods, PUT/GET /api/engine/state endpoints `8da5a12` |
 | M2 | **Server learning events incompatible with core engine events** — Server stores `{userId, type, data, timestamp}`. Core expects `NoesisEvent` with `{id, type, learnerId, sessionId, skillId, correct, ...}`. Cannot replay from server DB. | Investigation Prompt 4 | L | Engineering | **DONE** — event-bridge.ts converts between formats; new endpoints POST/GET /api/core/events; 23 tests `1e973f6` |
 | M3 | **Two competing spaced repetition systems** — Core uses FSRS, SDK has `MasteryTracker` with incompatible exponential spacing formula. Both track mastery independently. | Algorithm Audit, Prompt 1 | L | NEEDS_HUMAN | **DONE** — MasteryTracker deprecated with @deprecated JSDoc, CoreEngineAdapter is canonical. recordPractice() syncs to both for backward compat `6581587` |
 | M4 | **PostgreSQL schema missing Google OAuth columns** — `shared/schema.ts` lacks `email`, `google_id`, `display_name`, `avatar_url`. Only affects PostgreSQL backend (pilot uses SQLite). | Data Model audit | M | Engineering | **DONE** — columns added to Drizzle schema |
