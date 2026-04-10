@@ -402,9 +402,26 @@ export interface SessionEvent extends BaseEvent {
 }
 
 /**
+ * Implicit credit event — generated when practicing a skill gives
+ * fractional review credit to an encompassed skill (FIRe-inspired).
+ * These events are logged for replay determinism and analytics.
+ */
+export interface ImplicitCreditEvent extends BaseEvent {
+  type: 'implicit_credit';
+  /** The skill that was explicitly practiced */
+  sourceSkillId: string;
+  /** The encompassed skill receiving credit */
+  targetSkillId: string;
+  /** Fraction of credit applied (0-1) */
+  creditFraction: number;
+  /** How much nextReview was shifted forward (ms) */
+  nextReviewShiftMs: number;
+}
+
+/**
  * Union type of all events
  */
-export type NoesisEvent = PracticeEvent | DiagnosticEvent | TransferTestEvent | SessionEvent;
+export type NoesisEvent = PracticeEvent | DiagnosticEvent | TransferTestEvent | SessionEvent | ImplicitCreditEvent;
 
 // =============================================================================
 // DIAGNOSTIC ENGINE TYPES

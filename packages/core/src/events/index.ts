@@ -15,6 +15,7 @@ import type {
   TransferTestEvent,
   SessionEvent,
   SessionConfig,
+  ImplicitCreditEvent,
 } from '../constitution.js';
 
 export type {
@@ -241,6 +242,32 @@ export function createSessionEndEvent(
     sessionId,
     timestamp: ctx.clock(),
     summary,
+  };
+}
+
+/**
+ * Create an implicit credit event (FIRe-inspired trickle-down).
+ * Generated automatically when practicing a skill that encompasses other skills.
+ */
+export function createImplicitCreditEvent(
+  ctx: EventFactoryContext,
+  learnerId: string,
+  sessionId: string,
+  sourceSkillId: string,
+  targetSkillId: string,
+  creditFraction: number,
+  nextReviewShiftMs: number
+): ImplicitCreditEvent {
+  return {
+    id: ctx.idGenerator(),
+    type: 'implicit_credit',
+    learnerId,
+    sessionId,
+    timestamp: ctx.clock(),
+    sourceSkillId,
+    targetSkillId,
+    creditFraction,
+    nextReviewShiftMs,
   };
 }
 
