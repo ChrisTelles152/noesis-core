@@ -20,7 +20,7 @@
 |----------|-------|------------|-------------|------|
 | CRITICAL | 1 | 1 | 0 | 1 |
 | HIGH | 1 | 1 | 0 | 1 |
-| MEDIUM | 12 | 7 | 5 | 0 |
+| MEDIUM | 12 | 7 | 5 | 3 |
 | LOW | 6 | 6 | 0 | 0 |
 
 ---
@@ -57,12 +57,12 @@
 | M1 | **Core engine state never persisted to database** — Server never calls `engine.exportState()` / `importState()`. BKT/FSRS states live only in-memory, lost on restart. `NoesisStateStore` interface exists but isn't wired up server-side. | Investigation Prompt 4 | L | NEEDS_HUMAN | BACKLOG |
 | M2 | **Server learning events incompatible with core engine events** — Server stores `{userId, type, data, timestamp}`. Core expects `NoesisEvent` with `{id, type, learnerId, sessionId, skillId, correct, ...}`. Cannot replay from server DB. | Investigation Prompt 4 | L | NEEDS_HUMAN | BACKLOG |
 | M3 | **Two competing spaced repetition systems** — Core uses FSRS, SDK has `MasteryTracker` with incompatible exponential spacing formula. Both track mastery independently. | Algorithm Audit, Prompt 1 | L | NEEDS_HUMAN | BACKLOG |
-| M4 | **PostgreSQL schema missing Google OAuth columns** — `shared/schema.ts` lacks `email`, `google_id`, `display_name`, `avatar_url`. Only affects PostgreSQL backend (pilot uses SQLite). | Data Model audit | M | Engineering | BACKLOG |
-| M5 | **`IStorage` interface missing Google OAuth methods** — `getUserByGoogleId`, `createGoogleUser`, `linkGoogleAccount` only on `SqliteStorage`. `auth.ts` uses `(store as any)` cast. | Data Model audit | M | Engineering | BACKLOG |
-| M6 | **Schema mismatch PostgreSQL vs SQLite** — SQLite allows nullable password; PostgreSQL doesn't. Google OAuth users would crash on PostgreSQL INSERT. | Data Model audit | S | Engineering | BACKLOG |
+| M4 | **PostgreSQL schema missing Google OAuth columns** — `shared/schema.ts` lacks `email`, `google_id`, `display_name`, `avatar_url`. Only affects PostgreSQL backend (pilot uses SQLite). | Data Model audit | M | Engineering | **DONE** — columns added to Drizzle schema |
+| M5 | **`IStorage` interface missing Google OAuth methods** — `getUserByGoogleId`, `createGoogleUser`, `linkGoogleAccount` only on `SqliteStorage`. `auth.ts` uses `(store as any)` cast. | Data Model audit | M | Engineering | **DONE** — interface updated, all 3 backends implement, auth.ts type-safe |
+| M6 | **Schema mismatch PostgreSQL vs SQLite** — SQLite allows nullable password; PostgreSQL doesn't. Google OAuth users would crash on PostgreSQL INSERT. | Data Model audit | S | Engineering | **DONE** — password nullable in Drizzle schema, all backends handle null |
 | M7 | **BKT mastery convergence is very fast** — Only 2 consecutive correct answers from pInit=0.3 to exceed 0.85 threshold. Could cause premature mastery declarations. | Algorithm Audit | S | NEEDS_HUMAN | BACKLOG |
 | M8 | **FSRS implementation departs from published spec** — Different retention formula exponent (-1 vs -0.5), single `stabilityDecay` parameter instead of three (w8,w9,w10). Self-consistent but not spec-conformant. | Algorithm Audit | L | NEEDS_HUMAN | BACKLOG |
-| M9 | **README.md test count stale** — Claims "115 tests across 6 test files"; actual is 801 tests across 35 files. | `README.md` | S | Engineering | BACKLOG |
+| M9 | **README.md test count stale** — Claims "115 tests across 6 test files"; actual is 801 tests across 35 files. | `README.md` | S | Engineering | **DONE** — updated to "795+ tests across 35 files" |
 | M10 | **Duplicate SDK code in `apps/web-demo/src/sdk/`** — ~1,280 lines of near-identical copies from packages. Should import from packages instead. | `SIMPLIFICATION_AUDIT.md` | M | Engineering | BACKLOG |
 | M11 | **CODEBASE_ANALYSIS.md is stale** — References old directory structure, old stats, and items already fixed. | `CODEBASE_ANALYSIS.md` | M | Engineering | BACKLOG |
 | M12 | **MIGRATION_REPORT.md checklist stale** — Phase 1-3 items all unchecked but implemented. | `MIGRATION_REPORT.md:293-308` | S | Engineering | BACKLOG |
@@ -86,10 +86,11 @@
 
 | # | Commit | Description |
 |---|--------|-------------|
-| C1 | `TBD` | Delete `ecosystem.config.cjs` — hardcoded secrets |
-| H1 | `TBD` | Fix `SkillGraph.removeSkill()` dangling references + add tests |
-| — | `TBD` | Write `docs/ALGORITHM_AUDIT.md` from Prompt 1 analysis |
-| — | `TBD` | Commit `docs/API_REFERENCE.md` and `docs/SIMPLIFICATION_AUDIT.md` |
+| C1 | `d2ee83a` | Delete `ecosystem.config.cjs` — hardcoded secrets |
+| H1 | `42f379e` | Fix `SkillGraph.removeSkill()` dangling references + add tests |
+| M4-M6, H3, H5, M9 | `42f379e` | Fix Google OAuth schema + storage, OpenAPI spec, CoreEngineAdapter state preservation, README test count, env/security tests |
+| Tests | `4118de3` | Add 5 high-priority missing tests + testing strategy doc |
+| Docs | `42f379e` | Commit `docs/API_REFERENCE.md`, `docs/ACTION_PLAN.md` |
 
 ---
 
