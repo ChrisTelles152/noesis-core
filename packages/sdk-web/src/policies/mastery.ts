@@ -13,6 +13,23 @@ interface ResolvedMasteryOptions {
   initialObjectives: { id: string; name: string }[];
 }
 
+/**
+ * @deprecated Use `CoreEngineAdapter` (via `NoesisSDK.core`) for mastery tracking.
+ *
+ * MasteryTracker is a simple weighted-average progress tracker that predates the
+ * core learning engine. It uses an ad-hoc exponential spacing formula that is not
+ * research-grade. The core engine's BKT (Bayesian Knowledge Tracing) + FSRS
+ * (Free Spaced Repetition Scheduler) provides mathematically grounded mastery
+ * estimation and review scheduling.
+ *
+ * MasteryTracker is retained for backward compatibility with existing web-demo code.
+ * New code should use:
+ * ```typescript
+ * const sdk = new NoesisSDK({ coreConfig: { learnerId: 'user-1', skills } });
+ * sdk.recordPractice(skillId, itemId, correct, responseTimeMs);
+ * const progress = sdk.core.getLearnerProgress();
+ * ```
+ */
 export class MasteryTracker {
   private options: ResolvedMasteryOptions;
   private debug: boolean;
