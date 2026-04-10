@@ -87,10 +87,9 @@
 | # | Commit | Description |
 |---|--------|-------------|
 | C1 | `d2ee83a` | Delete `ecosystem.config.cjs` — hardcoded secrets |
-| H1 | `42f379e` | Fix `SkillGraph.removeSkill()` dangling references + add tests |
-| M4-M6, H3, H5, M9 | `42f379e` | Fix Google OAuth schema + storage, OpenAPI spec, CoreEngineAdapter state preservation, README test count, env/security tests |
-| Tests | `4118de3` | Add 5 high-priority missing tests + testing strategy doc |
-| Docs | `42f379e` | Commit `docs/API_REFERENCE.md`, `docs/ACTION_PLAN.md` |
+| C1 | `d2ee83a` | Delete `ecosystem.config.cjs` — hardcoded secrets (by another session) |
+| H1 | `db7d051` | Fix `SkillGraph.removeSkill()` dangling references + 3 tests |
+| — | `TBD` | Write `docs/ALGORITHM_AUDIT.md` + commit all analysis docs |
 
 ---
 
