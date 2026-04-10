@@ -39,7 +39,8 @@ import { createFSRSScheduler, type FSRSParams } from '../memory/index.js';
 import { SessionPlannerImpl, type SessionPlannerConfig } from '../planning/index.js';
 import { createTransferGate, type TransferGateConfig } from '../transfer/index.js';
 import { createDiagnosticEngine, type DiagnosticConfig } from '../diagnostic/index.js';
-import type { ClockFn, IdGeneratorFn } from '../events/index.js';
+import type { ClockFn, IdGeneratorFn, EventFactoryContext } from '../events/index.js';
+import { createEventFactoryContext, createImplicitCreditEvent } from '../events/index.js';
 
 /**
  * Core engine configuration
@@ -111,6 +112,11 @@ export interface CoreEngineConfig {
   diagnostic?: Partial<DiagnosticConfig>;
   /** Rating conversion configuration */
   rating?: Partial<RatingConfig>;
+  /** Fraction of interval credit given to encompassed skills (0-1). Default 0.5 */
+  implicitCreditFraction?: number;
+  /** Minimum learning speed required to receive implicit credit. Default 1.0.
+   *  Learners below this speed on a skill must practice it explicitly. */
+  implicitCreditMinSpeed?: number;
 }
 
 /**
@@ -143,6 +149,9 @@ export class NoesisCoreEngineImpl implements NoesisCoreEngine {
   private readonly idGenerator: IdGeneratorFn;
   private readonly plannerConfig: Partial<SessionPlannerConfig>;
   private readonly ratingConfig: RatingConfig;
+  private readonly implicitCreditFraction: number;
+  private readonly implicitCreditMinSpeed: number;
+  private readonly eventContext: EventFactoryContext;
 
   // Internal state
   private learnerModels: Map<string, LearnerModel> = new Map();
@@ -165,6 +174,9 @@ export class NoesisCoreEngineImpl implements NoesisCoreEngine {
     this.idGenerator = idGenerator;
     this.plannerConfig = config.planner || {};
     this.ratingConfig = { ...DEFAULT_RATING_CONFIG, ...config.rating };
+    this.implicitCreditFraction = config.implicitCreditFraction ?? 0.5;
+    this.implicitCreditMinSpeed = config.implicitCreditMinSpeed ?? 1.0;
+    this.eventContext = createEventFactoryContext(clock, idGenerator);
 
     // Initialize components
     this.learnerEngine = createBKTEngine(config.bkt, clock);
@@ -202,6 +214,9 @@ export class NoesisCoreEngineImpl implements NoesisCoreEngine {
       case 'session_end':
         this.processSessionEvent(event);
         break;
+      case 'implicit_credit':
+        this.processImplicitCreditEvent(event as import('../constitution.js').ImplicitCreditEvent);
+        break;
     }
   }
 
@@ -236,6 +251,44 @@ export class NoesisCoreEngineImpl implements NoesisCoreEngine {
 
     // Replace the state in the array
     states = states.map((s) => (s.skillId === skillId ? updatedState : s));
+
+    // Implicit credit propagation (FIRe-inspired): when a skill is practiced
+    // correctly, encompassed skills get their nextReview shifted forward.
+    if (correct && this.implicitCreditFraction > 0) {
+      const encompassed = this.graph.getEncompassedSkills(skillId);
+      for (const targetId of encompassed) {
+        const targetState = states.find((s) => s.skillId === targetId);
+        if (!targetState) continue;
+
+        // Skip credit for learners struggling with this skill (speed < minSpeed)
+        const targetSpeed = this.learnerSpeeds.get(learnerId)?.get(targetId) ?? 1.0;
+        if (targetSpeed < this.implicitCreditMinSpeed) continue;
+
+        // Shift nextReview forward by creditFraction * remaining interval
+        const remainingInterval = targetState.nextReview - targetState.lastReview;
+        if (remainingInterval <= 0) continue;
+
+        const shiftMs = Math.round(remainingInterval * this.implicitCreditFraction);
+        const newNextReview = targetState.nextReview + shiftMs;
+
+        states = states.map((s) =>
+          s.skillId === targetId ? { ...s, nextReview: newNextReview } : s
+        );
+
+        // Log implicit credit event for replay determinism
+        const creditEvent = createImplicitCreditEvent(
+          this.eventContext,
+          learnerId,
+          event.sessionId,
+          skillId,
+          targetId,
+          this.implicitCreditFraction,
+          shiftMs
+        );
+        this.eventLog.push(creditEvent);
+      }
+    }
+
     this.memoryStates.set(learnerId, states);
   }
 
@@ -288,7 +341,23 @@ export class NoesisCoreEngineImpl implements NoesisCoreEngine {
    */
   private processSessionEvent(_event: SessionEvent): void {
     // Session events are logged but don't directly modify learner state
-    // They could be used for analytics or session tracking
+  }
+
+  /**
+   * Process an implicit credit event (during replay).
+   * Applies the nextReview shift to the target skill.
+   */
+  private processImplicitCreditEvent(event: import('../constitution.js').ImplicitCreditEvent): void {
+    const { learnerId, targetSkillId, nextReviewShiftMs } = event;
+    const states = this.memoryStates.get(learnerId);
+    if (!states) return;
+
+    const updated = states.map((s) =>
+      s.skillId === targetSkillId
+        ? { ...s, nextReview: s.nextReview + nextReviewShiftMs }
+        : s
+    );
+    this.memoryStates.set(learnerId, updated);
   }
 
   /**
