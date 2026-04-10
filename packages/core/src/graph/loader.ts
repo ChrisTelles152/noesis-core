@@ -22,6 +22,8 @@ export interface SkillGraphJSON {
     name: string;
     /** IDs of prerequisite skills */
     prerequisites: string[];
+    /** IDs of skills implicitly practiced when this skill is practiced */
+    encompassedSkills?: string[];
     /** Optional description */
     description?: string;
     /** Optional category for grouping */
@@ -50,6 +52,7 @@ export function loadSkillGraphFromJSON(json: SkillGraphJSON): SkillGraph {
     id: s.id,
     name: s.name,
     prerequisites: s.prerequisites,
+    encompassedSkills: s.encompassedSkills,
     description: s.description,
     category: s.category,
     difficulty: s.difficulty,
@@ -93,6 +96,7 @@ export function exportSkillGraphToJSON(graph: SkillGraph): SkillGraphJSON {
     id: s.id,
     name: s.name,
     prerequisites: s.prerequisites,
+    encompassedSkills: s.encompassedSkills,
     description: s.description,
     category: s.category,
     difficulty: s.difficulty,
