@@ -81,19 +81,33 @@ export const DEFAULT_RATING_CONFIG: RatingConfig = {
  * - 3 (Good): correct with normal performance
  * - 4 (Easy): correct with high confidence and fast response
  */
-export function computeRating(event: PracticeEvent, config: RatingConfig = DEFAULT_RATING_CONFIG): 1 | 2 | 3 | 4 {
+export function computeRating(
+  event: PracticeEvent,
+  config: RatingConfig = DEFAULT_RATING_CONFIG
+): 1 | 2 | 3 | 4 {
   if (!event.correct) return 1;
 
-  const hasConfidence = event.confidence !== undefined;
-  const hasResponseTime = event.responseTimeMs !== undefined && event.responseTimeMs > 0;
+  const confidence = event.confidence;
+  const responseTimeMs = event.responseTimeMs;
+  const hasConfidence = confidence !== undefined;
+  const hasResponseTime = responseTimeMs !== undefined && responseTimeMs > 0;
 
   // Check for Hard (2): low confidence OR very slow
-  if (hasConfidence && event.confidence! < config.hardConfidenceThreshold) return 2;
-  if (hasResponseTime && event.responseTimeMs! > config.baselineResponseTimeMs * config.hardResponseTimeFactor) return 2;
+  if (hasConfidence && confidence < config.hardConfidenceThreshold) return 2;
+  if (
+    hasResponseTime &&
+    responseTimeMs > config.baselineResponseTimeMs * config.hardResponseTimeFactor
+  )
+    return 2;
 
   // Check for Easy (4): high confidence AND fast
-  if (hasConfidence && event.confidence! >= config.easyConfidenceThreshold &&
-      (!hasResponseTime || event.responseTimeMs! < config.baselineResponseTimeMs * config.easyResponseTimeFactor)) return 4;
+  if (
+    hasConfidence &&
+    confidence >= config.easyConfidenceThreshold &&
+    (!hasResponseTime ||
+      responseTimeMs < config.baselineResponseTimeMs * config.easyResponseTimeFactor)
+  )
+    return 4;
 
   // Default: Good (3)
   return 3;
@@ -247,7 +261,12 @@ export class NoesisCoreEngineImpl implements NoesisCoreEngine {
     const rating = computeRating(event, this.ratingConfig);
     // Look up per-user learning speed for this skill
     const learningSpeed = this.learnerSpeeds.get(learnerId)?.get(skillId);
-    const updatedState = this.memoryScheduler.scheduleReview(skillState, correct, rating, learningSpeed);
+    const updatedState = this.memoryScheduler.scheduleReview(
+      skillState,
+      correct,
+      rating,
+      learningSpeed
+    );
 
     // Replace the state in the array
     states = states.map((s) => (s.skillId === skillId ? updatedState : s));
@@ -347,15 +366,15 @@ export class NoesisCoreEngineImpl implements NoesisCoreEngine {
    * Process an implicit credit event (during replay).
    * Applies the nextReview shift to the target skill.
    */
-  private processImplicitCreditEvent(event: import('../constitution.js').ImplicitCreditEvent): void {
+  private processImplicitCreditEvent(
+    event: import('../constitution.js').ImplicitCreditEvent
+  ): void {
     const { learnerId, targetSkillId, nextReviewShiftMs } = event;
     const states = this.memoryStates.get(learnerId);
     if (!states) return;
 
     const updated = states.map((s) =>
-      s.skillId === targetSkillId
-        ? { ...s, nextReview: s.nextReview + nextReviewShiftMs }
-        : s
+      s.skillId === targetSkillId ? { ...s, nextReview: s.nextReview + nextReviewShiftMs } : s
     );
     this.memoryStates.set(learnerId, updated);
   }
@@ -647,7 +666,10 @@ export class NoesisCoreEngineImpl implements NoesisCoreEngine {
    */
   calibrateLearningSpeed(learnerId: string, skillId: string, minEvents: number = 5): number {
     const practiceEvents = this.eventLog.filter(
-      (e): e is PracticeEvent => e.type === 'practice' && e.learnerId === learnerId && (e as PracticeEvent).skillId === skillId
+      (e): e is PracticeEvent =>
+        e.type === 'practice' &&
+        e.learnerId === learnerId &&
+        (e as PracticeEvent).skillId === skillId
     );
 
     if (practiceEvents.length < minEvents) return 1.0;

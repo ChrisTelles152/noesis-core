@@ -19,11 +19,21 @@ import type { IStorage } from './storage';
 
 const SALT_ROUNDS = 12;
 
+/** Raw row shape from SQLite learning_events table */
+interface SqliteLearningEventRow {
+  id: number;
+  user_id: number;
+  type: string;
+  data: string;
+  timestamp: string;
+}
+
 export class SqliteStorage implements IStorage {
   private db: Database.Database;
 
   constructor(dbPath?: string) {
-    const resolvedPath = dbPath || process.env.SQLITE_PATH || path.join(process.cwd(), 'data', 'noesis.sqlite');
+    const resolvedPath =
+      dbPath || process.env.SQLITE_PATH || path.join(process.cwd(), 'data', 'noesis.sqlite');
 
     // Ensure data directory exists
     const dir = path.dirname(resolvedPath);
@@ -103,15 +113,19 @@ export class SqliteStorage implements IStorage {
   }
 
   async getUserByUsername(username: string): Promise<User | undefined> {
-    const row = this.db.prepare('SELECT * FROM users WHERE username = ?').get(username) as User | undefined;
+    const row = this.db.prepare('SELECT * FROM users WHERE username = ?').get(username) as
+      | User
+      | undefined;
     return row;
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
-    const hashedPassword = insertUser.password ? await bcrypt.hash(insertUser.password, SALT_ROUNDS) : null;
-    const result = this.db.prepare(
-      'INSERT INTO users (username, password) VALUES (?, ?)'
-    ).run(insertUser.username, hashedPassword);
+    const hashedPassword = insertUser.password
+      ? await bcrypt.hash(insertUser.password, SALT_ROUNDS)
+      : null;
+    const result = this.db
+      .prepare('INSERT INTO users (username, password) VALUES (?, ?)')
+      .run(insertUser.username, hashedPassword);
 
     return {
       id: result.lastInsertRowid as number,
@@ -125,15 +139,31 @@ export class SqliteStorage implements IStorage {
   }
 
   async getUserByGoogleId(googleId: string): Promise<User | undefined> {
-    const row = this.db.prepare('SELECT * FROM users WHERE google_id = ?').get(googleId) as User | undefined;
+    const row = this.db.prepare('SELECT * FROM users WHERE google_id = ?').get(googleId) as
+      | User
+      | undefined;
     return row;
   }
 
-  async createGoogleUser(profile: { googleId: string; email: string; displayName: string; avatarUrl?: string }): Promise<User> {
+  async createGoogleUser(profile: {
+    googleId: string;
+    email: string;
+    displayName: string;
+    avatarUrl?: string;
+  }): Promise<User> {
     const username = profile.email.split('@')[0] + '_' + profile.googleId.slice(-6);
-    const result = this.db.prepare(
-      'INSERT INTO users (username, password, email, google_id, display_name, avatar_url) VALUES (?, ?, ?, ?, ?, ?)'
-    ).run(username, null, profile.email, profile.googleId, profile.displayName, profile.avatarUrl || null);
+    const result = this.db
+      .prepare(
+        'INSERT INTO users (username, password, email, google_id, display_name, avatar_url) VALUES (?, ?, ?, ?, ?, ?)'
+      )
+      .run(
+        username,
+        null,
+        profile.email,
+        profile.googleId,
+        profile.displayName,
+        profile.avatarUrl || null
+      );
 
     return {
       id: result.lastInsertRowid as number,
@@ -147,7 +177,9 @@ export class SqliteStorage implements IStorage {
   }
 
   async linkGoogleAccount(userId: number, googleId: string, email: string): Promise<void> {
-    this.db.prepare('UPDATE users SET google_id = ?, email = ? WHERE id = ?').run(googleId, email, userId);
+    this.db
+      .prepare('UPDATE users SET google_id = ?, email = ? WHERE id = ?')
+      .run(googleId, email, userId);
   }
 
   async verifyPassword(username: string, password: string): Promise<User | null> {
@@ -162,9 +194,9 @@ export class SqliteStorage implements IStorage {
     const timestamp = insertEvent.timestamp || new Date();
     const dataJson = JSON.stringify(insertEvent.data);
 
-    const result = this.db.prepare(
-      'INSERT INTO learning_events (user_id, type, data, timestamp) VALUES (?, ?, ?, ?)'
-    ).run(insertEvent.userId, insertEvent.type, dataJson, timestamp.toISOString());
+    const result = this.db
+      .prepare('INSERT INTO learning_events (user_id, type, data, timestamp) VALUES (?, ?, ?, ?)')
+      .run(insertEvent.userId, insertEvent.type, dataJson, timestamp.toISOString());
 
     return {
       id: result.lastInsertRowid as number,
@@ -176,22 +208,28 @@ export class SqliteStorage implements IStorage {
   }
 
   async getLearningEvent(id: number): Promise<LearningEvent | undefined> {
-    const row = this.db.prepare('SELECT * FROM learning_events WHERE id = ?').get(id) as any;
+    const row = this.db.prepare('SELECT * FROM learning_events WHERE id = ?').get(id) as
+      | SqliteLearningEventRow
+      | undefined;
     if (!row) return undefined;
     return this.mapEvent(row);
   }
 
   async getLearningEventsByUserId(userId: number): Promise<LearningEvent[]> {
-    const rows = this.db.prepare('SELECT * FROM learning_events WHERE user_id = ?').all(userId) as any[];
+    const rows = this.db
+      .prepare('SELECT * FROM learning_events WHERE user_id = ?')
+      .all(userId) as SqliteLearningEventRow[];
     return rows.map(this.mapEvent);
   }
 
   async getLearningEventsByType(type: string): Promise<LearningEvent[]> {
-    const rows = this.db.prepare('SELECT * FROM learning_events WHERE type = ?').all(type) as any[];
+    const rows = this.db
+      .prepare('SELECT * FROM learning_events WHERE type = ?')
+      .all(type) as SqliteLearningEventRow[];
     return rows.map(this.mapEvent);
   }
 
-  private mapEvent(row: any): LearningEvent {
+  private mapEvent(row: SqliteLearningEventRow): LearningEvent {
     return {
       id: row.id,
       userId: row.user_id,
@@ -203,15 +241,19 @@ export class SqliteStorage implements IStorage {
 
   // Core engine state persistence
   async saveEngineState(userId: number, state: string): Promise<void> {
-    this.db.prepare(
-      `INSERT INTO engine_states (user_id, state, updated_at)
+    this.db
+      .prepare(
+        `INSERT INTO engine_states (user_id, state, updated_at)
        VALUES (?, ?, datetime('now'))
        ON CONFLICT(user_id) DO UPDATE SET state = excluded.state, updated_at = datetime('now')`
-    ).run(userId, state);
+      )
+      .run(userId, state);
   }
 
   async loadEngineState(userId: number): Promise<string | null> {
-    const row = this.db.prepare('SELECT state FROM engine_states WHERE user_id = ?').get(userId) as { state: string } | undefined;
+    const row = this.db.prepare('SELECT state FROM engine_states WHERE user_id = ?').get(userId) as
+      | { state: string }
+      | undefined;
     return row?.state ?? null;
   }
 

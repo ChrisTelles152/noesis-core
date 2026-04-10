@@ -6,7 +6,13 @@ import {
   isCoreEvent,
   validateNoesisEvent,
 } from '../event-bridge';
-import type { NoesisEvent, PracticeEvent, DiagnosticEvent, TransferTestEvent, SessionEvent } from '@noesis-edu/core';
+import type {
+  NoesisEvent,
+  PracticeEvent,
+  DiagnosticEvent,
+  TransferTestEvent,
+  SessionEvent,
+} from '@noesis-edu/core';
 import type { LearningEvent } from '@shared/schema';
 
 // --- Test fixtures ---
@@ -78,7 +84,13 @@ const sessionEndEvent: SessionEvent = {
   },
 };
 
-function makeLearningEvent(id: number, userId: number, type: string, data: Record<string, unknown>, timestamp: Date): LearningEvent {
+function makeLearningEvent(
+  id: number,
+  userId: number,
+  type: string,
+  data: Record<string, unknown>,
+  timestamp: Date
+): LearningEvent {
   return { id, userId, type, data, timestamp } as LearningEvent;
 }
 
@@ -93,14 +105,18 @@ describe('Event Bridge', () => {
       expect(result.type).toBe('core:practice');
       expect(result.timestamp).toEqual(new Date(1700000000000));
       // _coreEvent is stored as a JSON string for JSONB compatibility
-      expect(JSON.parse((result.data as Record<string, unknown>)._coreEvent as string)).toEqual(practiceEvent);
+      expect(JSON.parse((result.data as Record<string, unknown>)._coreEvent as string)).toEqual(
+        practiceEvent
+      );
     });
 
     it('should convert a diagnostic event', () => {
       const result = coreEventToLearningEvent(42, diagnosticEvent);
 
       expect(result.type).toBe('core:diagnostic');
-      expect(JSON.parse((result.data as Record<string, unknown>)._coreEvent as string)).toEqual(diagnosticEvent);
+      expect(JSON.parse((result.data as Record<string, unknown>)._coreEvent as string)).toEqual(
+        diagnosticEvent
+      );
     });
 
     it('should convert a transfer_test event', () => {
@@ -121,18 +137,36 @@ describe('Event Bridge', () => {
   describe('learningEventToCoreEvent', () => {
     it('should round-trip a practice event', () => {
       const stored = coreEventToLearningEvent(42, practiceEvent);
-      const le = makeLearningEvent(1, 42, stored.type, stored.data as Record<string, unknown>, stored.timestamp!);
+      const le = makeLearningEvent(
+        1,
+        42,
+        stored.type,
+        stored.data as Record<string, unknown>,
+        stored.timestamp!
+      );
       const recovered = learningEventToCoreEvent(le);
 
       expect(recovered).toEqual(practiceEvent);
     });
 
     it('should round-trip all event types', () => {
-      const events: NoesisEvent[] = [practiceEvent, diagnosticEvent, transferEvent, sessionStartEvent, sessionEndEvent];
+      const events: NoesisEvent[] = [
+        practiceEvent,
+        diagnosticEvent,
+        transferEvent,
+        sessionStartEvent,
+        sessionEndEvent,
+      ];
 
       for (const event of events) {
         const stored = coreEventToLearningEvent(1, event);
-        const le = makeLearningEvent(1, 1, stored.type, stored.data as Record<string, unknown>, stored.timestamp!);
+        const le = makeLearningEvent(
+          1,
+          1,
+          stored.type,
+          stored.data as Record<string, unknown>,
+          stored.timestamp!
+        );
         const recovered = learningEventToCoreEvent(le);
         expect(recovered).toEqual(event);
       }
@@ -149,7 +183,13 @@ describe('Event Bridge', () => {
     });
 
     it('should return null for null data', () => {
-      const noData = makeLearningEvent(1, 1, 'core:practice', null as unknown as Record<string, unknown>, new Date());
+      const noData = makeLearningEvent(
+        1,
+        1,
+        'core:practice',
+        null as unknown as Record<string, unknown>,
+        new Date()
+      );
       expect(learningEventToCoreEvent(noData)).toBeNull();
     });
   });
@@ -160,12 +200,24 @@ describe('Event Bridge', () => {
         // Legacy event (should be skipped)
         makeLearningEvent(1, 1, 'attention', { attentionScore: 0.5 }, new Date()),
         // Core events (out of order)
-        makeLearningEvent(2, 1, 'core:practice',
-          (coreEventToLearningEvent(1, { ...practiceEvent, timestamp: 3000 })).data as Record<string, unknown>,
-          new Date(3000)),
-        makeLearningEvent(3, 1, 'core:practice',
-          (coreEventToLearningEvent(1, { ...practiceEvent, id: 'evt-006', timestamp: 1000 })).data as Record<string, unknown>,
-          new Date(1000)),
+        makeLearningEvent(
+          2,
+          1,
+          'core:practice',
+          coreEventToLearningEvent(1, { ...practiceEvent, timestamp: 3000 }).data as Record<
+            string,
+            unknown
+          >,
+          new Date(3000)
+        ),
+        makeLearningEvent(
+          3,
+          1,
+          'core:practice',
+          coreEventToLearningEvent(1, { ...practiceEvent, id: 'evt-006', timestamp: 1000 })
+            .data as Record<string, unknown>,
+          new Date(1000)
+        ),
         // Another legacy event
         makeLearningEvent(4, 1, 'recommendation', { recommendation: 'study more' }, new Date()),
       ];
@@ -190,7 +242,13 @@ describe('Event Bridge', () => {
   describe('isCoreEvent', () => {
     it('should return true for core events', () => {
       const stored = coreEventToLearningEvent(1, practiceEvent);
-      const le = makeLearningEvent(1, 1, stored.type, stored.data as Record<string, unknown>, stored.timestamp!);
+      const le = makeLearningEvent(
+        1,
+        1,
+        stored.type,
+        stored.data as Record<string, unknown>,
+        stored.timestamp!
+      );
       expect(isCoreEvent(le)).toBe(true);
     });
 

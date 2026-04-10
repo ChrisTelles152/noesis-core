@@ -17,9 +17,7 @@ describe('Encompassing Graph', () => {
     });
 
     it('should return empty array for skill with no encompassed skills', () => {
-      const skills: Skill[] = [
-        { id: 'add', name: 'Addition', prerequisites: [] },
-      ];
+      const skills: Skill[] = [{ id: 'add', name: 'Addition', prerequisites: [] }];
       const graph = createSkillGraph(skills);
 
       expect(graph.getEncompassedSkills('add')).toEqual([]);
@@ -53,7 +51,12 @@ describe('Encompassing Graph', () => {
         { id: 'arith', name: 'Arithmetic', prerequisites: [] },
         { id: 'alg', name: 'Algebra', prerequisites: ['arith'], encompassedSkills: ['arith'] },
         { id: 'geo', name: 'Geometry', prerequisites: ['arith'], encompassedSkills: ['arith'] },
-        { id: 'calc', name: 'Calculus', prerequisites: ['alg', 'geo'], encompassedSkills: ['alg', 'geo'] },
+        {
+          id: 'calc',
+          name: 'Calculus',
+          prerequisites: ['alg', 'geo'],
+          encompassedSkills: ['alg', 'geo'],
+        },
       ];
       const graph = createSkillGraph(skills);
 
@@ -66,9 +69,7 @@ describe('Encompassing Graph', () => {
     });
 
     it('should return empty array for leaf skill', () => {
-      const skills: Skill[] = [
-        { id: 'add', name: 'Addition', prerequisites: [] },
-      ];
+      const skills: Skill[] = [{ id: 'add', name: 'Addition', prerequisites: [] }];
       const graph = createSkillGraph(skills);
 
       expect(graph.getAllEncompassedSkills('add')).toEqual([]);
@@ -119,9 +120,7 @@ describe('Encompassing Graph', () => {
     });
 
     it('should detect self-encompassing cycle', () => {
-      const skills: Skill[] = [
-        { id: 'a', name: 'A', prerequisites: [], encompassedSkills: ['a'] },
-      ];
+      const skills: Skill[] = [{ id: 'a', name: 'A', prerequisites: [], encompassedSkills: ['a'] }];
       const graph = createSkillGraph(skills);
       const result = graph.validate();
 
@@ -182,7 +181,12 @@ describe('Encompassing Graph', () => {
         skills: [
           { id: 'add', name: 'Addition', prerequisites: [] },
           { id: 'mul', name: 'Multiplication', prerequisites: ['add'], encompassedSkills: ['add'] },
-          { id: 'div', name: 'Division', prerequisites: ['mul'], encompassedSkills: ['mul', 'add'] },
+          {
+            id: 'div',
+            name: 'Division',
+            prerequisites: ['mul'],
+            encompassedSkills: ['mul', 'add'],
+          },
         ],
       };
 

@@ -97,7 +97,12 @@ export class FSRSScheduler implements MemoryScheduler {
    * @param rating - Quality of recall (1=Again, 2=Hard, 3=Good, 4=Easy)
    * @returns Updated memory state with new scheduling
    */
-  scheduleReview(state: MemoryState, recalled: boolean, rating: 1 | 2 | 3 | 4, learningSpeed?: number): MemoryState {
+  scheduleReview(
+    state: MemoryState,
+    recalled: boolean,
+    rating: 1 | 2 | 3 | 4,
+    learningSpeed?: number
+  ): MemoryState {
     const now = this.clock();
     const elapsedDays = this.daysSince(state.lastReview, now);
 

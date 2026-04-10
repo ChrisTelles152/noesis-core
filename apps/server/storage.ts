@@ -94,7 +94,15 @@ export class MemStorage implements IStorage {
     const hashedPassword = insertUser.password
       ? await bcrypt.hash(insertUser.password, SALT_ROUNDS)
       : null;
-    const user: User = { ...insertUser, id, password: hashedPassword, email: null, googleId: null, displayName: null, avatarUrl: null };
+    const user: User = {
+      ...insertUser,
+      id,
+      password: hashedPassword,
+      email: null,
+      googleId: null,
+      displayName: null,
+      avatarUrl: null,
+    };
     this.users.set(id, user);
     return user;
   }

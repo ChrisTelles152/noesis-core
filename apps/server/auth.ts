@@ -382,11 +382,15 @@ function registerAuthRoutes(app: Express): void {
 
   // Google OAuth routes
   if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
-    app.get('/api/auth/google', passport.authenticate('google', {
-      scope: ['profile', 'email'],
-    }));
+    app.get(
+      '/api/auth/google',
+      passport.authenticate('google', {
+        scope: ['profile', 'email'],
+      })
+    );
 
-    app.get('/api/auth/google/callback',
+    app.get(
+      '/api/auth/google/callback',
       passport.authenticate('google', { failureRedirect: '/login?error=google_auth_failed' }),
       (req: Request, res: Response) => {
         // Successful authentication, redirect to app

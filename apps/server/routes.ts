@@ -6,11 +6,7 @@ import { getCurrentUserId, requireAuth } from './auth';
 import { getLLMManager, configureLLMManager, type LLMLogger } from '@noesis/adapters-llm';
 import { createError as _createError, ErrorCodes as _ErrorCodes } from './errors';
 import { logger } from './logger';
-import {
-  coreEventToLearningEvent,
-  extractCoreEvents,
-  validateNoesisEvent,
-} from './event-bridge';
+import { coreEventToLearningEvent, extractCoreEvents, validateNoesisEvent } from './event-bridge';
 
 // Configure the LLM Manager with the server's structured logger
 const llmLogger: LLMLogger = {
