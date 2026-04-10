@@ -123,6 +123,8 @@ interface SerializedState {
   memoryStates: Map<string, MemoryState[]>;
   transferResults: TransferTestResult[];
   eventLog: NoesisEvent[];
+  /** Per-user per-skill learning speed multipliers (added in v1.1) */
+  learnerSpeeds?: Array<[string, Array<[string, number]>]>;
 }
 
 /**
@@ -149,6 +151,8 @@ export class NoesisCoreEngineImpl implements NoesisCoreEngine {
   private transferTests: TransferTest[] = [];
   private itemMappings: ItemSkillMapping[] = [];
   private eventLog: NoesisEvent[] = [];
+  // Per-user, per-skill learning speed multipliers (learnerId → skillId → speed)
+  private learnerSpeeds: Map<string, Map<string, number>> = new Map();
 
   constructor(
     skillGraph: SkillGraph,
@@ -226,7 +230,9 @@ export class NoesisCoreEngineImpl implements NoesisCoreEngine {
 
     // Convert practice event to FSRS rating using confidence + response time
     const rating = computeRating(event, this.ratingConfig);
-    const updatedState = this.memoryScheduler.scheduleReview(skillState, correct, rating);
+    // Look up per-user learning speed for this skill
+    const learningSpeed = this.learnerSpeeds.get(learnerId)?.get(skillId);
+    const updatedState = this.memoryScheduler.scheduleReview(skillState, correct, rating, learningSpeed);
 
     // Replace the state in the array
     states = states.map((s) => (s.skillId === skillId ? updatedState : s));
@@ -378,9 +384,15 @@ export class NoesisCoreEngineImpl implements NoesisCoreEngine {
     // Convert Map to array for JSON serialization
     const memoryStatesArray: [string, MemoryState[]][] = Array.from(this.memoryStates.entries());
 
+    // Serialize learner speeds
+    const learnerSpeedsArray: [string, [string, number][]][] = Array.from(
+      this.learnerSpeeds.entries()
+    ).map(([learnerId, speeds]) => [learnerId, Array.from(speeds.entries())]);
+
     return JSON.stringify({
       ...serialized,
       memoryStates: memoryStatesArray,
+      learnerSpeeds: learnerSpeedsArray,
     });
   }
 
@@ -405,6 +417,14 @@ export class NoesisCoreEngineImpl implements NoesisCoreEngine {
 
     // Restore event log
     this.eventLog = parsed.eventLog;
+
+    // Restore learner speeds (backward compatible — missing in old serialized data)
+    this.learnerSpeeds.clear();
+    if (parsed.learnerSpeeds) {
+      for (const [learnerId, speedEntries] of parsed.learnerSpeeds) {
+        this.learnerSpeeds.set(learnerId, new Map(speedEntries));
+      }
+    }
   }
 
   /**
@@ -417,6 +437,7 @@ export class NoesisCoreEngineImpl implements NoesisCoreEngine {
     this.memoryStates.clear();
     this.transferResults = [];
     this.eventLog = [];
+    this.learnerSpeeds.clear();
 
     // Replay each event in order
     for (const event of events) {
@@ -494,6 +515,61 @@ export class NoesisCoreEngineImpl implements NoesisCoreEngine {
       averageMastery: totalSkills > 0 ? totalMastery / totalSkills : 0,
       totalEvents: model.totalEvents,
     };
+  }
+
+  /**
+   * Set the learning speed multiplier for a specific learner+skill.
+   * Speed > 1.0 = topic is easy, longer review intervals.
+   * Speed < 1.0 = topic is hard, shorter review intervals.
+   * Clamped to [0.5, 2.0].
+   */
+  setLearningSpeed(learnerId: string, skillId: string, speed: number): void {
+    const clamped = Math.max(0.5, Math.min(2.0, speed));
+    let skillSpeeds = this.learnerSpeeds.get(learnerId);
+    if (!skillSpeeds) {
+      skillSpeeds = new Map();
+      this.learnerSpeeds.set(learnerId, skillSpeeds);
+    }
+    skillSpeeds.set(skillId, clamped);
+  }
+
+  /**
+   * Get the learning speed for a learner+skill (default 1.0).
+   */
+  getLearningSpeed(learnerId: string, skillId: string): number {
+    return this.learnerSpeeds.get(learnerId)?.get(skillId) ?? 1.0;
+  }
+
+  /**
+   * Calibrate learning speed for a learner+skill based on practice history.
+   * Computes the ratio of actual retention to predicted retention.
+   * Returns a suggested speed — does NOT auto-apply it.
+   *
+   * Requires at least `minEvents` practice events for the skill to produce
+   * a meaningful calibration. Returns 1.0 if insufficient data.
+   */
+  calibrateLearningSpeed(learnerId: string, skillId: string, minEvents: number = 5): number {
+    const practiceEvents = this.eventLog.filter(
+      (e): e is PracticeEvent => e.type === 'practice' && e.learnerId === learnerId && (e as PracticeEvent).skillId === skillId
+    );
+
+    if (practiceEvents.length < minEvents) return 1.0;
+
+    // Compare actual success rate vs predicted retention at time of each review
+    const states = this.memoryStates.get(learnerId) || [];
+    const skillState = states.find((s) => s.skillId === skillId);
+    if (!skillState) return 1.0;
+
+    // Simple calibration: ratio of actual accuracy to expected retention
+    const correctCount = practiceEvents.filter((e) => e.correct).length;
+    const actualAccuracy = correctCount / practiceEvents.length;
+    const predictedRetention = this.memoryScheduler.getRetention(skillState, this.clock());
+
+    if (predictedRetention <= 0) return 1.0;
+
+    // Speed = actual / predicted, clamped to [0.5, 2.0]
+    const rawSpeed = actualAccuracy / predictedRetention;
+    return Math.max(0.5, Math.min(2.0, rawSpeed));
   }
 
   /**

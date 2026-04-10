@@ -191,8 +191,12 @@ export interface MemoryState {
 export interface MemoryScheduler {
   /** Create initial memory state for a skill */
   createState(skillId: string): MemoryState;
-  /** Schedule next review based on recall result */
-  scheduleReview(state: MemoryState, recalled: boolean, rating: 1 | 2 | 3 | 4): MemoryState;
+  /**
+   * Schedule next review based on recall result.
+   * @param learningSpeed - Per-user speed multiplier (default 1.0). Range [0.5, 2.0].
+   *   Speed > 1.0 = easy topic, longer intervals. Speed < 1.0 = hard topic, shorter intervals.
+   */
+  scheduleReview(state: MemoryState, recalled: boolean, rating: 1 | 2 | 3 | 4, learningSpeed?: number): MemoryState;
   /** Get skills due for review at a given time */
   getDueSkills(states: MemoryState[], atTime: number): MemoryState[];
   /** Calculate retention probability at a given time */
