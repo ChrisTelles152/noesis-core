@@ -57,6 +57,13 @@ export interface Skill {
   description?: string;
   /** IDs of prerequisite skills (must be mastered before this skill) */
   prerequisites: string[];
+  /**
+   * IDs of skills implicitly practiced when this skill is practiced.
+   * Separate from prerequisites: "A encompasses B" means practicing A
+   * gives implicit review credit to B (FIRe-inspired trickle-down).
+   * Example: "long_division" encompasses ["multiplication", "subtraction"].
+   */
+  encompassedSkills?: string[];
   /** Skill category/type for grouping */
   category?: string;
   /** Estimated difficulty (0-1) */
@@ -79,6 +86,10 @@ export interface SkillGraph {
   getDependents(skillId: string): string[];
   /** Check if skill A is a prerequisite of skill B */
   isPrerequisiteOf(skillA: string, skillB: string): boolean;
+  /** Get directly encompassed skills (one level) */
+  getEncompassedSkills(skillId: string): string[];
+  /** Get all encompassed skills (transitive closure) */
+  getAllEncompassedSkills(skillId: string): string[];
 }
 
 export interface SkillGraphValidationResult {
@@ -87,7 +98,7 @@ export interface SkillGraphValidationResult {
 }
 
 export interface SkillGraphError {
-  type: 'CYCLE_DETECTED' | 'MISSING_PREREQUISITE' | 'DUPLICATE_SKILL';
+  type: 'CYCLE_DETECTED' | 'MISSING_PREREQUISITE' | 'DUPLICATE_SKILL' | 'INVALID_ENCOMPASSED_SKILL' | 'ENCOMPASSING_CYCLE';
   message: string;
   affectedSkills: string[];
 }

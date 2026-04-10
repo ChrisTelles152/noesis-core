@@ -40,11 +40,13 @@ export class SkillGraphImpl implements SkillGraph {
   removeSkill(skillId: string): boolean {
     const deleted = this.skills.delete(skillId);
     if (deleted) {
-      // Clean up dangling prerequisite references in remaining skills
+      // Clean up dangling prerequisite and encompassing references in remaining skills
       for (const [, skill] of this.skills) {
-        const idx = skill.prerequisites.indexOf(skillId);
-        if (idx !== -1) {
+        if (skill.prerequisites.includes(skillId)) {
           skill.prerequisites = skill.prerequisites.filter((id) => id !== skillId);
+        }
+        if (skill.encompassedSkills?.includes(skillId)) {
+          skill.encompassedSkills = skill.encompassedSkills.filter((id) => id !== skillId);
         }
       }
     }
@@ -80,13 +82,36 @@ export class SkillGraphImpl implements SkillGraph {
       }
     }
 
-    // Check for cycles using DFS
+    // Check for missing encompassed skills
+    for (const [skillId, skill] of this.skills) {
+      for (const encompassedId of skill.encompassedSkills ?? []) {
+        if (!this.skills.has(encompassedId)) {
+          errors.push({
+            type: 'INVALID_ENCOMPASSED_SKILL',
+            message: `Skill "${skillId}" references non-existent encompassed skill "${encompassedId}"`,
+            affectedSkills: [skillId, encompassedId],
+          });
+        }
+      }
+    }
+
+    // Check for cycles in prerequisite graph
     const cycleSkills = this.detectCycles();
     if (cycleSkills.length > 0) {
       errors.push({
         type: 'CYCLE_DETECTED',
         message: `Cycle detected involving skills: ${cycleSkills.join(', ')}`,
         affectedSkills: cycleSkills,
+      });
+    }
+
+    // Check for cycles in encompassing graph
+    const encompassingCycles = this.detectEncompassingCycles();
+    if (encompassingCycles.length > 0) {
+      errors.push({
+        type: 'ENCOMPASSING_CYCLE',
+        message: `Encompassing cycle detected involving skills: ${encompassingCycles.join(', ')}`,
+        affectedSkills: encompassingCycles,
       });
     }
 
@@ -273,6 +298,91 @@ export class SkillGraphImpl implements SkillGraph {
   isPrerequisiteOf(skillA: string, skillB: string): boolean {
     const prereqs = this.getAllPrerequisites(skillB);
     return prereqs.includes(skillA);
+  }
+
+  /**
+   * Get directly encompassed skills for a skill.
+   * These are skills implicitly practiced when this skill is practiced.
+   */
+  getEncompassedSkills(skillId: string): string[] {
+    const skill = this.skills.get(skillId);
+    return skill?.encompassedSkills ?? [];
+  }
+
+  /**
+   * Get all encompassed skills (transitive closure).
+   * If A encompasses B and B encompasses C, then getAllEncompassedSkills(A) returns [B, C].
+   * Returns in DFS post-order (deepest first), sorted for determinism.
+   */
+  getAllEncompassedSkills(skillId: string): string[] {
+    const visited = new Set<string>();
+    const result: string[] = [];
+
+    const dfs = (id: string): void => {
+      const skill = this.skills.get(id);
+      if (!skill) return;
+
+      for (const encompassedId of skill.encompassedSkills ?? []) {
+        if (!visited.has(encompassedId) && this.skills.has(encompassedId)) {
+          visited.add(encompassedId);
+          dfs(encompassedId);
+          result.push(encompassedId);
+        }
+      }
+    };
+
+    dfs(skillId);
+    return result;
+  }
+
+  /**
+   * Detect cycles in the encompassing graph using DFS (3-color algorithm).
+   * Separate from prerequisite cycle detection since they are independent graphs.
+   */
+  private detectEncompassingCycles(): string[] {
+    const WHITE = 0;
+    const GRAY = 1;
+    const BLACK = 2;
+
+    const color = new Map<string, number>();
+    const cycleNodes: Set<string> = new Set();
+
+    for (const skillId of this.skills.keys()) {
+      color.set(skillId, WHITE);
+    }
+
+    const dfs = (skillId: string, path: string[]): void => {
+      color.set(skillId, GRAY);
+      path.push(skillId);
+
+      const skill = this.skills.get(skillId);
+      if (skill) {
+        for (const encompassedId of skill.encompassedSkills ?? []) {
+          if (!this.skills.has(encompassedId)) continue;
+
+          const c = color.get(encompassedId);
+          if (c === GRAY) {
+            const cycleStart = path.indexOf(encompassedId);
+            for (let i = cycleStart; i < path.length; i++) {
+              cycleNodes.add(path[i]);
+            }
+          } else if (c === WHITE) {
+            dfs(encompassedId, path);
+          }
+        }
+      }
+
+      path.pop();
+      color.set(skillId, BLACK);
+    };
+
+    for (const skillId of this.skills.keys()) {
+      if (color.get(skillId) === WHITE) {
+        dfs(skillId, []);
+      }
+    }
+
+    return Array.from(cycleNodes).sort();
   }
 
   /**
