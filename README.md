@@ -235,7 +235,7 @@ npm run test:coverage
 npm run test:watch
 ```
 
-Current test coverage: **115 tests** across 6 test files.
+Current test coverage: **800+ tests** across 35 test files.
 
 ### Core Engine Smoke Test
 

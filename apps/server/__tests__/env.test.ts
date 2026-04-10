@@ -52,11 +52,11 @@ describe('Environment Validation', () => {
         );
       });
 
-      it('should warn when no DATABASE_URL is configured', () => {
+      it('should warn when no DATABASE_URL or SQLITE_PATH is configured', () => {
         const result = validateEnvironment();
 
         expect(result.warnings).toContainEqual(
-          expect.stringContaining('No DATABASE_URL configured')
+          expect.stringContaining('No DATABASE_URL or SQLITE_PATH configured')
         );
       });
 

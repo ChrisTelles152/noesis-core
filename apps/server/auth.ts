@@ -57,28 +57,17 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
       },
       async (_accessToken, _refreshToken, profile, done) => {
         try {
-          const store = getStorage() as any;
+          const store = getStorage();
           const googleId = profile.id;
           const email = profile.emails?.[0]?.value || '';
           const displayName = profile.displayName || '';
           const avatarUrl = profile.photos?.[0]?.value || '';
 
           // Check if user already exists with this Google ID
-          let user = store.getUserByGoogleId
-            ? await store.getUserByGoogleId(googleId)
-            : undefined;
+          let user = await store.getUserByGoogleId(googleId);
 
           if (!user) {
-            // Create new user from Google profile
-            if (store.createGoogleUser) {
-              user = await store.createGoogleUser({ googleId, email, displayName, avatarUrl });
-            } else {
-              // Fallback: create with username derived from email
-              user = await store.createUser({
-                username: email.split('@')[0] + '_g' + googleId.slice(-6),
-                password: require('crypto').randomBytes(32).toString('hex'),
-              });
-            }
+            user = await store.createGoogleUser({ googleId, email, displayName, avatarUrl });
           }
 
           return done(null, user);

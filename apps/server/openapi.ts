@@ -57,17 +57,13 @@ export const openApiSpec = {
             },
           },
         },
+        security: [],
         responses: {
           200: {
             description: 'Successfully logged in',
             content: {
               'application/json': {
-                schema: {
-                  type: 'object',
-                  properties: {
-                    user: { $ref: '#/components/schemas/User' },
-                  },
-                },
+                schema: { $ref: '#/components/schemas/User' },
               },
             },
           },
@@ -94,21 +90,18 @@ export const openApiSpec = {
             },
           },
         },
+        security: [],
         responses: {
           201: {
             description: 'User created successfully',
             content: {
               'application/json': {
-                schema: {
-                  type: 'object',
-                  properties: {
-                    user: { $ref: '#/components/schemas/User' },
-                  },
-                },
+                schema: { $ref: '#/components/schemas/User' },
               },
             },
           },
-          400: { description: 'Username already taken or invalid input' },
+          400: { description: 'Invalid input (username format, password complexity)' },
+          409: { description: 'Username already exists' },
         },
       },
     },
@@ -121,7 +114,7 @@ export const openApiSpec = {
         },
       },
     },
-    '/auth/user': {
+    '/auth/me': {
       get: {
         tags: ['Authentication'],
         summary: 'Get current authenticated user',
@@ -130,12 +123,81 @@ export const openApiSpec = {
             description: 'Current user information',
             content: {
               'application/json': {
+                schema: { $ref: '#/components/schemas/User' },
+              },
+            },
+          },
+          401: { description: 'Not authenticated' },
+        },
+      },
+    },
+    '/auth/providers': {
+      get: {
+        tags: ['Authentication'],
+        summary: 'Check available authentication providers',
+        security: [],
+        responses: {
+          200: {
+            description: 'Available auth providers',
+            content: {
+              'application/json': {
                 schema: {
                   type: 'object',
                   properties: {
-                    user: {
-                      oneOf: [{ $ref: '#/components/schemas/User' }, { type: 'null' }],
-                    },
+                    local: { type: 'boolean' },
+                    google: { type: 'boolean' },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    '/auth/check-username/{username}': {
+      get: {
+        tags: ['Authentication'],
+        summary: 'Check if a username is available',
+        security: [],
+        parameters: [
+          {
+            name: 'username',
+            in: 'path',
+            required: true,
+            schema: { type: 'string' },
+          },
+        ],
+        responses: {
+          200: {
+            description: 'Username availability',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    available: { type: 'boolean' },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    '/csrf-token': {
+      get: {
+        tags: ['System'],
+        summary: 'Get a fresh CSRF token',
+        security: [],
+        responses: {
+          200: {
+            description: 'CSRF token',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    token: { type: 'string' },
                   },
                 },
               },
