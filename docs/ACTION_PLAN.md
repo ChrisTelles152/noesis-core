@@ -21,7 +21,7 @@
 | CRITICAL | 1 | 1 | 0 | 1 |
 | HIGH | 1 | 1 | 0 | 1 |
 | MEDIUM | 12 | 7 | 5 | 5 |
-| LOW | 6 | 6 | 0 | 2 |
+| LOW | 6 | 6 | 0 | 3 |
 
 ---
 
@@ -43,10 +43,10 @@
 
 | # | Original Finding | Resolution |
 |---|-----------------|------------|
-| ~H2~ | Failing test: env.test.ts | Already fixed — 801 tests pass |
-| ~H3~ | OpenAPI `/auth/user` vs `/auth/me` mismatch | False finding — spec correctly has `/auth/me` |
-| ~H4~ | OpenAPI login/register response schema wrong | False finding — User schema `{id, username}` matches actual response |
-| ~H5~ | `CoreEngineAdapter.updateSkillGraph()` loses all state | Already fixed — now exports/imports state around recreation |
+| ~H2~ | Failing test: env.test.ts | Fixed — assertion updated for SQLite-aware warning `42f379e` |
+| ~H3~ | OpenAPI spec mismatches (routes, response schemas, missing endpoints) | Fixed — spec aligned with actual routes `42f379e` |
+| ~H4~ | OpenAPI login/register response schema wrong | Fixed — response schema matches actual code `42f379e` |
+| ~H5~ | `CoreEngineAdapter.updateSkillGraph()` loses all state | Fixed — now exports/imports state around recreation `42f379e` |
 
 ---
 
@@ -77,7 +77,7 @@
 | L2 | **OpenAPI spec missing Google OAuth routes** — `/auth/google` and `/auth/google/callback` not in spec | `openapi.ts` | S | Engineering | BACKLOG |
 | L3 | **SkillGraph cycle detection can over-report cycle nodes** — GRAY nodes left from early DFS termination; cycle existence always correctly detected | Algorithm Audit | M | Engineering | BACKLOG |
 | L4 | **Diagnostic secondary skill weight applied to difficulty, not accuracy** — `difficulty * 0.5` halves difficulty weight for secondary skills; small effect | Algorithm Audit | S | Engineering | BACKLOG |
-| L5 | **Variable typo: `zeroDegreeSkilss`** in `SkillGraphImpl.ts:169` | Algorithm Audit | S | Engineering | BACKLOG |
+| L5 | **Variable typo: `zeroDegreeSkilss`** in `SkillGraphImpl.ts:169` | Algorithm Audit | S | Engineering | **DONE** `42f379e` |
 | L6 | **Overengineered infrastructure for pilot** — ~3,400 lines of performance monitoring, K8s probes, WebSocket DoS protection, 3 storage backends. See SIMPLIFICATION_AUDIT.md. | `SIMPLIFICATION_AUDIT.md` | L | NEEDS_HUMAN | BACKLOG |
 
 ---
@@ -91,7 +91,7 @@
 | M4-M6 | `42f379e` | PostgreSQL schema OAuth columns, IStorage interface, all backends implement OAuth, nullable password |
 | M9 | `42f379e` | README test count updated |
 | — | `42f379e` | OpenAPI spec fixes, CoreEngineAdapter.updateSkillGraph state preservation, auth.ts type safety |
-| — | `ab6fa8f` | Fix Express.User type for OAuth + SqliteStorage null password check |
+| M6 | `56c7351` | Fix Express.User type for OAuth + SqliteStorage null password check |
 | — | `e3e0c30` | Update stale docs (CORE_PUBLISH_READINESS, MIGRATION_REPORT, README features) |
 | — | `155ccee` | Write `docs/ALGORITHM_AUDIT.md` + update `docs/ACTION_PLAN.md` |
 | — | `4118de3` | 5 high-priority missing tests + testing strategy doc |
