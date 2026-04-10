@@ -58,10 +58,18 @@ No errors. Output in `packages/core/dist/`.
 ```
 > npm run test:core
 
- ✓ packages/core/src/__tests__/core.test.ts (47 tests)
+ ✓ packages/core/src/__tests__/bkt.test.ts (33 tests)
+ ✓ packages/core/src/__tests__/core.test.ts (55 tests)
+ ✓ packages/core/src/__tests__/diagnostic.test.ts (23 tests)
+ ✓ packages/core/src/__tests__/fsrs.test.ts (32 tests)
+ ✓ packages/core/src/__tests__/loader.test.ts (7 tests)
+ ✓ packages/core/src/__tests__/metrics.test.ts (10 tests)
+ ✓ packages/core/src/__tests__/persistence.test.ts (9 tests)
+ ✓ packages/core/src/__tests__/sessionPlanner.test.ts (31 tests)
+ ✓ packages/core/src/__tests__/transfer.test.ts (34 tests)
 
- Test Files  1 passed (1)
-      Tests  47 passed (47)
+ Test Files  9 passed (9)
+      Tests  241 passed (241)
 ```
 
 ### Smoke Test Output
@@ -132,7 +140,7 @@ Run each check before publishing:
 | Check | Command | Expected |
 |-------|---------|----------|
 | Build succeeds | `npm run build:core` | No errors |
-| 47 tests pass | `npm run test:core` | All green |
+| 241 tests pass | `npm run test:core` | All green |
 | Smoke test passes | `npm run smoke:core` | 6/6 passed |
 | No runtime deps | Check package.json | Only `devDependencies` |
 | Package contents clean | `npm pack --dry-run` | 71 files, no tests |

@@ -47,6 +47,7 @@ import type {
   ItemSkillMapping,
   PracticeEvent,
   SessionAction,
+  NoesisEvent,
 } from '../constitution';
 
 // =============================================================================
@@ -173,6 +174,27 @@ describe('SkillGraph', () => {
     expect(result.errors[0].type).toBe('CYCLE_DETECTED');
   });
 
+  it('should only report nodes actually in a cycle, not adjacent nodes', () => {
+    // Graph: d -> a -> b -> c -> a (cycle is a,b,c; d is NOT in the cycle)
+    const skills: Skill[] = [
+      { id: 'a', name: 'A', prerequisites: ['c'] },
+      { id: 'b', name: 'B', prerequisites: ['a'] },
+      { id: 'c', name: 'C', prerequisites: ['b'] },
+      { id: 'd', name: 'D', prerequisites: ['a'] }, // depends on cycle but not part of it
+    ];
+    const graph = createSkillGraph(skills);
+    const result = graph.validate();
+    expect(result.valid).toBe(false);
+    const cycleError = result.errors.find((e) => e.type === 'CYCLE_DETECTED');
+    expect(cycleError).toBeDefined();
+    // d should NOT be reported as part of the cycle
+    expect(cycleError!.affectedSkills).not.toContain('d');
+    // a, b, c should be in the cycle
+    expect(cycleError!.affectedSkills).toContain('a');
+    expect(cycleError!.affectedSkills).toContain('b');
+    expect(cycleError!.affectedSkills).toContain('c');
+  });
+
   it('should return topological order', () => {
     const graph = createSkillGraph(createTestSkills());
     const order = graph.getTopologicalOrder();
@@ -219,6 +241,46 @@ describe('SkillGraph', () => {
 
     expect(graph1.getTopologicalOrder()).toEqual(graph2.getTopologicalOrder());
     expect(graph1.getAllPrerequisites('calculus')).toEqual(graph2.getAllPrerequisites('calculus'));
+  });
+
+  it('should clean up dangling prerequisite references when removing a skill', () => {
+    // Given: A → B → C (arithmetic is prereq of algebra, algebra is prereq of calculus)
+    const graph = createSkillGraph(createTestSkills());
+
+    // When: we remove 'algebra' which is a prerequisite of 'calculus' and 'statistics'
+    const removed = graph.removeSkill('algebra');
+    expect(removed).toBe(true);
+
+    // Then: 'algebra' should no longer appear in any skill's prerequisites
+    const calculus = graph.getSkill('calculus');
+    expect(calculus).toBeDefined();
+    expect(calculus!.prerequisites).not.toContain('algebra');
+
+    const statistics = graph.getSkill('statistics');
+    expect(statistics).toBeDefined();
+    expect(statistics!.prerequisites).not.toContain('algebra');
+
+    // And: the graph should still be valid (no MISSING_PREREQUISITE errors for 'algebra')
+    const result = graph.validate();
+    expect(result.valid).toBe(true);
+  });
+
+  it('should handle removing a skill with no dependents', () => {
+    const graph = createSkillGraph(createTestSkills());
+
+    // 'calculus' is a leaf node — no other skill lists it as a prerequisite
+    const removed = graph.removeSkill('calculus');
+    expect(removed).toBe(true);
+    expect(graph.skills.size).toBe(4);
+
+    const result = graph.validate();
+    expect(result.valid).toBe(true);
+  });
+
+  it('should return false when removing a non-existent skill', () => {
+    const graph = createSkillGraph(createTestSkills());
+    expect(graph.removeSkill('nonexistent')).toBe(false);
+    expect(graph.skills.size).toBe(5);
   });
 });
 
@@ -1214,6 +1276,482 @@ describe('Integration', () => {
 
       // Exported states must be identical
       expect(JSON.parse(current.exportedState)).toEqual(JSON.parse(reference.exportedState));
+    }
+  });
+});
+
+// =============================================================================
+// HIGH-PRIORITY MISSING TESTS
+// These 5 tests close the highest-risk untested code paths in the core engine.
+// =============================================================================
+
+describe('Critical Path: exportState/importState round-trip preserves all state', () => {
+  // WHY THIS MATTERS: exportState/importState is the persistence boundary.
+  // If memory states, transfer results, or the event log are lost during
+  // round-trip, learners lose their review schedules and history between
+  // sessions. The existing test only checked totalEvents on the learner model.
+  it('should preserve learner model, memory states, transfer results, and event log', () => {
+    const graph = createSkillGraph(createTestSkills());
+    const engine = createDeterministicEngine(graph, {}, 0);
+
+    // Process multiple practice events across different skills
+    const practiceEvents: PracticeEvent[] = [
+      {
+        id: 'evt1',
+        type: 'practice',
+        learnerId: 'learner1',
+        sessionId: 's1',
+        timestamp: 1000,
+        skillId: 'arithmetic',
+        itemId: 'item1',
+        correct: true,
+        responseTimeMs: 3000,
+      },
+      {
+        id: 'evt2',
+        type: 'practice',
+        learnerId: 'learner1',
+        sessionId: 's1',
+        timestamp: 2000,
+        skillId: 'algebra',
+        itemId: 'item4',
+        correct: false,
+        responseTimeMs: 8000,
+      },
+      {
+        id: 'evt3',
+        type: 'practice',
+        learnerId: 'learner1',
+        sessionId: 's1',
+        timestamp: 3000,
+        skillId: 'arithmetic',
+        itemId: 'item2',
+        correct: true,
+        responseTimeMs: 2500,
+      },
+    ];
+
+    for (const evt of practiceEvents) {
+      engine.processEvent(evt);
+    }
+
+    // Also process a transfer test event so transferResults are populated
+    engine.processEvent({
+      id: 'transfer1',
+      type: 'transfer_test' as const,
+      learnerId: 'learner1',
+      sessionId: 's1',
+      timestamp: 4000,
+      testId: 'tt1',
+      skillId: 'arithmetic',
+      transferType: 'near' as const,
+      score: 0.85,
+      passed: true,
+    });
+
+    // Capture original state
+    const origModel = engine.getLearnerModel('learner1')!;
+    const origMemory = engine.getMemoryStates('learner1');
+    const origTransfer = engine.getTransferResults();
+    const origLog = engine.getEventLog();
+    const origNextAction = engine.getNextAction('learner1', {
+      ...DEFAULT_SESSION_CONFIG,
+      enforceSpacedRetrieval: false,
+    });
+
+    // Export and import into a fresh engine
+    const exported = engine.exportState();
+    const engine2 = createDeterministicEngine(graph, {}, 0);
+    engine2.importState(exported);
+
+    // Verify learner model
+    const restoredModel = engine2.getLearnerModel('learner1')!;
+    expect(restoredModel.totalEvents).toBe(origModel.totalEvents);
+    expect(restoredModel.learnerId).toBe(origModel.learnerId);
+    for (const [skillId, prob] of origModel.skillProbabilities) {
+      expect(restoredModel.skillProbabilities.get(skillId)!.pMastery).toBe(prob.pMastery);
+    }
+
+    // Verify memory states (FSRS scheduling data)
+    const restoredMemory = engine2.getMemoryStates('learner1');
+    expect(restoredMemory.length).toBe(origMemory.length);
+    for (let i = 0; i < origMemory.length; i++) {
+      expect(restoredMemory[i].skillId).toBe(origMemory[i].skillId);
+      expect(restoredMemory[i].stability).toBe(origMemory[i].stability);
+      expect(restoredMemory[i].difficulty).toBe(origMemory[i].difficulty);
+      expect(restoredMemory[i].nextReview).toBe(origMemory[i].nextReview);
+      expect(restoredMemory[i].state).toBe(origMemory[i].state);
+    }
+
+    // Verify transfer results
+    const restoredTransfer = engine2.getTransferResults();
+    expect(restoredTransfer).toEqual(origTransfer);
+
+    // Verify event log
+    const restoredLog = engine2.getEventLog();
+    expect(restoredLog.length).toBe(origLog.length);
+    expect(restoredLog).toEqual(origLog);
+
+    // Verify the imported engine produces the same next action
+    const restoredAction = engine2.getNextAction('learner1', {
+      ...DEFAULT_SESSION_CONFIG,
+      enforceSpacedRetrieval: false,
+    });
+    expect(restoredAction.type).toBe(origNextAction.type);
+    expect(restoredAction.skillId).toBe(origNextAction.skillId);
+    expect(restoredAction.priority).toBe(origNextAction.priority);
+  });
+});
+
+describe('Critical Path: replayEvents produces identical state to sequential processEvent', () => {
+  // WHY THIS MATTERS: replayEvents() is the foundation for deterministic replay
+  // and state reconstruction. If it diverges from sequential processing, learner
+  // state can't be reliably reconstructed from event logs — breaking persistence
+  // and audit trails. The existing test only compares two replays against each
+  // other, never against sequential processing.
+  it('should match sequential processEvent for mixed event types', () => {
+    const graph = createSkillGraph(createTestSkills());
+
+    const events: NoesisEvent[] = [
+      {
+        id: 'diag1',
+        type: 'diagnostic' as const,
+        learnerId: 'learner1',
+        sessionId: 's1',
+        timestamp: 1000,
+        skillsAssessed: ['arithmetic', 'algebra'],
+        results: [
+          { skillId: 'arithmetic', score: 0.6, itemsAttempted: 3, itemsCorrect: 2 },
+          { skillId: 'algebra', score: 0.3, itemsAttempted: 3, itemsCorrect: 1 },
+        ],
+      },
+      {
+        id: 'p1',
+        type: 'practice' as const,
+        learnerId: 'learner1',
+        sessionId: 's1',
+        timestamp: 2000,
+        skillId: 'arithmetic',
+        itemId: 'item1',
+        correct: true,
+        responseTimeMs: 4000,
+      },
+      {
+        id: 'p2',
+        type: 'practice' as const,
+        learnerId: 'learner1',
+        sessionId: 's1',
+        timestamp: 3000,
+        skillId: 'algebra',
+        itemId: 'item4',
+        correct: true,
+        responseTimeMs: 5000,
+      },
+      {
+        id: 'p3',
+        type: 'practice' as const,
+        learnerId: 'learner1',
+        sessionId: 's1',
+        timestamp: 4000,
+        skillId: 'arithmetic',
+        itemId: 'item2',
+        correct: false,
+        responseTimeMs: 7000,
+      },
+      {
+        id: 'tt1',
+        type: 'transfer_test' as const,
+        learnerId: 'learner1',
+        sessionId: 's1',
+        timestamp: 5000,
+        testId: 'test1',
+        skillId: 'arithmetic',
+        transferType: 'near' as const,
+        score: 0.9,
+        passed: true,
+      },
+    ];
+
+    // Sequential: process events one at a time
+    const seqEngine = createDeterministicEngine(graph, {}, 0);
+    for (const event of events) {
+      seqEngine.processEvent(event);
+    }
+
+    // Replay: process all events via replayEvents()
+    const replayEngine = createDeterministicEngine(graph, {}, 0);
+    replayEngine.replayEvents(events);
+
+    // Compare learner models
+    const seqModel = seqEngine.getLearnerModel('learner1')!;
+    const repModel = replayEngine.getLearnerModel('learner1')!;
+    expect(repModel.totalEvents).toBe(seqModel.totalEvents);
+    for (const [skillId, prob] of seqModel.skillProbabilities) {
+      expect(repModel.skillProbabilities.get(skillId)!.pMastery).toBe(prob.pMastery);
+    }
+
+    // Compare memory states
+    const seqMem = seqEngine.getMemoryStates('learner1');
+    const repMem = replayEngine.getMemoryStates('learner1');
+    expect(repMem.length).toBe(seqMem.length);
+    for (let i = 0; i < seqMem.length; i++) {
+      expect(repMem[i]).toEqual(seqMem[i]);
+    }
+
+    // Compare transfer results
+    expect(replayEngine.getTransferResults()).toEqual(seqEngine.getTransferResults());
+
+    // Compare event logs
+    expect(replayEngine.getEventLog()).toEqual(seqEngine.getEventLog());
+  });
+});
+
+describe('Critical Path: FSRS repeated failures do not produce stuck state', () => {
+  // WHY THIS MATTERS: If a learner repeatedly fails, FSRS stability bottoms
+  // out at 0.1. We need to verify that: (a) the interval doesn't become 0 or
+  // negative, (b) the learner can still recover to review state, and (c) the
+  // system doesn't get stuck in an infinite relearning loop.
+  it('should maintain minimum interval and allow recovery after many failures', () => {
+    let currentTime = 0;
+    const testClock = () => currentTime;
+    const scheduler = createFSRSScheduler({}, testClock);
+
+    let state = scheduler.createState('skill1');
+
+    // Simulate 20 consecutive failures
+    for (let i = 0; i < 20; i++) {
+      state = scheduler.scheduleReview(state, false, 1);
+      currentTime += 1000; // advance 1 second between attempts
+    }
+
+    // Stability should be at minimum (0.1) but not zero or negative
+    expect(state.stability).toBeGreaterThanOrEqual(0.1);
+    expect(state.failureCount).toBe(20);
+
+    // Next review should still be a valid future timestamp (not stuck at 0)
+    expect(state.nextReview).toBeGreaterThanOrEqual(currentTime);
+
+    // State should be relearning, not stuck in an invalid state
+    expect(['relearning', 'learning']).toContain(state.state);
+
+    // Now simulate recovery: consecutive correct answers should eventually
+    // bring the learner back to 'review' state
+    for (let i = 0; i < 5; i++) {
+      currentTime += 24 * 60 * 60 * 1000; // advance 1 day
+      state = scheduler.scheduleReview(state, true, 3);
+    }
+
+    // After multiple successes, should be back in review state
+    expect(state.state).toBe('review');
+    expect(state.successCount).toBe(5);
+    // Stability should have grown from the minimum
+    expect(state.stability).toBeGreaterThan(0.1);
+    // Next review should be in the future
+    expect(state.nextReview).toBeGreaterThan(currentTime);
+  });
+});
+
+describe('Critical Path: Session planner returns rest when all skills mastered', () => {
+  // WHY THIS MATTERS: If the planner has no work to suggest (all mastered,
+  // no reviews due, no transfer tests), it must return a 'rest' action.
+  // If it instead throws or returns undefined, the application breaks.
+  // Transfer tests disabled + all mastered is a common pilot scenario.
+  it('should return rest action with no transfer tests and all skills mastered', () => {
+    const graph = createSkillGraph(createTestSkills());
+    const fixedClock = () => 1000000;
+    const bktEngine = createBKTEngine({}, fixedClock);
+    const sessionPlanner = createSessionPlanner();
+
+    let model = bktEngine.createModel('learner1', graph);
+
+    // Master every skill by applying many correct responses
+    const skills = ['arithmetic', 'algebra', 'geometry', 'calculus', 'statistics'];
+    for (const skillId of skills) {
+      for (let i = 0; i < 20; i++) {
+        const event: PracticeEvent = {
+          id: `evt-${skillId}-${i}`,
+          type: 'practice',
+          learnerId: 'learner1',
+          sessionId: 's1',
+          timestamp: fixedClock(),
+          skillId,
+          itemId: `item-${skillId}-${i}`,
+          correct: true,
+          responseTimeMs: 3000,
+        };
+        model = bktEngine.updateModel(model, event);
+      }
+    }
+
+    // Verify all skills are above mastery threshold
+    for (const skillId of skills) {
+      expect(bktEngine.getPMastery(model, skillId)).toBeGreaterThanOrEqual(0.85);
+    }
+
+    // No memory states (no reviews due), no transfer tests
+    const config = {
+      ...DEFAULT_SESSION_CONFIG,
+      requireTransferTests: false,
+      enforceSpacedRetrieval: false,
+    };
+
+    const action = sessionPlanner.getNextAction(model, graph, [], config);
+
+    // Must return 'rest' — not throw, not return undefined
+    expect(action).toBeDefined();
+    expect(action.type).toBe('rest');
+    expect(action.reason).toBeDefined();
+  });
+});
+
+describe('Critical Path: BKT diagnostic initialization followed by practice', () => {
+  // WHY THIS MATTERS: In the real flow, a learner takes a diagnostic test
+  // first (which seeds their BKT priors), then starts practicing. If diagnostic
+  // initialization doesn't properly set pMastery, or if subsequent practice
+  // events overwrite the diagnostic seeds incorrectly, the learner gets wrong
+  // recommendations from the start.
+  it('should use diagnostic priors and update correctly with practice', () => {
+    const graph = createSkillGraph(createTestSkills());
+    const engine = createDeterministicEngine(graph, {}, 0);
+
+    // Step 1: Diagnostic sets arithmetic high (0.8) and algebra low (0.2)
+    engine.processEvent({
+      id: 'diag1',
+      type: 'diagnostic' as const,
+      learnerId: 'learner1',
+      sessionId: 's1',
+      timestamp: 1000,
+      skillsAssessed: ['arithmetic', 'algebra'],
+      results: [
+        { skillId: 'arithmetic', score: 0.8, itemsAttempted: 5, itemsCorrect: 4 },
+        { skillId: 'algebra', score: 0.2, itemsAttempted: 5, itemsCorrect: 1 },
+      ],
+    });
+
+    const modelAfterDiag = engine.getLearnerModel('learner1')!;
+    const arithmeticAfterDiag = modelAfterDiag.skillProbabilities.get('arithmetic')!.pMastery;
+    const algebraAfterDiag = modelAfterDiag.skillProbabilities.get('algebra')!.pMastery;
+
+    // Diagnostic should set priors according to scores
+    expect(arithmeticAfterDiag).toBeCloseTo(0.8, 1);
+    expect(algebraAfterDiag).toBeCloseTo(0.2, 1);
+
+    // Step 2: Practice arithmetic (correct) — should increase from diagnostic prior
+    engine.processEvent({
+      id: 'p1',
+      type: 'practice' as const,
+      learnerId: 'learner1',
+      sessionId: 's1',
+      timestamp: 2000,
+      skillId: 'arithmetic',
+      itemId: 'item1',
+      correct: true,
+      responseTimeMs: 3000,
+    });
+
+    const modelAfterPractice = engine.getLearnerModel('learner1')!;
+    const arithmeticAfterPractice =
+      modelAfterPractice.skillProbabilities.get('arithmetic')!.pMastery;
+
+    // Correct answer on skill with high prior should push it higher
+    expect(arithmeticAfterPractice).toBeGreaterThan(arithmeticAfterDiag);
+
+    // Step 3: Practice algebra (incorrect) — should decrease from diagnostic prior
+    engine.processEvent({
+      id: 'p2',
+      type: 'practice' as const,
+      learnerId: 'learner1',
+      sessionId: 's1',
+      timestamp: 3000,
+      skillId: 'algebra',
+      itemId: 'item4',
+      correct: false,
+      responseTimeMs: 8000,
+    });
+
+    const modelAfterWrong = engine.getLearnerModel('learner1')!;
+    const algebraAfterWrong = modelAfterWrong.skillProbabilities.get('algebra')!.pMastery;
+
+    // Even though incorrect, pLearn transition means mastery may not drop below
+    // the initial diagnostic value. But it should be close to or below it.
+    // The key check: it shouldn't jump to the default 0.3 (ignoring diagnostic).
+    // With pInit=0.3 default and diagnostic setting 0.2, after incorrect:
+    // The BKT update should use the diagnostic 0.2 as the prior, not default 0.3.
+    // If diagnostic was ignored, we'd see mastery around 0.3 (default pInit).
+    expect(algebraAfterWrong).toBeLessThan(0.3);
+
+    // Unaffected skills should remain at default (0.3) since diagnostic didn't touch them
+    const geometryMastery = modelAfterWrong.skillProbabilities.get('geometry')!.pMastery;
+    expect(geometryMastery).toBe(0.3); // default pInit, untouched
+  });
+
+  it('registerTransferTests preserves custom planner config', () => {
+    // Create engine with a custom planner config (non-default masteryThreshold)
+    const graph = createSkillGraph(createTestSkills());
+    const customThreshold = 0.95;
+    const engine = createNoesisCoreEngine(graph, {
+      planner: { masteryThreshold: customThreshold },
+    });
+
+    // Master 'arithmetic' to above 0.85 but below 0.95
+    // With default BKT params, 2 correct answers reach ~0.92
+    engine.processEvent({
+      id: 'e1',
+      type: 'practice' as const,
+      learnerId: 'learner1',
+      sessionId: 's1',
+      timestamp: 1000,
+      skillId: 'arithmetic',
+      itemId: 'item1',
+      correct: true,
+      responseTimeMs: 1000,
+    });
+    engine.processEvent({
+      id: 'e2',
+      type: 'practice' as const,
+      learnerId: 'learner1',
+      sessionId: 's1',
+      timestamp: 2000,
+      skillId: 'arithmetic',
+      itemId: 'item2',
+      correct: true,
+      responseTimeMs: 1000,
+    });
+
+    const model = engine.getLearnerModel('learner1')!;
+    const arithmeticMastery = model.skillProbabilities.get('arithmetic')!.pMastery;
+    // Should be ~0.92 — above default 0.85 threshold but below our custom 0.95
+    expect(arithmeticMastery).toBeGreaterThan(0.85);
+    expect(arithmeticMastery).toBeLessThan(0.95);
+
+    // Register transfer tests — this previously discarded the planner config
+    engine.registerTransferTests(createTestTransferTests());
+
+    // With custom threshold 0.95, arithmetic is NOT mastered, so 'algebra'
+    // should NOT be offered as a new skill (prereqs not met).
+    // But 'arithmetic' should be offered for consolidation practice.
+    const config = {
+      maxDurationMinutes: 30,
+      targetItems: 20,
+      masteryThreshold: customThreshold,
+      enforceSpacedRetrieval: false,
+      requireTransferTests: false,
+    };
+    const action = engine.getNextAction('learner1', config);
+
+    // The key assertion: if registerTransferTests preserved the custom config,
+    // 'arithmetic' won't be considered mastered (it's below 0.95).
+    // The planner should suggest consolidation on arithmetic, not introduce algebra.
+    // If the bug were still present (config reset to default 0.85), arithmetic
+    // would be considered mastered and algebra might be offered.
+    expect(action.type).not.toBe('rest');
+    if (action.skillId === 'algebra') {
+      // This would mean arithmetic was treated as mastered (default 0.85 threshold used)
+      // which proves the config was lost — fail the test
+      throw new Error(
+        'algebra was offered as new skill, meaning arithmetic was treated as mastered ' +
+          'at 0.85 threshold instead of custom 0.95 — registerTransferTests lost the config'
+      );
     }
   });
 });

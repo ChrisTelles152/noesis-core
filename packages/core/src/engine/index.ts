@@ -10,7 +10,10 @@ export {
   NoesisCoreEngineImpl,
   createNoesisCoreEngine,
   createDeterministicEngine,
+  computeRating,
+  DEFAULT_RATING_CONFIG,
   type CoreEngineConfig,
+  type RatingConfig,
   type LearnerProgress,
 } from './NoesisCoreEngineImpl.js';
 

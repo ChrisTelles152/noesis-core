@@ -14,6 +14,7 @@ import { eq } from 'drizzle-orm';
 import {
   users,
   learningEvents,
+  engineStates,
   type User,
   type InsertUser,
   type LearningEvent,
@@ -25,23 +26,39 @@ import { SqliteStorage } from './sqlite-storage';
 
 const SALT_ROUNDS = 12;
 
+export interface GoogleUserProfile {
+  googleId: string;
+  email: string;
+  displayName: string;
+  avatarUrl?: string;
+}
+
 export interface IStorage {
   getUser(id: number): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
   verifyPassword(username: string, password: string): Promise<User | null>;
 
+  // Google OAuth methods
+  getUserByGoogleId(googleId: string): Promise<User | undefined>;
+  createGoogleUser(profile: GoogleUserProfile): Promise<User>;
+
   // Learning events methods
   createLearningEvent(event: InsertLearningEvent): Promise<LearningEvent>;
   getLearningEvent(id: number): Promise<LearningEvent | undefined>;
   getLearningEventsByUserId(userId: number): Promise<LearningEvent[]>;
   getLearningEventsByType(type: string): Promise<LearningEvent[]>;
+
+  // Core engine state persistence
+  saveEngineState(userId: number, state: string): Promise<void>;
+  loadEngineState(userId: number): Promise<string | null>;
 }
 
 // In-memory storage implementation (used when DATABASE_URL is not set)
 export class MemStorage implements IStorage {
   private users: Map<number, User>;
   private learningEvents: Map<number, LearningEvent>;
+  private engineStates: Map<number, string>;
   currentUserId: number;
   currentEventId: number;
   private initialized: Promise<void>;
@@ -49,6 +66,7 @@ export class MemStorage implements IStorage {
   constructor() {
     this.users = new Map();
     this.learningEvents = new Map();
+    this.engineStates = new Map();
     this.currentUserId = 1;
     this.currentEventId = 1;
 
@@ -72,22 +90,52 @@ export class MemStorage implements IStorage {
   async createUser(insertUser: InsertUser): Promise<User> {
     await this.initialized;
     const id = this.currentUserId++;
-    // Hash the password before storing
-    const hashedPassword = await bcrypt.hash(insertUser.password, SALT_ROUNDS);
-    const user: User = { ...insertUser, id, password: hashedPassword };
+    // Hash the password before storing (null for OAuth-only users)
+    const hashedPassword = insertUser.password
+      ? await bcrypt.hash(insertUser.password, SALT_ROUNDS)
+      : null;
+    const user: User = {
+      ...insertUser,
+      id,
+      password: hashedPassword,
+      email: null,
+      googleId: null,
+      displayName: null,
+      avatarUrl: null,
+    };
     this.users.set(id, user);
-    // Return user without exposing the hashed password in logs
     return user;
   }
 
   async verifyPassword(username: string, password: string): Promise<User | null> {
     await this.initialized;
     const user = await this.getUserByUsername(username);
-    if (!user) {
+    if (!user || !user.password) {
       return null;
     }
     const isValid = await bcrypt.compare(password, user.password);
     return isValid ? user : null;
+  }
+
+  async getUserByGoogleId(googleId: string): Promise<User | undefined> {
+    return Array.from(this.users.values()).find((user) => user.googleId === googleId);
+  }
+
+  async createGoogleUser(profile: GoogleUserProfile): Promise<User> {
+    await this.initialized;
+    const id = this.currentUserId++;
+    const username = profile.email.split('@')[0] + '_' + profile.googleId.slice(-6);
+    const user: User = {
+      id,
+      username,
+      password: null,
+      email: profile.email,
+      googleId: profile.googleId,
+      displayName: profile.displayName,
+      avatarUrl: profile.avatarUrl || null,
+    };
+    this.users.set(id, user);
+    return user;
   }
 
   // Learning events methods
@@ -113,6 +161,15 @@ export class MemStorage implements IStorage {
   async getLearningEventsByType(type: string): Promise<LearningEvent[]> {
     return Array.from(this.learningEvents.values()).filter((event) => event.type === type);
   }
+
+  // Core engine state persistence
+  async saveEngineState(userId: number, state: string): Promise<void> {
+    this.engineStates.set(userId, state);
+  }
+
+  async loadEngineState(userId: number): Promise<string | null> {
+    return this.engineStates.get(userId) ?? null;
+  }
 }
 
 // PostgreSQL storage implementation (used when DATABASE_URL is set)
@@ -132,8 +189,10 @@ export class DatabaseStorage implements IStorage {
 
   async createUser(insertUser: InsertUser): Promise<User> {
     if (!db) throw new Error('Database not configured');
-    // Hash the password before storing
-    const hashedPassword = await bcrypt.hash(insertUser.password, SALT_ROUNDS);
+    // Hash the password before storing (null for OAuth-only users)
+    const hashedPassword = insertUser.password
+      ? await bcrypt.hash(insertUser.password, SALT_ROUNDS)
+      : null;
     const [user] = await db
       .insert(users)
       .values({ ...insertUser, password: hashedPassword })
@@ -143,11 +202,34 @@ export class DatabaseStorage implements IStorage {
 
   async verifyPassword(username: string, password: string): Promise<User | null> {
     const user = await this.getUserByUsername(username);
-    if (!user) {
+    if (!user || !user.password) {
       return null;
     }
     const isValid = await bcrypt.compare(password, user.password);
     return isValid ? user : null;
+  }
+
+  async getUserByGoogleId(googleId: string): Promise<User | undefined> {
+    if (!db) throw new Error('Database not configured');
+    const [user] = await db.select().from(users).where(eq(users.googleId, googleId));
+    return user;
+  }
+
+  async createGoogleUser(profile: GoogleUserProfile): Promise<User> {
+    if (!db) throw new Error('Database not configured');
+    const username = profile.email.split('@')[0] + '_' + profile.googleId.slice(-6);
+    const [user] = await db
+      .insert(users)
+      .values({
+        username,
+        password: null,
+        email: profile.email,
+        googleId: profile.googleId,
+        displayName: profile.displayName,
+        avatarUrl: profile.avatarUrl || null,
+      })
+      .returning();
+    return user;
   }
 
   // Learning events methods
@@ -179,6 +261,25 @@ export class DatabaseStorage implements IStorage {
   async getLearningEventsByType(type: string): Promise<LearningEvent[]> {
     if (!db) throw new Error('Database not configured');
     return db.select().from(learningEvents).where(eq(learningEvents.type, type));
+  }
+
+  // Core engine state persistence
+  async saveEngineState(userId: number, state: string): Promise<void> {
+    if (!db) throw new Error('Database not configured');
+    // Upsert: insert or update on conflict
+    await db
+      .insert(engineStates)
+      .values({ userId, state, updatedAt: new Date() })
+      .onConflictDoUpdate({
+        target: engineStates.userId,
+        set: { state, updatedAt: new Date() },
+      });
+  }
+
+  async loadEngineState(userId: number): Promise<string | null> {
+    if (!db) throw new Error('Database not configured');
+    const [row] = await db.select().from(engineStates).where(eq(engineStates.userId, userId));
+    return row?.state ?? null;
   }
 }
 

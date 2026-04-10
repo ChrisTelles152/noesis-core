@@ -21,8 +21,8 @@ It provides modular SDKs to track attention, orchestrate learning content, and i
 | **Attention Tracking** | ✅ Ready | Gaze tracking with WebGazer.js (optional) or simulation mode |
 | **Mastery Learning** | ✅ Ready | Spaced repetition algorithm for optimal learning retention |
 | **LLM Orchestration** | ✅ Ready | OpenAI GPT-4o integration for personalized recommendations |
-| **Authentication** | ✅ Ready | User registration, login, and session management |
-| **Database Persistence** | ✅ Ready | PostgreSQL via Drizzle ORM (optional, falls back to in-memory) |
+| **Authentication** | ✅ Ready | User registration, login, Google OAuth, and session management |
+| **Database Persistence** | ✅ Ready | SQLite (recommended), PostgreSQL, or in-memory storage |
 | **Voice Interface** | 🔄 Planned | Voice commands and audio feedback |
 | **XR Support** | 🔄 Planned | Quest, Vision Pro, and desktop simulation |
 
@@ -124,7 +124,10 @@ HOST=127.0.0.1
 # Required for LLM features
 OPENAI_API_KEY=sk-your-api-key-here
 
-# Optional: PostgreSQL database (uses in-memory if not set)
+# Optional: SQLite database (recommended for self-hosted/pilot)
+SQLITE_PATH=./data/noesis.sqlite
+
+# Optional: PostgreSQL database (alternative to SQLite; uses in-memory if neither set)
 DATABASE_URL=postgresql://user:password@localhost:5432/noesis
 
 # Optional: Session secret (auto-generated in development)
@@ -235,7 +238,7 @@ npm run test:coverage
 npm run test:watch
 ```
 
-Current test coverage: **115 tests** across 6 test files.
+Current test coverage: **800+ tests** across 35 test files.
 
 ### Core Engine Smoke Test
 
@@ -271,7 +274,7 @@ Open http://localhost:5173/core-smoke in your browser. This page tests:
 
 - **Frontend**: React, Vite, TypeScript, Tailwind CSS
 - **Backend**: Node.js, Express, Passport.js
-- **Database**: PostgreSQL (Drizzle ORM) or in-memory
+- **Database**: SQLite (better-sqlite3), PostgreSQL (Drizzle ORM), or in-memory
 - **Testing**: Vitest, Testing Library, Supertest
 - **AI/ML**: OpenAI GPT-4o, WebGazer.js
 

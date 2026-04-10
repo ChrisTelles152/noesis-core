@@ -97,7 +97,12 @@ export class FSRSScheduler implements MemoryScheduler {
    * @param rating - Quality of recall (1=Again, 2=Hard, 3=Good, 4=Easy)
    * @returns Updated memory state with new scheduling
    */
-  scheduleReview(state: MemoryState, recalled: boolean, rating: 1 | 2 | 3 | 4): MemoryState {
+  scheduleReview(
+    state: MemoryState,
+    recalled: boolean,
+    rating: 1 | 2 | 3 | 4,
+    learningSpeed?: number
+  ): MemoryState {
     const now = this.clock();
     const elapsedDays = this.daysSince(state.lastReview, now);
 
@@ -124,7 +129,13 @@ export class FSRSScheduler implements MemoryScheduler {
     }
 
     // Calculate next review interval
-    const intervalDays = this.calculateInterval(newStability, this.params.requestedRetention);
+    let intervalDays = this.calculateInterval(newStability, this.params.requestedRetention);
+
+    // Apply per-user learning speed multiplier (clamped to [0.5, 2.0])
+    if (learningSpeed !== undefined && learningSpeed !== 1.0) {
+      const clampedSpeed = Math.max(0.5, Math.min(2.0, learningSpeed));
+      intervalDays *= clampedSpeed;
+    }
 
     // Clamp interval to maximum
     const clampedInterval = Math.min(intervalDays, this.params.maxInterval);

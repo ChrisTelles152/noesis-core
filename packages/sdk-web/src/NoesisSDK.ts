@@ -7,13 +7,21 @@ import { NoesisSDKOptions, LearnerState, ModuleType } from './types';
 
 export class NoesisSDK {
   attention: AttentionTracker;
+
+  /**
+   * @deprecated Use `core` (CoreEngineAdapter) for mastery tracking instead.
+   * MasteryTracker uses a simple weighted-average algorithm. The core engine
+   * uses BKT + FSRS which is mathematically grounded. When both are active,
+   * `recordPractice()` syncs events to both systems for backward compatibility.
+   */
   mastery: MasteryTracker;
   orchestration: Orchestrator;
 
   /**
    * Core engine adapter for access to the @noesis-edu/core learning engine.
-   * Provides deterministic session planning, BKT-based mastery tracking,
-   * and canonical event emission.
+   * This is the canonical mastery tracking system using BKT (Bayesian Knowledge
+   * Tracing) for mastery estimation and FSRS for spaced repetition scheduling.
+   * Initialize via constructor options or `initializeCore()`.
    */
   core: CoreEngineAdapter | null = null;
 
@@ -85,7 +93,10 @@ export class NoesisSDK {
 
   /**
    * Record a practice event through the core engine.
-   * Emits a canonical PracticeEvent and updates the learner model.
+   * Emits a canonical PracticeEvent and updates the BKT learner model.
+   *
+   * Also updates the legacy MasteryTracker if the skillId matches a registered
+   * objective, keeping getLearnerState().mastery consistent.
    */
   recordPractice(
     skillId: string,
@@ -98,7 +109,16 @@ export class NoesisSDK {
       this.log('Warning: Core engine not initialized, practice not recorded');
       return null;
     }
-    return this.core.recordPractice(skillId, itemId, correct, responseTimeMs, options);
+    const event = this.core.recordPractice(skillId, itemId, correct, responseTimeMs, options);
+
+    // Sync to legacy MasteryTracker so getLearnerState().mastery stays consistent
+    this.mastery.recordEvent({
+      objectiveId: skillId,
+      result: correct ? 1.0 : 0.0,
+      confidence: options?.confidence,
+    });
+
+    return event;
   }
 
   /**
