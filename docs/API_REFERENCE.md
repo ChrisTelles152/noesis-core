@@ -656,7 +656,7 @@ const adapter = new CoreEngineAdapter(config: CoreAdapterConfig);
 | `clearEventLog()` | `void` | Clear event log |
 | `getCoreEngine()` | `NoesisCoreEngineImpl` | Get underlying engine |
 | `getSkillGraph()` | `SkillGraph` | Get skill graph |
-| `updateSkillGraph(skills)` | `void` | Replace skill graph (re-creates engine) |
+| `updateSkillGraph(skills)` | `void` | Replace skill graph (re-creates engine, preserves state) |
 | `getSessionId()` | `string` | Get current session ID |
 
 ---
@@ -694,6 +694,11 @@ const adapter = new CoreEngineAdapter(config: CoreAdapterConfig);
 | SDK Action | HTTP Request | Server Handler |
 |------------|--------------|----------------|
 | Record learning event | `POST /api/learning/events` | `storage.createLearningEvent()` |
+| Store core event | `POST /api/core/events` | Event bridge → `storage.createLearningEvent()` |
+| Store core events batch | `POST /api/core/events/batch` | Event bridge → batch insert |
+| Retrieve core events | `GET /api/core/events` | `extractCoreEvents()` from learning events |
+| Save engine state | `PUT /api/engine/state` | `storage.saveEngineState()` |
+| Load engine state | `GET /api/engine/state` | `storage.loadEngineState()` |
 | Get recommendation | `POST /api/orchestration/next-step` | `llm.getRecommendation()` |
 | Get engagement tip | `POST /api/orchestration/engagement` | `llm.getEngagementSuggestion()` |
 | Get analytics | `GET /api/analytics/summary` | `storage.getLearningEventsByUserId()` |
