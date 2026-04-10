@@ -1,6 +1,7 @@
 # API Reference — Noesis Core
 
-> Generated 2026-04-09 from source code analysis of the full monorepo.
+> Generated 2026-04-10 from source code analysis of the full monorepo.
+> Updated to include core engine event bridge, engine state persistence, and schema changes.
 
 ---
 
@@ -253,6 +254,97 @@ Destroys session and clears `connect.sid` cookie.
 ```
 
 **Storage:** `storage.createLearningEvent()`
+
+---
+
+### Core Engine Events (Event Bridge)
+
+| Method | Path | Auth | Rate Limit | Description |
+|--------|------|------|------------|-------------|
+| POST | `/api/core/events` | Session | 100/15min | Store a single typed NoesisEvent |
+| POST | `/api/core/events/batch` | Session | 100/15min | Store up to 100 NoesisEvents |
+| GET | `/api/core/events` | Session | 100/15min | Retrieve all core events for current user |
+
+#### POST /api/core/events
+
+Stores a single canonical `NoesisEvent` from the core engine. The event is validated for required fields and type-specific fields, then stored inside a `learning_events` row with the full NoesisEvent in `data._coreEvent`.
+
+**Request:** A valid `NoesisEvent` object. Required fields: `id` (string), `type` (string), `learnerId` (string), `timestamp` (number), `sessionId` (string). Type-specific fields are also validated (e.g., `skillId`, `correct` for practice events).
+
+**Response (201):**
+```typescript
+{ id: number; coreEventId: string; type: string }
+```
+
+**Errors:** 400 (validation — missing fields, unknown event type)
+
+**Storage:** `storage.createLearningEvent()` via `coreEventToLearningEvent()`
+
+#### POST /api/core/events/batch
+
+Stores 1-100 `NoesisEvent` objects. Each event is validated individually; valid events are stored and invalid ones are reported in the response.
+
+**Request:** `NoesisEvent[]` (1-100 elements)
+
+**Response (201):**
+```typescript
+{
+  stored: number;
+  results: Array<{ coreEventId: string; stored: boolean; error?: string }>
+}
+```
+
+#### GET /api/core/events
+
+Retrieves all stored core events for the authenticated user, extracted from `learning_events` rows and sorted by timestamp.
+
+**Response (200):**
+```typescript
+{ count: number; events: NoesisEvent[] }
+```
+
+**Storage:** `storage.getLearningEventsByUserId()` → `extractCoreEvents()`
+
+---
+
+### Engine State Persistence
+
+| Method | Path | Auth | Rate Limit | Description |
+|--------|------|------|------------|-------------|
+| PUT | `/api/engine/state` | Session | 100/15min | Save full engine state snapshot |
+| GET | `/api/engine/state` | Session | 100/15min | Load saved engine state |
+
+#### PUT /api/engine/state
+
+Saves the JSON string from `engine.exportState()`, which contains BKT skill probabilities, FSRS memory states, transfer results, and the event log. Upserts by userId (one snapshot per user).
+
+**Request:**
+```typescript
+{ state: string }  // non-empty JSON string from engine.exportState()
+```
+
+**Response (200):**
+```typescript
+{ saved: true }
+```
+
+**Storage:** `storage.saveEngineState()` (upserts into `engine_states` table)
+
+#### GET /api/engine/state
+
+Loads the previously saved engine state snapshot for the authenticated user.
+
+**Response (200):**
+```typescript
+{ state: string }  // JSON string for engine.importState()
+```
+
+**Response (404):**
+```typescript
+{ error: "No engine state found" }
+```
+
+**Storage:** `storage.loadEngineState()`
 
 ---
 
@@ -520,9 +612,11 @@ interface NoesisSDKOptions {
 | Property | Type | Description |
 |----------|------|-------------|
 | `attention` | `AttentionTracker` | Attention/gaze tracking module |
-| `mastery` | `MasteryTracker` | Simple mastery tracking (SDK-level) |
+| `mastery` | `MasteryTracker` | **@deprecated** — Legacy mastery tracker; use `core` instead |
 | `orchestration` | `Orchestrator` | LLM orchestration client |
-| `core` | `CoreEngineAdapter \| null` | Core engine bridge (if initialized) |
+| `core` | `CoreEngineAdapter \| null` | Core engine bridge (canonical mastery via BKT+FSRS) |
+
+> **Note:** `recordPractice()` syncs events to both the core engine and the legacy `MasteryTracker` for backward compatibility. New code should use `core` exclusively.
 
 **Methods:**
 
@@ -685,14 +779,25 @@ The server uses `IStorage` with three implementations:
 
 ```typescript
 interface IStorage {
+  // User management
   getUser(id: number): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
   verifyPassword(username: string, password: string): Promise<User | null>;
+
+  // Google OAuth
+  getUserByGoogleId(googleId: string): Promise<User | undefined>;
+  createGoogleUser(profile: GoogleUserProfile): Promise<User>;
+
+  // Learning events
   createLearningEvent(event: InsertLearningEvent): Promise<LearningEvent>;
   getLearningEvent(id: number): Promise<LearningEvent | undefined>;
   getLearningEventsByUserId(userId: number): Promise<LearningEvent[]>;
   getLearningEventsByType(type: string): Promise<LearningEvent[]>;
+
+  // Core engine state persistence
+  saveEngineState(userId: number, state: string): Promise<void>;
+  loadEngineState(userId: number): Promise<string | null>;
 }
 ```
 
@@ -702,9 +807,9 @@ interface IStorage {
 | `DatabaseStorage` | PostgreSQL (Drizzle ORM) | `DATABASE_URL` set |
 | `SqliteStorage` | SQLite (better-sqlite3) | `SQLITE_PATH` set (highest priority) |
 
-**SQLite has extra methods** not in `IStorage`:
-- `getUserByGoogleId(googleId)` — for Google OAuth
-- `createGoogleUser(profile)` — create user from Google profile
+All three implementations now support the full `IStorage` interface including Google OAuth and engine state persistence.
+
+**SQLite-only extra method** (not in `IStorage`):
 - `linkGoogleAccount(userId, googleId, email)` — link Google to existing user
 
 ---
@@ -715,19 +820,23 @@ interface IStorage {
 
 | Table | Columns |
 |-------|---------|
-| `users` | id (serial PK), username (text unique), password (text) |
-| `learning_events` | id (serial PK), user_id (FK→users), type (text), data (jsonb), timestamp |
+| `users` | id (serial PK), username (text unique), password (text, nullable), email (text), google_id (text unique), display_name (text), avatar_url (text) |
+| `learning_events` | id (serial PK), user_id (FK→users CASCADE), type (text), data (jsonb), timestamp |
 | `learning_objectives` | id (serial PK), objective_id (text unique), name (text), description (text) |
-| `mastery_progress` | id (serial PK), user_id (FK→users), objective_id (FK→learning_objectives), progress (jsonb), last_updated |
+| `mastery_progress` | id (serial PK), user_id (FK→users CASCADE), objective_id (FK→learning_objectives CASCADE), progress (jsonb), last_updated |
+| `engine_states` | id (serial PK), user_id (FK→users CASCADE, unique), state (text), updated_at |
 
 ### SQLite (sqlite-storage.ts)
 
-| Table | Extra Columns vs PostgreSQL |
-|-------|-----------------------------|
-| `users` | +email, +google_id (unique), +display_name, +avatar_url; password is nullable |
+Schema matches PostgreSQL with these SQLite-specific differences:
+
+| Table | SQLite Differences |
+|-------|-------------------|
+| `users` | Same columns. Password nullable. google_id UNIQUE. |
 | `learning_events` | data stored as TEXT (JSON string) instead of JSONB |
 | `learning_objectives` | Same structure |
 | `mastery_progress` | progress stored as TEXT instead of JSONB |
+| `engine_states` | Same structure; user_id has UNIQUE constraint for upsert support |
 
 ---
 
