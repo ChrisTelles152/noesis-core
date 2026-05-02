@@ -1,0 +1,60 @@
+{
+  "version": "1.0.0",
+  "sequences": [
+    {
+      "id": "intro_adicao",
+      "skillId": "adicao",
+      "title": "Introdução à Adição",
+      "stages": [
+        { "stage": "concept_introduction", "itemIds": [] },
+        { "stage": "practice", "itemIds": ["adi_001"] },
+        { "stage": "application", "itemIds": ["adi_002"] },
+        { "stage": "reflection", "itemIds": [] }
+      ]
+    },
+    {
+      "id": "fracoes_basicas",
+      "skillId": "fracoes",
+      "title": "Frações Básicas",
+      "stages": [
+        { "stage": "concept_introduction", "itemIds": [] },
+        { "stage": "practice", "itemIds": ["fra_001"] },
+        { "stage": "application", "itemIds": ["fra_002"] },
+        { "stage": "reflection", "itemIds": [] }
+      ]
+    },
+    {
+      "id": "equacoes_lineares_basicas",
+      "skillId": "equacoes_lineares",
+      "title": "Equações Lineares Básicas",
+      "stages": [
+        { "stage": "concept_introduction", "itemIds": [] },
+        { "stage": "practice", "itemIds": ["eql_001"] },
+        { "stage": "application", "itemIds": ["eql_002"] },
+        { "stage": "reflection", "itemIds": [] }
+      ]
+    },
+    {
+      "id": "trigonometria_intro",
+      "skillId": "trigonometria_basica",
+      "title": "Introdução à Trigonometria",
+      "stages": [
+        { "stage": "concept_introduction", "itemIds": [] },
+        { "stage": "practice", "itemIds": ["trg_001"] },
+        { "stage": "application", "itemIds": ["trg_002"] },
+        { "stage": "reflection", "itemIds": [] }
+      ]
+    },
+    {
+      "id": "probabilidade_intro",
+      "skillId": "probabilidade",
+      "title": "Introdução à Probabilidade",
+      "stages": [
+        { "stage": "concept_introduction", "itemIds": [] },
+        { "stage": "practice", "itemIds": ["pro_001"] },
+        { "stage": "application", "itemIds": ["pro_002"] },
+        { "stage": "reflection", "itemIds": [] }
+      ]
+    }
+  ]
+}
