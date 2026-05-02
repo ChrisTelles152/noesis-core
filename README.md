@@ -18,13 +18,14 @@ It provides modular SDKs to track attention, orchestrate learning content, and i
 
 | Feature | Status | Description |
 |---------|--------|-------------|
-| **Attention Tracking** | ✅ Ready | Gaze tracking with WebGazer.js (optional) or simulation mode |
-| **Mastery Learning** | ✅ Ready | Spaced repetition algorithm for optimal learning retention |
-| **LLM Orchestration** | ✅ Ready | OpenAI GPT-4o integration for personalized recommendations |
+| **Attention Tracking** | ✅ Ready | Simulated by default (explicit user signals); WebGazer optional via `ENABLE_REAL_GAZE_TRACKING=true` |
+| **NALS Cognitive-State Vector** | ✅ Ready | First-class attention / recall-strength / affect events with confidence + timestamp |
+| **Canonical Learning Loop** | ✅ Ready | Concept introduction → practice → application → reflection → spaced (opt-in via `enforceCanonicalLoop`) |
+| **Mastery Learning** | ✅ Ready | BKT learner model + FSRS spaced repetition with replay determinism |
+| **Server-Side Engine** | ✅ Ready | HTTP API for thin clients: curriculum upload, next-action, practice, progress |
+| **LLM Orchestration** | ✅ Ready | OpenAI / Anthropic / fallback providers for personalized recommendations |
 | **Authentication** | ✅ Ready | User registration, login, Google OAuth, and session management |
 | **Database Persistence** | ✅ Ready | SQLite (recommended), PostgreSQL, or in-memory storage |
-| **Voice Interface** | 🔄 Planned | Voice commands and audio feedback |
-| **XR Support** | 🔄 Planned | Quest, Vision Pro, and desktop simulation |
 
 ---
 
