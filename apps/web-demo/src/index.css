@@ -2,26 +2,50 @@
 @tailwind components;
 @tailwind utilities;
 
+/*
+ * Shadcn CSS variables are now routed through the locked Noesis brand
+ * palette (Cloudbone White / Slate Grey / Neural Copper / Iris Bloom /
+ * Glacial Cyan — see INTENTION.md and tailwind.config.ts for the named
+ * tokens). Each variable is documented so a future palette refresh only
+ * has to touch the hex values in tailwind.config.ts and the HSL triplets
+ * here together.
+ */
 :root {
-  --background: 0 0% 100%;
-  --foreground: 20 14.3% 4.1%;
-  --muted: 60 4.8% 95.9%;
-  --muted-foreground: 25 5.3% 44.7%;
-  --popover: 0 0% 100%;
-  --popover-foreground: 20 14.3% 4.1%;
-  --card: 0 0% 100%;
-  --card-foreground: 20 14.3% 4.1%;
-  --border: 20 5.9% 90%;
-  --input: 20 5.9% 90%;
-  --primary: 207 90% 54%;
-  --primary-foreground: 211 100% 99%;
-  --secondary: 60 4.8% 95.9%;
-  --secondary-foreground: 24 9.8% 10%;
-  --accent: 60 4.8% 95.9%;
-  --accent-foreground: 24 9.8% 10%;
-  --destructive: 0 84.2% 60.2%;
-  --destructive-foreground: 60 9.1% 97.8%;
-  --ring: 20 14.3% 4.1%;
+  /* Base canvas + foreground text — Cloudbone White on Slate Grey */
+  --background: 36 38% 93%;        /* #F4EFE6 cloudbone-white */
+  --foreground: 215 19% 35%;       /* #475569 slate-grey */
+
+  /* Muted surfaces (subtle backgrounds) — slightly off-canvas Cloudbone */
+  --muted: 36 30% 89%;
+  --muted-foreground: 215 14% 50%;
+
+  /* Popover + card — same as canvas */
+  --popover: 36 38% 93%;
+  --popover-foreground: 215 19% 35%;
+  --card: 0 0% 100%;               /* pure white for raised surfaces */
+  --card-foreground: 215 19% 35%;
+
+  /* Borders + form inputs — soft Slate at low opacity */
+  --border: 215 12% 80%;
+  --input: 215 12% 80%;
+
+  /* Primary accent — Neural Copper */
+  --primary: 28 56% 46%;           /* #B87333 neural-copper */
+  --primary-foreground: 36 38% 96%;
+
+  /* Secondary accent — Iris Bloom */
+  --secondary: 260 32% 65%;        /* #9F86C0 iris-bloom */
+  --secondary-foreground: 0 0% 100%;
+
+  /* Tertiary accent — Glacial Cyan (sparing) */
+  --accent: 184 32% 80%;           /* #B8DCDD glacial-cyan */
+  --accent-foreground: 215 19% 35%;
+
+  /* Destructive — kept warm-red so it reads "danger" against the warm canvas */
+  --destructive: 0 70% 50%;
+  --destructive-foreground: 36 38% 96%;
+
+  --ring: 28 56% 46%;              /* Neural Copper as focus ring */
   --radius: 0.5rem;
 }
 .dark {
