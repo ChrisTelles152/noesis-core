@@ -1,5 +1,14 @@
 # Action Plan — Noesis Core
 
+> **SUPERSEDED (2026-05-01)** — execution tracking has moved to [`todo.md`](../todo.md) at the
+> repo root, which is now the single source of truth for all open work.
+>
+> This file is preserved as a historical record of the 2026-04 audit pass. The triage statuses
+> below were correct at the time of writing; for current status of each item, see the corresponding
+> phase in `todo.md` (Phase 0 / Phase 1 / Phase 5 cover most of these items).
+>
+> ---
+>
 > Last updated: 2026-04-10 (Phase 4 — fourth pass complete)
 >
 > **Source docs analyzed:**
