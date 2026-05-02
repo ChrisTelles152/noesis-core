@@ -4,6 +4,7 @@ import session from 'express-session';
 import request from 'supertest';
 import { registerRoutes } from '../routes';
 import { setupAuth } from '../auth';
+import { configureEngineManager, resetEngineManager } from '../engine-manager';
 
 // Mock OpenAI to avoid API calls in tests
 vi.mock('openai', () => {
@@ -119,6 +120,14 @@ describe('API Routes', () => {
     // Setup authentication
     setupAuth(app);
 
+    // Phase E1+E2: configure the engine manager so server-side engine
+    // routes (next-action, practice, progress) have a working singleton.
+    configureEngineManager({
+      curriculumSource: { loadCurriculum: (userId) => storage.loadCurriculum(userId) },
+      events: storage,
+      state: storage,
+    });
+
     server = await registerRoutes(app);
     agent = request.agent(app);
 
@@ -130,6 +139,7 @@ describe('API Routes', () => {
     if (server) {
       server.close();
     }
+    resetEngineManager();
   });
 
   describe('POST /api/orchestration/next-step', () => {
@@ -467,6 +477,52 @@ describe('API Routes', () => {
       expect(get.body.skills).toEqual(payload.skills);
       expect(get.body.itemMappings).toEqual(payload.itemMappings);
       expect(get.body.transferTests).toEqual(payload.transferTests);
+    });
+  });
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Phase E3 — GET /api/core/next-action
+  // ─────────────────────────────────────────────────────────────────────────
+  describe('GET /api/core/next-action', () => {
+    it('rejects unauthenticated requests with 401', async () => {
+      const fresh = request.agent(app);
+      const res = await fresh.get('/api/core/next-action');
+      expect(res.status).toBe(401);
+    });
+
+    it('returns the planner next action for the authenticated user', async () => {
+      // Save a curriculum first so the engine has a graph to plan against.
+      const curriculumPost = await agent.post('/api/curriculum/skills').send({
+        skills: [
+          { id: 'a', name: 'A', prerequisites: [] },
+          { id: 'b', name: 'B', prerequisites: ['a'] },
+        ],
+      });
+      expect(curriculumPost.status).toBe(201);
+
+      const res = await agent.get('/api/core/next-action');
+      expect(res.status).toBe(200);
+      // SessionAction shape: { type, skillId?, reason, priority }.
+      expect(res.body).toHaveProperty('type');
+      expect(res.body).toHaveProperty('reason');
+      expect(typeof res.body.priority).toBe('number');
+      // For a fresh learner with two skills (no events, no review states),
+      // the planner picks the leverage gap. With no transfer tests + canonical
+      // loop off (server default), that's a 'practice' on 'a' (no prereqs).
+      expect(['practice', 'concept_introduction']).toContain(res.body.type);
+      expect(res.body.skillId).toBe('a');
+    });
+
+    it('returns rest when no curriculum is loaded (empty graph)', async () => {
+      // A fresh user with no curriculum.
+      const fresh = request.agent(app);
+      await fresh.post('/api/auth/register').send({
+        username: 'next-action-empty-user',
+        password: 'TestPass123!',
+      });
+      const res = await fresh.get('/api/core/next-action');
+      expect(res.status).toBe(200);
+      expect(res.body.type).toBe('rest');
     });
   });
 });

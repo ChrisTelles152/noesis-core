@@ -201,8 +201,29 @@ class EngineManagerImpl implements EngineManager {
 
     const snapshot = await this.state.loadEngineState(userId);
     if (snapshot) {
-      engine.importState(snapshot);
-      return engine;
+      try {
+        engine.importState(snapshot);
+        return engine;
+      } catch {
+        // Snapshot is corrupt or from an incompatible engine version. Fall
+        // through to the event-log replay path — Phase A determinism + the
+        // event-log audit trail mean we can always reconstruct from events.
+        // Rebuild a fresh engine first to clear any partial state from the
+        // failed importState call.
+        const freshEngine = createNoesisCoreEngine(graph, {}, this.clock, this.idGenerator);
+        if (curriculum.itemMappings && curriculum.itemMappings.length > 0) {
+          freshEngine.registerItemMappings(curriculum.itemMappings);
+        }
+        if (curriculum.transferTests && curriculum.transferTests.length > 0) {
+          freshEngine.registerTransferTests(curriculum.transferTests);
+        }
+        const stored = await this.events.getLearningEventsByUserId(userId);
+        const coreEvents = extractCoreEvents(stored);
+        if (coreEvents.length > 0) {
+          freshEngine.replayEvents(coreEvents);
+        }
+        return freshEngine;
+      }
     }
 
     // Fallback: rebuild from the canonical event log (slower but durable).
