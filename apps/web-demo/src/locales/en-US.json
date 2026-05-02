@@ -95,6 +95,7 @@
     "subtitle": "Follow the path below. Each topic unlocks once you've mastered the ones it depends on.",
     "locked": "Locked",
     "lockedReason": "Master the prerequisites to unlock",
+    "lockedReasonDetail": "Missing: {{names}}",
     "available": "Ready to practice",
     "inProgress": "In Progress",
     "mastered": "Mastered",
@@ -103,7 +104,15 @@
     "continueButton": "Continue",
     "noContent": "No curriculum loaded yet.",
     "loadSample": "Load sample content",
-    "loading": "Loading path..."
+    "loading": "Loading path...",
+    "categories": {
+      "arithmetic": "Arithmetic",
+      "algebra": "Algebra",
+      "geometry": "Geometry",
+      "trigonometry": "Trigonometry",
+      "functions": "Functions",
+      "statistics": "Statistics & Probability"
+    }
   },
   "skillNode": {
     "title": "Topic: {{name}}",

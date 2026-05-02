@@ -95,6 +95,7 @@
     "subtitle": "Siga a trilha abaixo. Cada tópico é desbloqueado quando você domina os anteriores.",
     "locked": "Bloqueado",
     "lockedReason": "Domine os pré-requisitos para desbloquear",
+    "lockedReasonDetail": "Faltam: {{names}}",
     "available": "Pronto para praticar",
     "inProgress": "Em Andamento",
     "mastered": "Dominado",
@@ -103,7 +104,15 @@
     "continueButton": "Continuar",
     "noContent": "Currículo ainda não carregado.",
     "loadSample": "Carregar conteúdo de exemplo",
-    "loading": "Carregando trilha..."
+    "loading": "Carregando trilha...",
+    "categories": {
+      "arithmetic": "Aritmética",
+      "algebra": "Álgebra",
+      "geometry": "Geometria",
+      "trigonometry": "Trigonometria",
+      "functions": "Funções",
+      "statistics": "Estatística e Probabilidade"
+    }
   },
   "skillNode": {
     "title": "Tópico: {{name}}",
