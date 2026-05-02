@@ -20,7 +20,7 @@
  */
 
 import type { MemoryState, MemoryScheduler } from '../constitution.js';
-import type { ClockFn } from '../events/index.js';
+import { requireClock, type ClockFn } from '../events/index.js';
 
 /**
  * FSRS algorithm parameters
@@ -67,9 +67,14 @@ export class FSRSScheduler implements MemoryScheduler {
   private readonly params: FSRSParams;
   private readonly clock: ClockFn;
 
-  constructor(params: Partial<FSRSParams> = {}, clock: ClockFn = () => Date.now()) {
+  /**
+   * @param params - Partial FSRS parameters; merged into {@link DEFAULT_FSRS_PARAMS}.
+   * @param clock - Wall-clock function. **Required**: must be injected by the caller
+   *               so replay determinism is preserved. Throws if not a function.
+   */
+  constructor(params: Partial<FSRSParams> = {}, clock: ClockFn) {
     this.params = { ...DEFAULT_FSRS_PARAMS, ...params };
-    this.clock = clock;
+    this.clock = requireClock(clock);
   }
 
   /**
@@ -365,11 +370,13 @@ export interface MemoryStatistics {
 }
 
 /**
- * Factory function to create an FSRSScheduler
+ * Factory function to create an FSRSScheduler.
+ *
+ * `clock` is required — see {@link requireClock} for the rationale.
  */
 export function createFSRSScheduler(
   params: Partial<FSRSParams> = {},
-  clock: ClockFn = () => Date.now()
+  clock: ClockFn
 ): FSRSScheduler {
   return new FSRSScheduler(params, clock);
 }

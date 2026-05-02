@@ -83,22 +83,26 @@ export class CoreEngineAdapter {
   private sessionConfig: SessionConfig;
   private debug: boolean;
   private clock: ClockFn;
+  private idGenerator: IdGeneratorFn;
 
   constructor(config: CoreAdapterConfig) {
     this.debug = config.debug ?? false;
     this.learnerId = config.learnerId;
     this.clock = config.clock ?? (() => Date.now());
-    this.sessionId = generateId();
+    this.idGenerator = config.idGenerator ?? generateId;
+    this.sessionId = this.idGenerator();
 
     // Initialize skill graph
     this.graph = createSkillGraph(config.skills ?? []);
 
-    // Create event factory context with injected clock
-    const idGenerator = config.idGenerator ?? generateId;
-    this.eventContext = createEventFactoryContext(this.clock, idGenerator);
+    // Event factory context shares the same clock + idGenerator as the engine,
+    // so events created by the adapter and events created internally by the
+    // engine (e.g. ImplicitCreditEvent) come from the same deterministic source.
+    this.eventContext = createEventFactoryContext(this.clock, this.idGenerator);
 
-    // Create core engine
-    this.engine = createNoesisCoreEngine(this.graph, {}, this.clock);
+    // Create core engine — pass BOTH clock and idGenerator so the engine's
+    // own internal event creation is also deterministic when those are injected.
+    this.engine = createNoesisCoreEngine(this.graph, {}, this.clock, this.idGenerator);
 
     // Session config
     this.sessionConfig = {
@@ -113,7 +117,7 @@ export class CoreEngineAdapter {
    * Start a learning session
    */
   startSession(): SessionEvent {
-    this.sessionId = generateId();
+    this.sessionId = this.idGenerator();
     const event = createSessionStartEvent(
       this.eventContext,
       this.learnerId,
@@ -279,7 +283,9 @@ export class CoreEngineAdapter {
     // Preserve existing state across engine recreation
     const savedState = this.engine.exportState();
     this.graph = createSkillGraph(skills);
-    this.engine = createNoesisCoreEngine(this.graph, {}, this.clock);
+    // Pass both clock and idGenerator so the recreated engine inherits the
+    // adapter's determinism contract (matches the constructor wiring above).
+    this.engine = createNoesisCoreEngine(this.graph, {}, this.clock, this.idGenerator);
     try {
       this.engine.importState(savedState);
     } catch {
