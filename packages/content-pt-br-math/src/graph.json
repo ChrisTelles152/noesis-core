@@ -1,0 +1,226 @@
+{
+  "version": "1.0.0",
+  "skills": [
+    {
+      "id": "adicao",
+      "name": "Adição",
+      "description": "Soma de números naturais e inteiros.",
+      "prerequisites": [],
+      "category": "arithmetic",
+      "difficulty": 0.1
+    },
+    {
+      "id": "subtracao",
+      "name": "Subtração",
+      "description": "Diferença entre números, incluindo empréstimo entre casas.",
+      "prerequisites": ["adicao"],
+      "category": "arithmetic",
+      "difficulty": 0.15
+    },
+    {
+      "id": "multiplicacao",
+      "name": "Multiplicação",
+      "description": "Tabuada e multiplicação de inteiros de múltiplos dígitos.",
+      "prerequisites": ["adicao"],
+      "encompassedSkills": ["adicao"],
+      "category": "arithmetic",
+      "difficulty": 0.2
+    },
+    {
+      "id": "divisao",
+      "name": "Divisão",
+      "description": "Divisão exata e com resto.",
+      "prerequisites": ["multiplicacao", "subtracao"],
+      "encompassedSkills": ["multiplicacao", "subtracao"],
+      "category": "arithmetic",
+      "difficulty": 0.25
+    },
+    {
+      "id": "fracoes",
+      "name": "Frações",
+      "description": "Operações com frações: soma, subtração, multiplicação, divisão e simplificação.",
+      "prerequisites": ["divisao", "multiplicacao"],
+      "encompassedSkills": ["divisao"],
+      "category": "arithmetic",
+      "difficulty": 0.3
+    },
+    {
+      "id": "decimais",
+      "name": "Números Decimais",
+      "description": "Operações com números decimais e conversão entre frações e decimais.",
+      "prerequisites": ["divisao", "fracoes"],
+      "encompassedSkills": ["fracoes"],
+      "category": "arithmetic",
+      "difficulty": 0.3
+    },
+    {
+      "id": "porcentagem",
+      "name": "Porcentagem",
+      "description": "Cálculo de porcentagens, descontos e acréscimos.",
+      "prerequisites": ["fracoes", "decimais"],
+      "encompassedSkills": ["fracoes", "decimais"],
+      "category": "arithmetic",
+      "difficulty": 0.35
+    },
+    {
+      "id": "potencias",
+      "name": "Potências",
+      "description": "Potenciação com expoentes inteiros, propriedades de potências.",
+      "prerequisites": ["multiplicacao"],
+      "encompassedSkills": ["multiplicacao"],
+      "category": "arithmetic",
+      "difficulty": 0.4
+    },
+    {
+      "id": "variaveis",
+      "name": "Variáveis e Expressões Algébricas",
+      "description": "Uso de letras como variáveis, simplificação de expressões algébricas.",
+      "prerequisites": ["adicao", "subtracao", "multiplicacao", "divisao"],
+      "category": "algebra",
+      "difficulty": 0.35
+    },
+    {
+      "id": "equacoes_lineares",
+      "name": "Equações Lineares",
+      "description": "Resolução de equações do primeiro grau com uma incógnita.",
+      "prerequisites": ["variaveis", "fracoes"],
+      "encompassedSkills": ["variaveis"],
+      "category": "algebra",
+      "difficulty": 0.45
+    },
+    {
+      "id": "sistemas_lineares",
+      "name": "Sistemas Lineares",
+      "description": "Resolução de sistemas de duas equações por substituição e adição.",
+      "prerequisites": ["equacoes_lineares"],
+      "encompassedSkills": ["equacoes_lineares"],
+      "category": "algebra",
+      "difficulty": 0.55
+    },
+    {
+      "id": "polinomios",
+      "name": "Polinômios",
+      "description": "Soma, subtração e multiplicação de polinômios.",
+      "prerequisites": ["variaveis", "potencias"],
+      "encompassedSkills": ["variaveis", "potencias"],
+      "category": "algebra",
+      "difficulty": 0.5
+    },
+    {
+      "id": "equacoes_quadraticas",
+      "name": "Equações Quadráticas",
+      "description": "Resolução de equações do segundo grau pela fórmula de Bhaskara e fatoração.",
+      "prerequisites": ["polinomios", "equacoes_lineares"],
+      "encompassedSkills": ["polinomios", "equacoes_lineares"],
+      "category": "algebra",
+      "difficulty": 0.6
+    },
+    {
+      "id": "funcao_linear",
+      "name": "Função Linear",
+      "description": "Função do primeiro grau, gráfico, coeficiente angular e linear.",
+      "prerequisites": ["equacoes_lineares"],
+      "encompassedSkills": ["equacoes_lineares"],
+      "category": "functions",
+      "difficulty": 0.5
+    },
+    {
+      "id": "funcao_quadratica",
+      "name": "Função Quadrática",
+      "description": "Função do segundo grau, parábola, vértice e raízes.",
+      "prerequisites": ["equacoes_quadraticas", "funcao_linear"],
+      "encompassedSkills": ["funcao_linear", "equacoes_quadraticas"],
+      "category": "functions",
+      "difficulty": 0.65
+    },
+    {
+      "id": "angulos",
+      "name": "Ângulos",
+      "description": "Tipos de ângulos, medidas em graus, ângulos complementares e suplementares.",
+      "prerequisites": ["adicao"],
+      "category": "geometry",
+      "difficulty": 0.3
+    },
+    {
+      "id": "triangulos",
+      "name": "Triângulos",
+      "description": "Classificação de triângulos, soma dos ângulos internos, teorema de Pitágoras.",
+      "prerequisites": ["angulos", "fracoes"],
+      "encompassedSkills": ["angulos"],
+      "category": "geometry",
+      "difficulty": 0.4
+    },
+    {
+      "id": "circulo",
+      "name": "Círculo",
+      "description": "Circunferência, área do círculo, comprimento de arco.",
+      "prerequisites": ["angulos", "decimais"],
+      "encompassedSkills": ["angulos"],
+      "category": "geometry",
+      "difficulty": 0.45
+    },
+    {
+      "id": "areas_volumes",
+      "name": "Áreas e Volumes",
+      "description": "Cálculo de áreas de polígonos e volumes de sólidos básicos.",
+      "prerequisites": ["triangulos", "circulo", "multiplicacao"],
+      "encompassedSkills": ["triangulos", "circulo"],
+      "category": "geometry",
+      "difficulty": 0.5
+    },
+    {
+      "id": "semelhanca",
+      "name": "Semelhança de Figuras",
+      "description": "Razão de semelhança, triângulos semelhantes.",
+      "prerequisites": ["triangulos", "fracoes"],
+      "encompassedSkills": ["triangulos"],
+      "category": "geometry",
+      "difficulty": 0.55
+    },
+    {
+      "id": "trigonometria_basica",
+      "name": "Trigonometria Básica",
+      "description": "Razões trigonométricas no triângulo retângulo: seno, cosseno, tangente.",
+      "prerequisites": ["triangulos", "semelhanca", "fracoes"],
+      "encompassedSkills": ["semelhanca", "triangulos"],
+      "category": "trigonometry",
+      "difficulty": 0.7
+    },
+    {
+      "id": "logaritmos",
+      "name": "Logaritmos",
+      "description": "Definição de logaritmo, propriedades operatórias.",
+      "prerequisites": ["potencias", "equacoes_lineares"],
+      "encompassedSkills": ["potencias"],
+      "category": "algebra",
+      "difficulty": 0.7
+    },
+    {
+      "id": "exponencial",
+      "name": "Função Exponencial",
+      "description": "Função exponencial e relação com logaritmos.",
+      "prerequisites": ["potencias", "funcao_linear", "logaritmos"],
+      "encompassedSkills": ["funcao_linear", "logaritmos"],
+      "category": "functions",
+      "difficulty": 0.75
+    },
+    {
+      "id": "estatistica_basica",
+      "name": "Estatística Básica",
+      "description": "Média, mediana, moda e tabelas de frequência.",
+      "prerequisites": ["decimais", "porcentagem"],
+      "encompassedSkills": ["decimais", "porcentagem"],
+      "category": "statistics",
+      "difficulty": 0.4
+    },
+    {
+      "id": "probabilidade",
+      "name": "Probabilidade",
+      "description": "Probabilidade de eventos simples e independentes.",
+      "prerequisites": ["fracoes", "porcentagem", "estatistica_basica"],
+      "encompassedSkills": ["fracoes", "estatistica_basica"],
+      "category": "statistics",
+      "difficulty": 0.5
+    }
+  ]
+}
