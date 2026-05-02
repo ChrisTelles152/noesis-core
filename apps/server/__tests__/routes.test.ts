@@ -525,4 +525,158 @@ describe('API Routes', () => {
       expect(res.body.type).toBe('rest');
     });
   });
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Phase E4 — POST /api/core/practice
+  // ─────────────────────────────────────────────────────────────────────────
+  describe('POST /api/core/practice', () => {
+    it('rejects unauthenticated requests with 401', async () => {
+      const fresh = request.agent(app);
+      const res = await fresh.post('/api/core/practice').send({
+        skillId: 'a',
+        itemId: 'q1',
+        correct: true,
+        responseTimeMs: 500,
+      });
+      expect(res.status).toBe(401);
+    });
+
+    it('rejects missing required fields with 400', async () => {
+      const res = await agent.post('/api/core/practice').send({ skillId: 'a' });
+      expect(res.status).toBe(400);
+      expect(res.body.error).toMatch(/Validation failed/);
+    });
+
+    it('processes a practice event and returns event + progress + nextAction', async () => {
+      // Use a fresh user to avoid bleed from prior tests' curriculum/state.
+      const fresh = request.agent(app);
+      await fresh.post('/api/auth/register').send({
+        username: 'practice-user',
+        password: 'TestPass123!',
+      });
+      await fresh.post('/api/curriculum/skills').send({
+        skills: [
+          { id: 'a', name: 'A', prerequisites: [] },
+          { id: 'b', name: 'B', prerequisites: ['a'] },
+        ],
+      });
+
+      const res = await fresh.post('/api/core/practice').send({
+        skillId: 'a',
+        itemId: 'q1',
+        correct: true,
+        responseTimeMs: 500,
+        confidence: 0.7,
+      });
+
+      expect(res.status).toBe(201);
+      // Returned event matches the input shape + canonical fields the engine
+      // adds (id, timestamp, learnerId, sessionId, type='practice').
+      expect(res.body.event.type).toBe('practice');
+      expect(res.body.event.skillId).toBe('a');
+      expect(res.body.event.itemId).toBe('q1');
+      expect(res.body.event.correct).toBe(true);
+      expect(typeof res.body.event.id).toBe('string');
+      expect(typeof res.body.event.timestamp).toBe('number');
+      expect(typeof res.body.event.learnerId).toBe('string');
+
+      // Progress reflects the new event.
+      expect(res.body.progress.totalEvents).toBe(1);
+
+      // Next action is well-formed.
+      expect(res.body.nextAction).toHaveProperty('type');
+      expect(res.body.nextAction).toHaveProperty('reason');
+      expect(typeof res.body.nextAction.priority).toBe('number');
+    });
+
+    it('persists the practice event into learning_events with _coreEvent payload', async () => {
+      const fresh = request.agent(app);
+      await fresh.post('/api/auth/register').send({
+        username: 'practice-persist-user',
+        password: 'TestPass123!',
+      });
+      await fresh.post('/api/curriculum/skills').send({
+        skills: [{ id: 'a', name: 'A', prerequisites: [] }],
+      });
+
+      const before = (storage.createLearningEvent as ReturnType<typeof vi.fn>).mock.calls.length;
+      await fresh.post('/api/core/practice').send({
+        skillId: 'a',
+        itemId: 'qX',
+        correct: false,
+        responseTimeMs: 1200,
+      });
+      const after = (storage.createLearningEvent as ReturnType<typeof vi.fn>).mock.calls.length;
+
+      expect(after).toBeGreaterThan(before);
+      const lastCall = (storage.createLearningEvent as ReturnType<typeof vi.fn>).mock.calls.at(-1);
+      const inserted = lastCall![0] as { type: string; data: { _coreEvent?: string } };
+      expect(inserted.type).toBe('core:practice');
+      // The payload is the JSON-serialized canonical NoesisEvent.
+      const coreEvent = JSON.parse(inserted.data._coreEvent ?? 'null') as {
+        type: string;
+        skillId: string;
+        correct: boolean;
+      };
+      expect(coreEvent.type).toBe('practice');
+      expect(coreEvent.skillId).toBe('a');
+      expect(coreEvent.correct).toBe(false);
+    });
+
+    it('subsequent practice events accumulate progress (engine cache hit)', async () => {
+      const fresh = request.agent(app);
+      await fresh.post('/api/auth/register').send({
+        username: 'practice-accum-user',
+        password: 'TestPass123!',
+      });
+      await fresh.post('/api/curriculum/skills').send({
+        skills: [{ id: 'a', name: 'A', prerequisites: [] }],
+      });
+
+      const r1 = await fresh.post('/api/core/practice').send({
+        skillId: 'a',
+        itemId: 'q1',
+        correct: true,
+        responseTimeMs: 500,
+      });
+      expect(r1.body.progress.totalEvents).toBe(1);
+
+      const r2 = await fresh.post('/api/core/practice').send({
+        skillId: 'a',
+        itemId: 'q2',
+        correct: true,
+        responseTimeMs: 600,
+      });
+      expect(r2.body.progress.totalEvents).toBe(2);
+
+      const r3 = await fresh.post('/api/core/practice').send({
+        skillId: 'a',
+        itemId: 'q3',
+        correct: false,
+        responseTimeMs: 800,
+      });
+      expect(r3.body.progress.totalEvents).toBe(3);
+    });
+
+    it('accepts optional stage="application" for canonical-loop application events', async () => {
+      const fresh = request.agent(app);
+      await fresh.post('/api/auth/register').send({
+        username: 'practice-stage-user',
+        password: 'TestPass123!',
+      });
+      await fresh.post('/api/curriculum/skills').send({
+        skills: [{ id: 'a', name: 'A', prerequisites: [] }],
+      });
+
+      const res = await fresh.post('/api/core/practice').send({
+        skillId: 'a',
+        itemId: 'app-q1',
+        correct: true,
+        responseTimeMs: 500,
+        stage: 'application',
+      });
+      expect(res.status).toBe(201);
+      expect(res.body.event.stage).toBe('application');
+    });
+  });
 });
