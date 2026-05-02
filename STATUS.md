@@ -1,5 +1,20 @@
 # STATUS.md
 
+> **STALE — DO NOT TRUST EXECUTION STATUS HERE.** This file was last updated on 2026-01-29 and
+> reflects Jan-2026 state. Many "Ready" / "Out of scope" claims below have drifted.
+>
+> For current execution status, see [`todo.md`](todo.md) (single source of truth as of 2026-05-01).
+> For current intent and scope, see [`INTENTION.md`](INTENTION.md).
+> For drift assessment of code vs intent, see [`PRODUCTION_READINESS.md`](PRODUCTION_READINESS.md).
+>
+> Specifically, the "Out of Scope Until After Wedge Validation" section below contradicts
+> `README.md` "Key Features" table (which still headlines XR/Voice as "Planned") — that drift
+> is tracked in `todo.md` Phase 3.1.
+>
+> This file is preserved verbatim as a Jan-2026 snapshot.
+>
+> ---
+>
 > Last updated: 2026-01-29
 
 ## What This Repo Is
