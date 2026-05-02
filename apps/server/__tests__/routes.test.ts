@@ -273,20 +273,31 @@ describe('API Routes', () => {
   });
 
   describe('GET /api/analytics/attention', () => {
-    it('should return 200 with array', async () => {
+    it('should return 200 with paginated payload (Phase E6)', async () => {
       const response = await agent.get('/api/analytics/attention');
 
       expect(response.status).toBe(200);
-      expect(Array.isArray(response.body)).toBe(true);
+      // Phase E6 wraps the array in pagination metadata.
+      expect(Array.isArray(response.body.items)).toBe(true);
+      expect(response.body).toMatchObject({
+        page: 1,
+        limit: 20,
+        total: expect.any(Number),
+      });
     });
   });
 
   describe('GET /api/analytics/mastery', () => {
-    it('should return 200 with array', async () => {
+    it('should return 200 with paginated payload (Phase E6)', async () => {
       const response = await agent.get('/api/analytics/mastery');
 
       expect(response.status).toBe(200);
-      expect(Array.isArray(response.body)).toBe(true);
+      expect(Array.isArray(response.body.items)).toBe(true);
+      expect(response.body).toMatchObject({
+        page: 1,
+        limit: 20,
+        total: expect.any(Number),
+      });
     });
   });
 
@@ -846,6 +857,130 @@ describe('API Routes', () => {
       const res = await agent.post('/api/core/events').send({ type: 'practice' /* missing */ });
       expect(res.status).toBe(400);
       expect(wsService.broadcastLearningEvent).not.toHaveBeenCalled();
+    });
+  });
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Phase E6 — pagination + date-range
+  // ─────────────────────────────────────────────────────────────────────────
+  describe('Phase E6: pagination + date-range', () => {
+    let pageUser: ReturnType<typeof request.agent>;
+
+    beforeAll(async () => {
+      // Build a fresh user with 25 attention events so pagination has
+      // something to slice. We post via /api/learning/events (the legacy
+      // generic endpoint) because /api/analytics/attention reads back from
+      // type='attention' rows.
+      pageUser = request.agent(app);
+      await pageUser
+        .post('/api/auth/register')
+        .send({ username: 'pagination-user', password: 'TestPass123!' });
+      for (let i = 0; i < 25; i++) {
+        await pageUser
+          .post('/api/learning/events')
+          .send({ type: 'attention', data: { attentionScore: i / 25 } });
+      }
+    });
+
+    it('paginates analytics responses: limit=10 returns 10 + metadata', async () => {
+      const res = await pageUser.get('/api/analytics/attention?limit=10');
+      expect(res.status).toBe(200);
+      expect(res.body.items.length).toBe(10);
+      expect(res.body.total).toBe(25);
+      expect(res.body.page).toBe(1);
+      expect(res.body.limit).toBe(10);
+      expect(res.body.totalPages).toBe(3);
+      expect(res.body.hasNextPage).toBe(true);
+    });
+
+    it('respects ?page=2 (returns next slice, hasNextPage updates)', async () => {
+      const res = await pageUser.get('/api/analytics/attention?limit=10&page=2');
+      expect(res.status).toBe(200);
+      expect(res.body.items.length).toBe(10);
+      expect(res.body.page).toBe(2);
+      expect(res.body.hasNextPage).toBe(true);
+    });
+
+    it('last page has hasNextPage=false and partial items', async () => {
+      const res = await pageUser.get('/api/analytics/attention?limit=10&page=3');
+      expect(res.status).toBe(200);
+      expect(res.body.items.length).toBe(5); // 25 mod 10
+      expect(res.body.page).toBe(3);
+      expect(res.body.hasNextPage).toBe(false);
+    });
+
+    it('rejects limit > 100 and limit < 1 (Zod schema bounds)', async () => {
+      const tooLarge = await pageUser.get('/api/analytics/attention?limit=101');
+      expect(tooLarge.status).toBe(400);
+      const zero = await pageUser.get('/api/analytics/attention?limit=0');
+      expect(zero.status).toBe(400);
+    });
+
+    it('filters by date range: events outside the window are excluded', async () => {
+      // Attention events were created sequentially in the beforeAll; their
+      // timestamps are recent. A start-of-2099 window should return zero,
+      // an end-before-1970 window should also return zero.
+      const future = await pageUser.get(
+        `/api/analytics/attention?startDate=${encodeURIComponent('2099-01-01T00:00:00.000Z')}`
+      );
+      expect(future.status).toBe(200);
+      expect(future.body.total).toBe(0);
+      expect(future.body.items.length).toBe(0);
+
+      const past = await pageUser.get(
+        `/api/analytics/attention?endDate=${encodeURIComponent('1970-01-02T00:00:00.000Z')}`
+      );
+      expect(past.status).toBe(200);
+      expect(past.body.total).toBe(0);
+    });
+
+    it('summary endpoint date-filters its aggregations and echoes the window', async () => {
+      const future = await pageUser.get(
+        `/api/analytics/summary?startDate=${encodeURIComponent('2099-01-01T00:00:00.000Z')}`
+      );
+      expect(future.status).toBe(200);
+      expect(future.body.totalEvents).toBe(0);
+      expect(future.body.eventCounts.attention).toBe(0);
+      expect(future.body.window.startDate).toBe('2099-01-01T00:00:00.000Z');
+
+      // No window → all events visible.
+      const all = await pageUser.get('/api/analytics/summary');
+      expect(all.status).toBe(200);
+      expect(all.body.totalEvents).toBeGreaterThan(0);
+    });
+
+    it('GET /api/core/events paginates AND keeps the legacy { count, events } fields', async () => {
+      // Pre-seed 5 core events for a fresh user.
+      const fresh = request.agent(app);
+      await fresh
+        .post('/api/auth/register')
+        .send({ username: 'core-events-pagination-user', password: 'TestPass123!' });
+      for (let i = 0; i < 5; i++) {
+        await fresh.post('/api/core/events').send({
+          id: `evt-pag-${i}`,
+          type: 'practice',
+          learnerId: 'lP',
+          sessionId: 'sP',
+          timestamp: 1000 + i,
+          skillId: 'a',
+          itemId: `q${i}`,
+          correct: true,
+          responseTimeMs: 500,
+        });
+      }
+
+      const res = await fresh.get('/api/core/events?limit=2&page=1');
+      expect(res.status).toBe(200);
+      // New pagination fields.
+      expect(res.body.page).toBe(1);
+      expect(res.body.limit).toBe(2);
+      expect(res.body.total).toBe(5);
+      expect(res.body.totalPages).toBe(3);
+      expect(res.body.hasNextPage).toBe(true);
+      // Legacy fields preserved (back-compat).
+      expect(res.body.count).toBe(5);
+      expect(Array.isArray(res.body.events)).toBe(true);
+      expect(res.body.events.length).toBe(2);
     });
   });
 });
