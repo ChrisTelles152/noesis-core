@@ -10,6 +10,17 @@ export default {
         md: 'calc(var(--radius) - 2px)',
         sm: 'calc(var(--radius) - 4px)',
       },
+      // ────────────────────────────────────────────────────────────────────
+      // Brand typography (INTENTION.md): geometric sans for UI, soft serif
+      // for long-form / philosophical text. Inter + Source Serif 4 are loaded
+      // from Google Fonts in apps/web-demo/index.html. Stack order: branded
+      // family first, then a system fallback so unstyled / pre-load renders
+      // still look intentional.
+      // ────────────────────────────────────────────────────────────────────
+      fontFamily: {
+        sans: ['Inter', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
+        serif: ['"Source Serif 4"', '"Source Serif Pro"', 'Georgia', 'serif'],
+      },
       colors: {
         // ──────────────────────────────────────────────────────────────────
         // Brand palette (INTENTION.md "sacred-tech" — cognitive minimalism,
