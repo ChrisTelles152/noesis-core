@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'wouter';
+import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { useAuthContext } from '@/hooks/useAuth';
 
 export default function Header() {
+  const { t } = useTranslation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [location, setLocation] = useLocation();
   const [scrolled, setScrolled] = useState(false);
@@ -53,25 +55,25 @@ export default function Header() {
               href="/#features"
               className={`text-slate-600 hover:text-primary-600 transition-colors text-sm font-medium ${isActive('/#features') ? 'text-primary-600' : ''}`}
             >
-              Features
+              {t('nav.features')}
             </Link>
             <Link
               href="/documentation"
               className={`text-slate-600 hover:text-primary-600 transition-colors text-sm font-medium ${isActive('/documentation') ? 'text-primary-600' : ''}`}
             >
-              Documentation
+              {t('nav.documentation')}
             </Link>
             <Link
               href="/demo"
               className={`text-slate-600 hover:text-primary-600 transition-colors text-sm font-medium ${isActive('/demo') ? 'text-primary-600' : ''}`}
             >
-              Demo
+              {t('nav.demo')}
             </Link>
             <Link
-              href="/core-smoke"
-              className={`text-slate-600 hover:text-primary-600 transition-colors text-sm font-medium ${isActive('/core-smoke') ? 'text-primary-600' : ''}`}
+              href="/path"
+              className={`text-slate-600 hover:text-primary-600 transition-colors text-sm font-medium ${isActive('/path') ? 'text-primary-600' : ''}`}
             >
-              Core Smoke
+              {t('nav.path')}
             </Link>
             <a
               href="https://github.com/noesis-sdk"
@@ -79,7 +81,7 @@ export default function Header() {
               rel="noopener noreferrer"
               className="text-slate-600 hover:text-primary-600 transition-colors text-sm font-medium"
             >
-              GitHub
+              {t('common.github')}
             </a>
           </nav>
 
@@ -91,7 +93,7 @@ export default function Header() {
               className="hidden sm:flex items-center text-sm font-medium text-slate-700 hover:text-primary-600 transition-colors"
             >
               <i className="fab fa-github text-lg mr-2"></i>
-              <span>Star on GitHub</span>
+              <span>{t('common.starOnGithub')}</span>
             </a>
             {!isLoading &&
               (isAuthenticated ? (
@@ -100,22 +102,22 @@ export default function Header() {
                     href="/dashboard"
                     className={`text-sm font-medium transition-colors ${isActive('/dashboard') ? 'text-primary-600' : 'text-slate-600 hover:text-primary-600'}`}
                   >
-                    Dashboard
+                    {t('nav.dashboard')}
                   </Link>
                   <span className="text-sm text-slate-600">
-                    Hi, <strong>{user?.username}</strong>
+                    {t('nav.greeting', { username: user?.username ?? '' })}
                   </span>
                   <Button variant="outline" onClick={handleLogout}>
-                    Logout
+                    {t('common.logout')}
                   </Button>
                 </div>
               ) : (
                 <div className="flex items-center space-x-2">
                   <Button variant="ghost" asChild>
-                    <Link href="/login">Sign In</Link>
+                    <Link href="/login">{t('common.signIn')}</Link>
                   </Button>
                   <Button asChild>
-                    <Link href="/register">Get Started</Link>
+                    <Link href="/register">{t('common.getStarted')}</Link>
                   </Button>
                 </div>
               ))}
@@ -124,7 +126,7 @@ export default function Header() {
           <button
             className="md:hidden flex items-center"
             onClick={toggleMobileMenu}
-            aria-label="Toggle mobile menu"
+            aria-label={t('nav.menuToggle')}
           >
             <i
               className={`fas ${mobileMenuOpen ? 'fa-times' : 'fa-bars'} text-slate-700 text-xl`}
@@ -142,25 +144,25 @@ export default function Header() {
             href="/#features"
             className="block px-3 py-2 text-slate-600 rounded-md hover:bg-slate-100 hover:text-primary-600 transition-colors"
           >
-            Features
+            {t('nav.features')}
           </Link>
           <Link
             href="/documentation"
             className="block px-3 py-2 text-slate-600 rounded-md hover:bg-slate-100 hover:text-primary-600 transition-colors"
           >
-            Documentation
+            {t('nav.documentation')}
           </Link>
           <Link
             href="/demo"
             className="block px-3 py-2 text-slate-600 rounded-md hover:bg-slate-100 hover:text-primary-600 transition-colors"
           >
-            Demo
+            {t('nav.demo')}
           </Link>
           <Link
-            href="/core-smoke"
+            href="/path"
             className="block px-3 py-2 text-slate-600 rounded-md hover:bg-slate-100 hover:text-primary-600 transition-colors"
           >
-            Core Smoke
+            {t('nav.path')}
           </Link>
           <a
             href="https://github.com/noesis-sdk"
@@ -168,7 +170,7 @@ export default function Header() {
             rel="noopener noreferrer"
             className="block px-3 py-2 text-slate-600 rounded-md hover:bg-slate-100 hover:text-primary-600 transition-colors"
           >
-            GitHub
+            {t('common.github')}
           </a>
         </div>
       </div>
