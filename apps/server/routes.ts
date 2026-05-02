@@ -10,6 +10,7 @@ import { coreEventToLearningEvent, extractCoreEvents, validateNoesisEvent } from
 import { createSkillGraph } from '@noesis-edu/core';
 import { getEngineManager } from './engine-manager';
 import { wsService } from './websocket';
+import { commonSchemas } from './middleware/validation';
 
 /**
  * Default session config used by server-side planner endpoints.
@@ -34,6 +35,54 @@ const DEFAULT_SERVER_SESSION_CONFIG = {
  */
 function learnerIdForUser(userId: number): string {
   return `user-${userId}`;
+}
+
+/**
+ * Combined query schema for endpoints that paginate AND date-range filter.
+ * Reuses `commonSchemas` from middleware/validation so pagination semantics
+ * (default page=1, limit=20, max 100) stay consistent across the API.
+ */
+const paginatedDateRangeQuerySchema = commonSchemas.pagination.merge(commonSchemas.dateRange);
+
+/** Plain query schema for endpoints that only date-range filter (no pagination). */
+const dateRangeQuerySchema = commonSchemas.dateRange;
+
+/**
+ * Filter LearningEvents by inclusive date range. `startDate` / `endDate` are
+ * ISO 8601 strings; either may be omitted to leave that side open.
+ */
+function filterByDateRange<E extends { timestamp: Date | string }>(
+  items: E[],
+  startDate?: string,
+  endDate?: string
+): E[] {
+  if (!startDate && !endDate) return items;
+  const startMs = startDate ? new Date(startDate).getTime() : -Infinity;
+  const endMs = endDate ? new Date(endDate).getTime() : Infinity;
+  return items.filter((e) => {
+    const ts = e.timestamp instanceof Date ? e.timestamp.getTime() : new Date(e.timestamp).getTime();
+    return ts >= startMs && ts <= endMs;
+  });
+}
+
+/** Build pagination metadata + slice the items array. */
+function paginate<E>(
+  items: E[],
+  page: number,
+  limit: number
+): { items: E[]; page: number; limit: number; total: number; totalPages: number; hasNextPage: boolean } {
+  const total = items.length;
+  const totalPages = Math.max(1, Math.ceil(total / limit));
+  const start = (page - 1) * limit;
+  const end = start + limit;
+  return {
+    items: items.slice(start, end),
+    page,
+    limit,
+    total,
+    totalPages,
+    hasNextPage: page < totalPages,
+  };
 }
 
 // Configure the LLM Manager with the server's structured logger
@@ -291,12 +340,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Learning analytics endpoints - require authentication to protect user data
   app.get('/api/analytics/attention', requireAuth, async (req, res) => {
     try {
+      const query = paginatedDateRangeQuerySchema.parse(req.query);
       const userId = getUserIdFromRequest(req);
       const events = await storage.getLearningEventsByType('attention');
-      // Filter to only show authenticated user's data
+      // Filter to only show authenticated user's data, then by date range, then paginate.
       const userEvents = events.filter((e) => e.userId === userId);
-      res.json(userEvents);
+      const filtered = filterByDateRange(userEvents, query.startDate, query.endDate);
+      res.json(paginate(filtered, query.page, query.limit));
     } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: 'Invalid query parameters', details: error.errors });
+      }
       logger.error(
         'Error fetching attention analytics',
         { module: 'routes' },
@@ -308,12 +362,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get('/api/analytics/mastery', requireAuth, async (req, res) => {
     try {
+      const query = paginatedDateRangeQuerySchema.parse(req.query);
       const userId = getUserIdFromRequest(req);
       const events = await storage.getLearningEventsByType('mastery');
-      // Filter to only show authenticated user's data
       const userEvents = events.filter((e) => e.userId === userId);
-      res.json(userEvents);
+      const filtered = filterByDateRange(userEvents, query.startDate, query.endDate);
+      res.json(paginate(filtered, query.page, query.limit));
     } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: 'Invalid query parameters', details: error.errors });
+      }
       logger.error(
         'Error fetching mastery analytics',
         { module: 'routes' },
@@ -326,14 +384,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get all analytics for a user - requires authentication
   app.get('/api/analytics/summary', requireAuth, async (req, res) => {
     try {
+      const query = dateRangeQuerySchema.parse(req.query);
       const userId = getUserIdFromRequest(req);
       const allEvents = await storage.getLearningEventsByUserId(userId);
+      // Date-range filter applies to every aggregation below — counts, average,
+      // recentEvents — so a "last 7 days" view doesn't accidentally include
+      // historical events.
+      const inWindow = filterByDateRange(allEvents, query.startDate, query.endDate);
 
       // Compute summary statistics
-      const attentionEvents = allEvents.filter((e) => e.type === 'attention');
-      const masteryEvents = allEvents.filter((e) => e.type === 'mastery');
-      const recommendationEvents = allEvents.filter((e) => e.type === 'recommendation');
-      const engagementEvents = allEvents.filter((e) => e.type === 'engagement');
+      const attentionEvents = inWindow.filter((e) => e.type === 'attention');
+      const masteryEvents = inWindow.filter((e) => e.type === 'mastery');
+      const recommendationEvents = inWindow.filter((e) => e.type === 'recommendation');
+      const engagementEvents = inWindow.filter((e) => e.type === 'engagement');
 
       // Calculate averages
       const avgAttention =
@@ -346,7 +409,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       res.json({
         userId,
-        totalEvents: allEvents.length,
+        totalEvents: inWindow.length,
         eventCounts: {
           attention: attentionEvents.length,
           mastery: masteryEvents.length,
@@ -354,10 +417,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
           engagements: engagementEvents.length,
         },
         averageAttention: Math.round(avgAttention * 100) / 100,
-        recentEvents: allEvents.slice(-10).reverse(),
+        recentEvents: inWindow.slice(-10).reverse(),
         llmProvider: llm.getActiveProvider(),
+        // Echo the active window so callers know what was applied.
+        window: { startDate: query.startDate, endDate: query.endDate },
       });
     } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: 'Invalid query parameters', details: error.errors });
+      }
       logger.error(
         'Error fetching analytics summary',
         { module: 'routes' },
@@ -482,12 +550,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get('/api/core/events', requireAuth, async (req, res) => {
     try {
+      const query = paginatedDateRangeQuerySchema.parse(req.query);
       const userId = getUserIdFromRequest(req);
       const allEvents = await storage.getLearningEventsByUserId(userId);
       const coreEvents = extractCoreEvents(allEvents);
+      // Date-filter on the core event timestamp (number, ms epoch) before
+      // pagination so window-relative pagination is consistent.
+      const startMs = query.startDate ? new Date(query.startDate).getTime() : -Infinity;
+      const endMs = query.endDate ? new Date(query.endDate).getTime() : Infinity;
+      const inWindow = coreEvents.filter((e) => e.timestamp >= startMs && e.timestamp <= endMs);
+      const page = paginate(inWindow, query.page, query.limit);
 
-      res.json({ count: coreEvents.length, events: coreEvents });
+      // Keep the legacy `count` + `events` fields next to the new pagination
+      // metadata so existing clients that only read those keep working.
+      res.json({
+        count: page.total,
+        events: page.items,
+        page: page.page,
+        limit: page.limit,
+        total: page.total,
+        totalPages: page.totalPages,
+        hasNextPage: page.hasNextPage,
+      });
     } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: 'Invalid query parameters', details: error.errors });
+      }
       logger.error(
         'Error fetching core events',
         { module: 'routes' },
