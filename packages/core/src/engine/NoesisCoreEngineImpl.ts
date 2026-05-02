@@ -40,7 +40,12 @@ import { SessionPlannerImpl, type SessionPlannerConfig } from '../planning/index
 import { createTransferGate, type TransferGateConfig } from '../transfer/index.js';
 import { createDiagnosticEngine, type DiagnosticConfig } from '../diagnostic/index.js';
 import type { ClockFn, IdGeneratorFn, EventFactoryContext } from '../events/index.js';
-import { createEventFactoryContext, createImplicitCreditEvent } from '../events/index.js';
+import {
+  createEventFactoryContext,
+  createImplicitCreditEvent,
+  requireClock,
+  requireIdGenerator,
+} from '../events/index.js';
 
 /**
  * Core engine configuration
@@ -177,24 +182,33 @@ export class NoesisCoreEngineImpl implements NoesisCoreEngine {
   // Per-user, per-skill learning speed multipliers (learnerId → skillId → speed)
   private learnerSpeeds: Map<string, Map<string, number>> = new Map();
 
+  /**
+   * @param skillGraph - The skill DAG this engine will operate over.
+   * @param config - Optional core-engine configuration (BKT, FSRS, planner, etc.).
+   * @param clock - Wall-clock function. **Required**: must be injected by the caller
+   *               so replay determinism is preserved. Throws if not a function.
+   *               For replay/test, use {@link createDeterministicEngine}.
+   *               For production paths, use {@link createSystemEngine} to opt in to `Date.now()`.
+   * @param idGenerator - Event-ID generator. **Required** for the same reason as `clock`.
+   */
   constructor(
     skillGraph: SkillGraph,
     config: CoreEngineConfig = {},
-    clock: ClockFn = () => Date.now(),
-    idGenerator: IdGeneratorFn = () => `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+    clock: ClockFn,
+    idGenerator: IdGeneratorFn
   ) {
     this.graph = skillGraph;
-    this.clock = clock;
-    this.idGenerator = idGenerator;
+    this.clock = requireClock(clock);
+    this.idGenerator = requireIdGenerator(idGenerator);
     this.plannerConfig = config.planner || {};
     this.ratingConfig = { ...DEFAULT_RATING_CONFIG, ...config.rating };
     this.implicitCreditFraction = config.implicitCreditFraction ?? 0.5;
     this.implicitCreditMinSpeed = config.implicitCreditMinSpeed ?? 1.0;
-    this.eventContext = createEventFactoryContext(clock, idGenerator);
+    this.eventContext = createEventFactoryContext(this.clock, this.idGenerator);
 
     // Initialize components
-    this.learnerEngine = createBKTEngine(config.bkt, clock);
-    this.memoryScheduler = createFSRSScheduler(config.fsrs, clock);
+    this.learnerEngine = createBKTEngine(config.bkt, this.clock);
+    this.memoryScheduler = createFSRSScheduler(config.fsrs, this.clock);
     this.transferGate = createTransferGate(config.transfer);
     this.diagnosticEngine = createDiagnosticEngine(config.diagnostic);
 
@@ -721,19 +735,29 @@ export interface LearnerProgress {
 }
 
 /**
- * Factory function to create a NoesisCoreEngine
+ * Factory function to create a NoesisCoreEngine.
+ *
+ * Both `clock` and `idGenerator` are **required**. There are no silent defaults — a
+ * consumer who forgets to inject them gets a thrown error, not a silently
+ * non-deterministic engine. See {@link requireClock} for the rationale.
+ *
+ * @see createDeterministicEngine for replay/testing.
+ * @see createSystemEngine for production paths that opt in to `Date.now()` + UUID.
  */
 export function createNoesisCoreEngine(
   skillGraph: SkillGraph,
   config: CoreEngineConfig = {},
-  clock: ClockFn = () => Date.now(),
-  idGenerator?: IdGeneratorFn
+  clock: ClockFn,
+  idGenerator: IdGeneratorFn
 ): NoesisCoreEngineImpl {
   return new NoesisCoreEngineImpl(skillGraph, config, clock, idGenerator);
 }
 
 /**
- * Create a deterministic core engine for testing/replay
+ * Create a deterministic core engine for testing/replay.
+ *
+ * Uses a fixed clock (returns `startTime` always) and a counter-based ID generator
+ * (`evt-000001`, `evt-000002`, ...). Identical inputs produce byte-identical state.
  */
 export function createDeterministicEngine(
   skillGraph: SkillGraph,
@@ -750,4 +774,38 @@ export function createDeterministicEngine(
   };
 
   return new NoesisCoreEngineImpl(skillGraph, config, deterministicClock, deterministicIdGenerator);
+}
+
+/**
+ * Create a core engine that opts in to system clock + system random IDs.
+ *
+ * **Use this only at production boundaries.** It IS non-replayable: events get
+ * `Date.now()` timestamps and randomly generated UUID-v4 IDs. Two engines created
+ * by this factory will not produce identical state from the same event sequence.
+ *
+ * Prefer {@link createDeterministicEngine} wherever possible. Use
+ * {@link createNoesisCoreEngine} when you have your own clock/idGenerator (e.g.
+ * a server clock, a request-scoped UUID source) so the determinism contract
+ * still holds at your layer.
+ */
+export function createSystemEngine(
+  skillGraph: SkillGraph,
+  config: CoreEngineConfig = {}
+): NoesisCoreEngineImpl {
+  const systemClock: ClockFn = () => Date.now();
+  const systemIdGenerator: IdGeneratorFn = () => {
+    // Use crypto.randomUUID where available; fall back to a UUID-v4-shaped string.
+    const cryptoRef: { randomUUID?: () => string } | undefined = (
+      globalThis as unknown as { crypto?: { randomUUID?: () => string } }
+    ).crypto;
+    if (cryptoRef && typeof cryptoRef.randomUUID === 'function') {
+      return cryptoRef.randomUUID();
+    }
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+      const r = (Math.random() * 16) | 0;
+      const v = c === 'x' ? r : (r & 0x3) | 0x8;
+      return v.toString(16);
+    });
+  };
+  return new NoesisCoreEngineImpl(skillGraph, config, systemClock, systemIdGenerator);
 }

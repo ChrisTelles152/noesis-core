@@ -817,7 +817,12 @@ describe('NoesisCoreEngine', () => {
   });
 
   it('should create engine with all components', () => {
-    const engine = createNoesisCoreEngine(graph);
+    const engine = createNoesisCoreEngine(
+      graph,
+      {},
+      () => 0,
+      createDeterministicIdGenerator('evt')
+    );
 
     expect(engine.graph).toBeDefined();
     expect(engine.learnerEngine).toBeDefined();
@@ -1689,9 +1694,12 @@ describe('Critical Path: BKT diagnostic initialization followed by practice', ()
     // Create engine with a custom planner config (non-default masteryThreshold)
     const graph = createSkillGraph(createTestSkills());
     const customThreshold = 0.95;
-    const engine = createNoesisCoreEngine(graph, {
-      planner: { masteryThreshold: customThreshold },
-    });
+    const engine = createNoesisCoreEngine(
+      graph,
+      { planner: { masteryThreshold: customThreshold } },
+      () => 1000,
+      createDeterministicIdGenerator('evt')
+    );
 
     // Master 'arithmetic' to above 0.85 but below 0.95
     // With default BKT params, 2 correct answers reach ~0.92

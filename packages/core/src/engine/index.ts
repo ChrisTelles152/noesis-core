@@ -10,6 +10,7 @@ export {
   NoesisCoreEngineImpl,
   createNoesisCoreEngine,
   createDeterministicEngine,
+  createSystemEngine,
   computeRating,
   DEFAULT_RATING_CONFIG,
   type CoreEngineConfig,

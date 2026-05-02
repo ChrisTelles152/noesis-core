@@ -19,7 +19,7 @@ import type {
   SkillGraph,
   PracticeEvent,
 } from '../constitution.js';
-import type { ClockFn } from '../events/index.js';
+import { requireClock, type ClockFn } from '../events/index.js';
 
 /**
  * BKT parameters for model initialization
@@ -93,11 +93,16 @@ export class BKTEngine implements LearnerModelEngine {
   private readonly defaultParams: BKTParams;
   private readonly clock: ClockFn;
 
-  constructor(params: Partial<BKTParams> = {}, clock: ClockFn = () => Date.now()) {
+  /**
+   * @param params - Partial BKT parameters; merged into {@link DEFAULT_BKT_PARAMS}.
+   * @param clock - Wall-clock function. **Required**: must be injected by the caller
+   *               so replay determinism is preserved. Throws if not a function.
+   */
+  constructor(params: Partial<BKTParams> = {}, clock: ClockFn) {
     this.defaultParams = { ...DEFAULT_BKT_PARAMS, ...params };
     // Validate parameters to catch invalid configurations early
     validateBKTParams(this.defaultParams);
-    this.clock = clock;
+    this.clock = requireClock(clock);
   }
 
   /**
@@ -313,11 +318,10 @@ export class BKTEngine implements LearnerModelEngine {
 }
 
 /**
- * Factory function to create a BKTEngine
+ * Factory function to create a BKTEngine.
+ *
+ * `clock` is required — see {@link requireClock} for the rationale.
  */
-export function createBKTEngine(
-  params: Partial<BKTParams> = {},
-  clock: ClockFn = () => Date.now()
-): BKTEngine {
+export function createBKTEngine(params: Partial<BKTParams> = {}, clock: ClockFn): BKTEngine {
   return new BKTEngine(params, clock);
 }

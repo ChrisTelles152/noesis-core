@@ -21,6 +21,7 @@ import {
   createSkillGraph,
   createNoesisCoreEngine,
   createDeterministicEngine,
+  createSystemEngine,
   createEventFactoryContext,
   createDeterministicIdGenerator,
   createPracticeEvent,
@@ -77,7 +78,10 @@ test('Create engine and learner model', () => {
   ];
 
   const graph = createSkillGraph(skills);
-  const engine = createNoesisCoreEngine(graph);
+  // Smoke: production-style construction using the explicit-opt-in factory.
+  // Real consumers either inject their own clock/idGenerator (preferred) or call
+  // createSystemEngine like this one when they consciously accept non-replayability.
+  const engine = createSystemEngine(graph);
 
   // Engine should create a model on demand
   const model = engine.getOrCreateLearnerModel('learner-1');
@@ -95,10 +99,10 @@ test('Process practice events and update model', () => {
   // Use deterministic engine for reproducibility
   let time = 1000;
   const clock = () => time;
-  const engine = createNoesisCoreEngine(graph, {}, clock);
-
-  // Create events with deterministic context
   const idGen = createDeterministicIdGenerator();
+  const engine = createNoesisCoreEngine(graph, {}, clock, idGen);
+
+  // Create events with deterministic context (same clock + idGen as engine)
   const ctx = createEventFactoryContext(clock, idGen);
 
   // Process 5 correct practice events
