@@ -23,6 +23,7 @@ import {
   createDiagnosticEvent,
   createSessionStartEvent,
   createSessionEndEvent,
+  createCognitiveStateEvent,
   type NoesisEvent,
 } from '../events';
 import type { Skill } from '../constitution';
@@ -97,6 +98,18 @@ function generateEvents(engine: NoesisCoreEngineImpl, count: number, seed: numbe
           { skillId: 'a', score: rng(), itemsAttempted: 3, itemsCorrect: Math.floor(rng() * 4) },
           { skillId: 'b', score: rng(), itemsAttempted: 3, itemsCorrect: Math.floor(rng() * 4) },
         ])
+      );
+    } else if (r < 0.15) {
+      // ~10% cognitive_state events (NALS, Phase C). Vectors are seeded from
+      // the same RNG so the gate verifies replay determinism for this reducer
+      // path too.
+      const ts = engine.getCurrentTime();
+      events.push(
+        createCognitiveStateEvent(ctx, 'l1', sessionId, {
+          attention: { value: rng(), confidence: rng(), timestamp: ts },
+          recallStrength: { value: rng(), confidence: rng(), timestamp: ts },
+          affect: { value: rng(), confidence: rng(), timestamp: ts },
+        })
       );
     } else {
       // The rest: practice events, randomised across skills + correctness.
