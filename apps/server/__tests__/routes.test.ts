@@ -20,6 +20,21 @@ vi.mock('openai', () => {
   };
 });
 
+// Mock the WebSocket service so route handlers that broadcast (Phase E5) can
+// be observed without standing up a real WS server. The real wsService is a
+// Proxy over a lazy singleton; replacing the module with a vanilla object of
+// vi.fn()s lets us spy on broadcastLearningEvent calls.
+vi.mock('../websocket', () => {
+  return {
+    wsService: {
+      broadcastLearningEvent: vi.fn(),
+      broadcastRecommendation: vi.fn(),
+      broadcastAttentionUpdate: vi.fn(),
+    },
+    initializeWebSocket: vi.fn(),
+  };
+});
+
 // Mock storage for user creation
 vi.mock('../storage', () => {
   const users = new Map<number, { id: number; username: string; password: string }>();
@@ -96,6 +111,7 @@ vi.mock('../storage', () => {
 });
 
 import { storage } from '../storage';
+import { wsService } from '../websocket';
 
 describe('API Routes', () => {
   let app: express.Express;
@@ -677,6 +693,159 @@ describe('API Routes', () => {
       });
       expect(res.status).toBe(201);
       expect(res.body.event.stage).toBe('application');
+    });
+  });
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Phase E5 — GET /api/core/progress + WebSocket broadcasts
+  // ─────────────────────────────────────────────────────────────────────────
+  describe('GET /api/core/progress', () => {
+    it('rejects unauthenticated requests with 401', async () => {
+      const fresh = request.agent(app);
+      const res = await fresh.get('/api/core/progress');
+      expect(res.status).toBe(401);
+    });
+
+    it('returns LearnerProgress shape for an authed user', async () => {
+      const fresh = request.agent(app);
+      await fresh.post('/api/auth/register').send({
+        username: 'progress-user',
+        password: 'TestPass123!',
+      });
+      await fresh.post('/api/curriculum/skills').send({
+        skills: [
+          { id: 'a', name: 'A', prerequisites: [] },
+          { id: 'b', name: 'B', prerequisites: ['a'] },
+        ],
+      });
+
+      // Process two practice events so totalEvents > 0.
+      await fresh
+        .post('/api/core/practice')
+        .send({ skillId: 'a', itemId: 'q1', correct: true, responseTimeMs: 500 });
+      await fresh
+        .post('/api/core/practice')
+        .send({ skillId: 'a', itemId: 'q2', correct: true, responseTimeMs: 500 });
+
+      const res = await fresh.get('/api/core/progress');
+      expect(res.status).toBe(200);
+      // LearnerProgress shape from packages/core/src/engine/NoesisCoreEngineImpl.ts.
+      expect(res.body).toMatchObject({
+        learnerId: expect.any(String),
+        totalSkills: 2,
+        masteredSkills: expect.any(Number),
+        learningSkills: expect.any(Number),
+        notStartedSkills: expect.any(Number),
+        averageMastery: expect.any(Number),
+        totalEvents: 2,
+      });
+    });
+  });
+
+  describe('WebSocket broadcast on event-store routes', () => {
+    beforeEach(() => {
+      (wsService.broadcastLearningEvent as ReturnType<typeof vi.fn>).mockClear();
+    });
+
+    it('POST /api/core/practice broadcasts the practice event to WebSocket subscribers', async () => {
+      const fresh = request.agent(app);
+      await fresh.post('/api/auth/register').send({
+        username: 'broadcast-practice-user',
+        password: 'TestPass123!',
+      });
+      await fresh.post('/api/curriculum/skills').send({
+        skills: [{ id: 'a', name: 'A', prerequisites: [] }],
+      });
+
+      await fresh
+        .post('/api/core/practice')
+        .send({ skillId: 'a', itemId: 'q1', correct: true, responseTimeMs: 500 });
+
+      expect(wsService.broadcastLearningEvent).toHaveBeenCalled();
+      const call = (wsService.broadcastLearningEvent as ReturnType<typeof vi.fn>).mock.calls.at(-1);
+      const payload = call![0] as { eventType: string; data: { skillId: string }; userId: number };
+      expect(payload.eventType).toBe('practice');
+      expect(payload.data.skillId).toBe('a');
+      expect(typeof payload.userId).toBe('number');
+    });
+
+    it('POST /api/core/events broadcasts the stored core event', async () => {
+      const fresh = request.agent(app);
+      await fresh.post('/api/auth/register').send({
+        username: 'broadcast-event-user',
+        password: 'TestPass123!',
+      });
+
+      const event = {
+        id: 'evt-broadcast-1',
+        type: 'practice',
+        learnerId: 'lX',
+        sessionId: 'sX',
+        timestamp: 1000,
+        skillId: 'a',
+        itemId: 'q1',
+        correct: true,
+        responseTimeMs: 500,
+      };
+      const res = await fresh.post('/api/core/events').send(event);
+      expect(res.status).toBe(201);
+
+      expect(wsService.broadcastLearningEvent).toHaveBeenCalledTimes(1);
+      const call = (wsService.broadcastLearningEvent as ReturnType<typeof vi.fn>).mock.calls[0];
+      expect(call![0]).toMatchObject({
+        eventType: 'practice',
+        data: { coreEventId: 'evt-broadcast-1' },
+      });
+    });
+
+    it('POST /api/core/events/batch broadcasts once per stored event', async () => {
+      const fresh = request.agent(app);
+      await fresh.post('/api/auth/register').send({
+        username: 'broadcast-batch-user',
+        password: 'TestPass123!',
+      });
+
+      const batch = [
+        {
+          id: 'b1',
+          type: 'practice',
+          learnerId: 'lX',
+          sessionId: 'sX',
+          timestamp: 1000,
+          skillId: 'a',
+          itemId: 'q1',
+          correct: true,
+          responseTimeMs: 500,
+        },
+        {
+          id: 'b2',
+          type: 'practice',
+          learnerId: 'lX',
+          sessionId: 'sX',
+          timestamp: 2000,
+          skillId: 'a',
+          itemId: 'q2',
+          correct: false,
+          responseTimeMs: 600,
+        },
+        // An invalid event mixed in — the route should keep going and only
+        // broadcast for the stored ones.
+        { id: 'b3', type: 'practice' /* missing fields */ },
+      ];
+      const res = await fresh.post('/api/core/events/batch').send(batch);
+      expect(res.status).toBe(201);
+      expect(res.body.stored).toBe(2);
+      expect(wsService.broadcastLearningEvent).toHaveBeenCalledTimes(2);
+      const ids = (wsService.broadcastLearningEvent as ReturnType<typeof vi.fn>).mock.calls.map(
+        (c) => (c[0] as { data: { coreEventId: string } }).data.coreEventId
+      );
+      expect(ids).toEqual(['b1', 'b2']);
+    });
+
+    it('does NOT broadcast on validation failure (POST /api/core/events with bad body)', async () => {
+      const res = await agent.post('/api/core/events').send({ type: 'practice' /* missing */ });
+      expect(res.status).toBe(400);
+      expect(wsService.broadcastLearningEvent).not.toHaveBeenCalled();
     });
   });
 });
