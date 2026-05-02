@@ -9,6 +9,7 @@ import { logger } from './logger';
 import { coreEventToLearningEvent, extractCoreEvents, validateNoesisEvent } from './event-bridge';
 import { createSkillGraph } from '@noesis-edu/core';
 import { getEngineManager } from './engine-manager';
+import { wsService } from './websocket';
 
 /**
  * Default session config used by server-side planner endpoints.
@@ -416,6 +417,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const insertEvent = coreEventToLearningEvent(userId, validation.event);
       const stored = await storage.createLearningEvent(insertEvent);
 
+      // Phase E5 — broadcast on the WebSocket so other tabs / dashboards see
+      // the event in real time. No-op when no WS clients are connected.
+      wsService.broadcastLearningEvent({
+        eventType: validation.event.type,
+        data: { coreEventId: validation.event.id },
+        userId,
+      });
+
       res.status(201).json({
         id: stored.id,
         coreEventId: validation.event.id,
@@ -449,6 +458,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
         const insertEvent = coreEventToLearningEvent(userId, validation.event);
         await storage.createLearningEvent(insertEvent);
+        // Phase E5 — same per-event broadcast as the single-event endpoint.
+        wsService.broadcastLearningEvent({
+          eventType: validation.event.type,
+          data: { coreEventId: validation.event.id },
+          userId,
+        });
         results.push({ coreEventId: validation.event.id, stored: true });
       }
 
@@ -662,6 +677,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // GET /api/core/progress (Phase E5)
+  // Returns the user's LearnerProgress (mastered/learning/not-started skill
+  // counts, average mastery, total events). Composes with the engine
+  // manager so the numbers reflect every event the server has processed.
+  app.get('/api/core/progress', requireAuth, async (req, res) => {
+    try {
+      const userId = getUserIdFromRequest(req);
+      const engine = await getEngineManager().getEngineForUser(userId);
+      const progress = engine.getLearnerProgress(learnerIdForUser(userId));
+      res.json(progress);
+    } catch (error) {
+      logger.error(
+        'Error getting learner progress',
+        { module: 'routes' },
+        error instanceof Error ? error : undefined
+      );
+      res.status(500).json({ error: 'Failed to get learner progress' });
+    }
+  });
+
   // POST /api/core/practice (Phase E4)
   // Thin-client practice endpoint: server processes the event through the
   // canonical engine, persists the event for audit/replay, snapshots state,
@@ -712,6 +747,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // snapshot so the next access skips the (slower) event-log replay.
       await storage.createLearningEvent(coreEventToLearningEvent(userId, event));
       await getEngineManager().flush(userId);
+
+      // Phase E5 — broadcast on the WebSocket so dashboards / other tabs
+      // see the practice in real time.
+      wsService.broadcastLearningEvent({
+        eventType: 'practice',
+        data: { coreEventId: event.id, skillId: event.skillId, correct: event.correct },
+        userId,
+      });
 
       const progress = engine.getLearnerProgress(learnerId);
       const nextAction = engine.getNextAction(learnerId, DEFAULT_SERVER_SESSION_CONFIG);
