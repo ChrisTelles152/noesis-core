@@ -32,6 +32,8 @@ import type {
   TransferTest,
   TransferTestResult,
   ItemSkillMapping,
+  CognitiveStateEvent,
+  CognitiveStateVector,
 } from '../constitution.js';
 
 import { BKTEngine, createBKTEngine, type BKTParams } from '../learner/index.js';
@@ -140,6 +142,14 @@ export interface CoreEngineConfig {
 
 /**
  * Serialized state format
+ *
+ * Versioning:
+ *  - 1.0 — original (BKT, FSRS, transfer, event log).
+ *  - 1.1 — added `learnerSpeeds`.
+ *  - 1.2 — added `cognitiveStates` (NALS, Phase C2).
+ *
+ * Backward compatibility: import accepts any prior version and treats missing
+ * fields as empty.
  */
 interface SerializedState {
   version: string;
@@ -150,6 +160,8 @@ interface SerializedState {
   eventLog: NoesisEvent[];
   /** Per-user per-skill learning speed multipliers (added in v1.1) */
   learnerSpeeds?: Array<[string, Array<[string, number]>]>;
+  /** Per-learner Cognitive-State Vector timeline (added in v1.2) */
+  cognitiveStates?: Array<[string, CognitiveStateVector[]]>;
 }
 
 /**
@@ -181,6 +193,10 @@ export class NoesisCoreEngineImpl implements NoesisCoreEngine {
   private eventLog: NoesisEvent[] = [];
   // Per-user, per-skill learning speed multipliers (learnerId → skillId → speed)
   private learnerSpeeds: Map<string, Map<string, number>> = new Map();
+  // Per-learner Cognitive-State Vector timeline (learnerId → ordered vectors).
+  // Appended to on every cognitive_state event; never overwritten in place
+  // so the history is auditable and replay-safe.
+  private cognitiveStates: Map<string, CognitiveStateVector[]> = new Map();
 
   /**
    * @param skillGraph - The skill DAG this engine will operate over.
@@ -245,7 +261,22 @@ export class NoesisCoreEngineImpl implements NoesisCoreEngine {
       case 'implicit_credit':
         this.processImplicitCreditEvent(event as import('../constitution.js').ImplicitCreditEvent);
         break;
+      case 'cognitive_state':
+        this.processCognitiveStateEvent(event);
+        break;
     }
+  }
+
+  /**
+   * Append a Cognitive-State Vector to the per-learner timeline.
+   *
+   * The reducer is intentionally minimal: it stores the vector verbatim and
+   * does not mutate it. Downstream consumers (planner, analytics) are
+   * responsible for interpreting confidence/staleness.
+   */
+  private processCognitiveStateEvent(event: CognitiveStateEvent): void {
+    const existing = this.cognitiveStates.get(event.learnerId) ?? [];
+    this.cognitiveStates.set(event.learnerId, [...existing, event.vector]);
   }
 
   /**
@@ -420,6 +451,32 @@ export class NoesisCoreEngineImpl implements NoesisCoreEngine {
   }
 
   /**
+   * Get the most recent Cognitive-State Vector for a learner, or undefined
+   * if no cognitive_state events have been processed for them.
+   *
+   * Returned object is a fresh shallow copy — mutating it does not affect
+   * engine state (the underlying vectors are stored verbatim, not cloned).
+   */
+  getCognitiveState(learnerId: string): CognitiveStateVector | undefined {
+    const timeline = this.cognitiveStates.get(learnerId);
+    if (!timeline || timeline.length === 0) return undefined;
+    const latest = timeline[timeline.length - 1];
+    return latest ? { ...latest } : undefined;
+  }
+
+  /**
+   * Get the full Cognitive-State Vector timeline for a learner, ordered
+   * from oldest to newest. Returns an empty array when no events have
+   * been processed.
+   *
+   * The returned array is a copy — appending to it does not mutate engine
+   * state — but the inner vectors are shared references.
+   */
+  getCognitiveStateHistory(learnerId: string): CognitiveStateVector[] {
+    return [...(this.cognitiveStates.get(learnerId) ?? [])];
+  }
+
+  /**
    * Get next recommended action
    */
   getNextAction(learnerId: string, config: SessionConfig): SessionAction {
@@ -472,7 +529,7 @@ export class NoesisCoreEngineImpl implements NoesisCoreEngine {
     const now = this.clock();
 
     const serialized: SerializedState = {
-      version: '1.0.0',
+      version: '1.2.0',
       timestamp: now,
       learnerModels: Array.from(this.learnerModels.entries()).map(([learnerId, model]) => ({
         learnerId,
@@ -491,10 +548,16 @@ export class NoesisCoreEngineImpl implements NoesisCoreEngine {
       this.learnerSpeeds.entries()
     ).map(([learnerId, speeds]) => [learnerId, Array.from(speeds.entries())]);
 
+    // Serialize per-learner Cognitive-State Vector timelines (v1.2).
+    const cognitiveStatesArray: [string, CognitiveStateVector[]][] = Array.from(
+      this.cognitiveStates.entries()
+    );
+
     return JSON.stringify({
       ...serialized,
       memoryStates: memoryStatesArray,
       learnerSpeeds: learnerSpeedsArray,
+      cognitiveStates: cognitiveStatesArray,
     });
   }
 
@@ -527,6 +590,19 @@ export class NoesisCoreEngineImpl implements NoesisCoreEngine {
         this.learnerSpeeds.set(learnerId, new Map(speedEntries));
       }
     }
+
+    // Restore Cognitive-State Vector timelines (v1.2; backward compatible —
+    // pre-1.2 snapshots have no `cognitiveStates` field, in which case the
+    // map starts empty).
+    this.cognitiveStates.clear();
+    if (parsed.cognitiveStates) {
+      for (const [learnerId, timeline] of parsed.cognitiveStates as [
+        string,
+        CognitiveStateVector[],
+      ][]) {
+        this.cognitiveStates.set(learnerId, [...timeline]);
+      }
+    }
   }
 
   /**
@@ -540,6 +616,7 @@ export class NoesisCoreEngineImpl implements NoesisCoreEngine {
     this.transferResults = [];
     this.eventLog = [];
     this.learnerSpeeds.clear();
+    this.cognitiveStates.clear();
 
     // Replay each event in order
     for (const event of events) {
