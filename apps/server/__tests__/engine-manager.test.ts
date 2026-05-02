@@ -218,6 +218,28 @@ describe('Phase E1: EngineManager.getEngineForUser', () => {
     expect(engine.getLearnerProgress('whoever').totalEvents).toBe(0);
   });
 
+  it('falls back to event-log replay when the stored snapshot is corrupt', async () => {
+    // Simulates legacy / partial / cross-version snapshots that can exist
+    // in production storage. The hydrate path must NOT throw — it must
+    // gracefully fall back to rebuilding from the event log.
+    const { events: seedEvents, rows: seedRows } = buildSeedEvents(1);
+    const corruptSnapshot = JSON.stringify({ version: '1.0.0', learnerModels: [{ id: 'broken' }] });
+    const { curriculumSource, events, state } = makeFakeStores({
+      curriculum: { skills },
+      preLoadedRows: seedRows,
+      preLoadedState: corruptSnapshot,
+    });
+    const mgr = createEngineManager({ curriculumSource, events, state });
+
+    const engine = await mgr.getEngineForUser(1);
+    // The corrupt snapshot was tried then abandoned — final state matches
+    // the event-log replay path.
+    expect(engine.getEventLog()).toHaveLength(seedEvents.length);
+    expect(engine.getLearnerProgress('l1').totalEvents).toBe(seedEvents.length);
+    expect(state.loadEngineState).toHaveBeenCalledWith(1);
+    expect(events.getLearningEventsByUserId).toHaveBeenCalledWith(1);
+  });
+
   it('per-user isolation: two users get distinct engines with independent state', async () => {
     const { curriculumSource, events, state } = makeFakeStores({ curriculum: { skills } });
     const mgr = createEngineManager({ curriculumSource, events, state });

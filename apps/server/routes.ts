@@ -8,6 +8,32 @@ import { createError as _createError, ErrorCodes as _ErrorCodes } from './errors
 import { logger } from './logger';
 import { coreEventToLearningEvent, extractCoreEvents, validateNoesisEvent } from './event-bridge';
 import { createSkillGraph } from '@noesis-edu/core';
+import { getEngineManager } from './engine-manager';
+
+/**
+ * Default session config used by server-side planner endpoints.
+ *
+ * Mirrors the SDK's DEFAULT_SDK_SESSION_CONFIG (apps/web-demo's path) but
+ * declared here so the server doesn't depend on @noesis/sdk-web. Pilots that
+ * want to override per-request can extend the route with a `?config=...`
+ * query param later.
+ */
+const DEFAULT_SERVER_SESSION_CONFIG = {
+  maxDurationMinutes: 30,
+  targetItems: 20,
+  masteryThreshold: 0.85,
+  enforceSpacedRetrieval: true,
+  requireTransferTests: false,
+};
+
+/**
+ * Best-effort derivation of the per-engine learner identifier from the
+ * authenticated user. Currently a 1:1 mapping (one learner per user). Pilots
+ * with cohort/teacher views will need to thread a learnerId param later.
+ */
+function learnerIdForUser(userId: number): string {
+  return `user-${userId}`;
+}
 
 // Configure the LLM Manager with the server's structured logger
 const llmLogger: LLMLogger = {
@@ -608,6 +634,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
         error instanceof Error ? error : undefined
       );
       res.status(500).json({ error: 'Failed to load curriculum' });
+    }
+  });
+
+  // ───────────────────────────────────────────────────────────────────────
+  // Server-side core engine endpoints (Phase E3 + E4 + E5)
+  //
+  // These are the thin-client surface — the server owns the engine state,
+  // the client just submits practice events and asks for the next action.
+  // Each endpoint goes through getEngineManager() so all engine accesses
+  // share the per-user cached instance.
+  // ───────────────────────────────────────────────────────────────────────
+
+  app.get('/api/core/next-action', requireAuth, async (req, res) => {
+    try {
+      const userId = getUserIdFromRequest(req);
+      const engine = await getEngineManager().getEngineForUser(userId);
+      const action = engine.getNextAction(learnerIdForUser(userId), DEFAULT_SERVER_SESSION_CONFIG);
+      res.json(action);
+    } catch (error) {
+      logger.error(
+        'Error getting next action',
+        { module: 'routes' },
+        error instanceof Error ? error : undefined
+      );
+      res.status(500).json({ error: 'Failed to get next action' });
     }
   });
 
