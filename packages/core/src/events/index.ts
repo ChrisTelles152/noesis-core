@@ -18,6 +18,7 @@ import type {
   ImplicitCreditEvent,
   CognitiveStateEvent,
   CognitiveStateVector,
+  StageCompletedEvent,
 } from '../constitution.js';
 
 export type {
@@ -30,6 +31,8 @@ export type {
   CognitiveStateEvent,
   CognitiveStateVector,
   CognitiveStateMeasurement,
+  StageCompletedEvent,
+  CanonicalStage,
 } from '../constitution.js';
 
 /**
@@ -283,6 +286,34 @@ export function createCognitiveStateEvent(
     sessionId,
     timestamp: ctx.clock(),
     vector,
+  };
+}
+
+/**
+ * Create a StageCompletedEvent for a non-practice stage.
+ *
+ * Use for `concept_introduction` (learner finished the intro screen) and
+ * `reflection` (learner wrote a reflection). Practice and application stages
+ * are recorded automatically via {@link createPracticeEvent} (set
+ * `PracticeEvent.stage = 'application'` to mark application).
+ */
+export function createStageCompletedEvent(
+  ctx: EventFactoryContext,
+  learnerId: string,
+  sessionId: string,
+  skillId: string,
+  stage: 'concept_introduction' | 'reflection',
+  options: { notes?: string } = {}
+): StageCompletedEvent {
+  return {
+    id: ctx.idGenerator(),
+    type: 'stage_completed',
+    learnerId,
+    sessionId,
+    timestamp: ctx.clock(),
+    skillId,
+    stage,
+    notes: options.notes,
   };
 }
 

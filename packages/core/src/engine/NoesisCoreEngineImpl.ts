@@ -34,6 +34,8 @@ import type {
   ItemSkillMapping,
   CognitiveStateEvent,
   CognitiveStateVector,
+  StageCompletedEvent,
+  CanonicalStage,
 } from '../constitution.js';
 
 import { BKTEngine, createBKTEngine, type BKTParams } from '../learner/index.js';
@@ -162,6 +164,8 @@ interface SerializedState {
   learnerSpeeds?: Array<[string, Array<[string, number]>]>;
   /** Per-learner Cognitive-State Vector timeline (added in v1.2) */
   cognitiveStates?: Array<[string, CognitiveStateVector[]]>;
+  /** Per-learner per-skill canonical-loop stage history (added in v1.3) */
+  stageHistory?: Array<[string, Array<[string, CanonicalStage[]]>]>;
 }
 
 /**
@@ -197,6 +201,11 @@ export class NoesisCoreEngineImpl implements NoesisCoreEngine {
   // Appended to on every cognitive_state event; never overwritten in place
   // so the history is auditable and replay-safe.
   private cognitiveStates: Map<string, CognitiveStateVector[]> = new Map();
+  // Canonical-loop stage history (learnerId → skillId → set of stages seen).
+  // Used by the planner when SessionConfig.enforceCanonicalLoop is true.
+  // Populated from PracticeEvent (stage defaults to 'practice') and from
+  // StageCompletedEvent (concept_introduction / reflection).
+  private stageHistory: Map<string, Map<string, Set<CanonicalStage>>> = new Map();
 
   /**
    * @param skillGraph - The skill DAG this engine will operate over.
@@ -264,7 +273,38 @@ export class NoesisCoreEngineImpl implements NoesisCoreEngine {
       case 'cognitive_state':
         this.processCognitiveStateEvent(event);
         break;
+      case 'stage_completed':
+        this.processStageCompletedEvent(event);
+        break;
     }
+  }
+
+  /**
+   * Record a canonical-loop stage transition for the given learner+skill.
+   * Idempotent — if the stage is already in the set, the call is a no-op.
+   */
+  private recordStage(learnerId: string, skillId: string, stage: CanonicalStage): void {
+    let perLearner = this.stageHistory.get(learnerId);
+    if (!perLearner) {
+      perLearner = new Map();
+      this.stageHistory.set(learnerId, perLearner);
+    }
+    let perSkill = perLearner.get(skillId);
+    if (!perSkill) {
+      perSkill = new Set();
+      perLearner.set(skillId, perSkill);
+    }
+    perSkill.add(stage);
+  }
+
+  /**
+   * Reduce a StageCompletedEvent — record the stage in stageHistory.
+   * Used for stages that have no practice attempt (concept_introduction,
+   * reflection). Practice and application stages are recorded automatically
+   * via processPracticeEvent.
+   */
+  private processStageCompletedEvent(event: StageCompletedEvent): void {
+    this.recordStage(event.learnerId, event.skillId, event.stage);
   }
 
   /**
@@ -284,6 +324,10 @@ export class NoesisCoreEngineImpl implements NoesisCoreEngine {
    */
   private processPracticeEvent(event: PracticeEvent): void {
     const { learnerId, skillId, correct } = event;
+
+    // Record canonical-loop stage progression. Default 'practice'; consumers
+    // that mark application attempts via event.stage record 'application' too.
+    this.recordStage(learnerId, skillId, event.stage ?? 'practice');
 
     // Update learner model
     let model = this.learnerModels.get(learnerId);
@@ -477,12 +521,40 @@ export class NoesisCoreEngineImpl implements NoesisCoreEngine {
   }
 
   /**
+   * Get the set of canonical-loop stages recorded for a given learner+skill.
+   * Returns an empty set when nothing has been recorded.
+   *
+   * The returned set is a defensive copy.
+   */
+  getStageHistory(learnerId: string, skillId: string): Set<CanonicalStage> {
+    const set = this.stageHistory.get(learnerId)?.get(skillId);
+    return new Set(set);
+  }
+
+  /**
+   * Get the full per-skill stage map for a learner, suitable for passing
+   * into {@link SessionPlanner.getNextAction} as the stageHistory argument.
+   * Returns `undefined` when no stages have been recorded.
+   */
+  private getStageHistoryForLearner(
+    learnerId: string
+  ): Map<string, Set<CanonicalStage>> | undefined {
+    return this.stageHistory.get(learnerId);
+  }
+
+  /**
    * Get next recommended action
    */
   getNextAction(learnerId: string, config: SessionConfig): SessionAction {
     const model = this.getOrCreateLearnerModel(learnerId);
     const states = this.getMemoryStates(learnerId);
-    return this.sessionPlanner.getNextAction(model, this.graph, states, config);
+    return this.sessionPlanner.getNextAction(
+      model,
+      this.graph,
+      states,
+      config,
+      this.getStageHistoryForLearner(learnerId)
+    );
   }
 
   /**
@@ -491,7 +563,13 @@ export class NoesisCoreEngineImpl implements NoesisCoreEngine {
   planSession(learnerId: string, config: SessionConfig): SessionAction[] {
     const model = this.getOrCreateLearnerModel(learnerId);
     const states = this.getMemoryStates(learnerId);
-    return this.sessionPlanner.planSession(model, this.graph, states, config);
+    return this.sessionPlanner.planSession(
+      model,
+      this.graph,
+      states,
+      config,
+      this.getStageHistoryForLearner(learnerId)
+    );
   }
 
   /**
@@ -529,7 +607,7 @@ export class NoesisCoreEngineImpl implements NoesisCoreEngine {
     const now = this.clock();
 
     const serialized: SerializedState = {
-      version: '1.2.0',
+      version: '1.3.0',
       timestamp: now,
       learnerModels: Array.from(this.learnerModels.entries()).map(([learnerId, model]) => ({
         learnerId,
@@ -553,11 +631,22 @@ export class NoesisCoreEngineImpl implements NoesisCoreEngine {
       this.cognitiveStates.entries()
     );
 
+    // Serialize per-learner per-skill stage history (v1.3). Stages are
+    // serialized as arrays for portability; importState turns them back
+    // into Sets.
+    const stageHistoryArray: [string, [string, CanonicalStage[]][]][] = Array.from(
+      this.stageHistory.entries()
+    ).map(([learnerId, perSkill]) => [
+      learnerId,
+      Array.from(perSkill.entries()).map(([skillId, stages]) => [skillId, Array.from(stages)]),
+    ]);
+
     return JSON.stringify({
       ...serialized,
       memoryStates: memoryStatesArray,
       learnerSpeeds: learnerSpeedsArray,
       cognitiveStates: cognitiveStatesArray,
+      stageHistory: stageHistoryArray,
     });
   }
 
@@ -603,6 +692,22 @@ export class NoesisCoreEngineImpl implements NoesisCoreEngine {
         this.cognitiveStates.set(learnerId, [...timeline]);
       }
     }
+
+    // Restore canonical-loop stage history (v1.3; backward compatible —
+    // pre-1.3 snapshots have no `stageHistory` field).
+    this.stageHistory.clear();
+    if (parsed.stageHistory) {
+      for (const [learnerId, perSkill] of parsed.stageHistory as [
+        string,
+        [string, CanonicalStage[]][],
+      ][]) {
+        const skillMap = new Map<string, Set<CanonicalStage>>();
+        for (const [skillId, stages] of perSkill) {
+          skillMap.set(skillId, new Set(stages));
+        }
+        this.stageHistory.set(learnerId, skillMap);
+      }
+    }
   }
 
   /**
@@ -617,6 +722,7 @@ export class NoesisCoreEngineImpl implements NoesisCoreEngine {
     this.eventLog = [];
     this.learnerSpeeds.clear();
     this.cognitiveStates.clear();
+    this.stageHistory.clear();
 
     // Replay each event in order
     for (const event of events) {
