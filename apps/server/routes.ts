@@ -662,6 +662,77 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // POST /api/core/practice (Phase E4)
+  // Thin-client practice endpoint: server processes the event through the
+  // canonical engine, persists the event for audit/replay, snapshots state,
+  // and returns the post-event progress + next recommended action so the
+  // client can render the next screen without a follow-up GET.
+  const practiceSchema = z.object({
+    skillId: z.string().min(1),
+    itemId: z.string().min(1),
+    correct: z.boolean(),
+    responseTimeMs: z.number().int().nonnegative(),
+    confidence: z.number().min(0).max(1).optional(),
+    errorCategory: z.string().optional(),
+    /** Override the server-managed session id when the client owns sessions. */
+    sessionId: z.string().min(1).optional(),
+    /** Canonical-loop stage: 'practice' (default) or 'application'. */
+    stage: z.enum(['practice', 'application']).optional(),
+  });
+
+  app.post('/api/core/practice', requireAuth, async (req, res) => {
+    try {
+      const parsed = practiceSchema.parse(req.body);
+      const userId = getUserIdFromRequest(req);
+      const learnerId = learnerIdForUser(userId);
+      const engine = await getEngineManager().getEngineForUser(userId);
+
+      // Build the canonical PracticeEvent through the engine's own clock +
+      // idGenerator so it composes with replay determinism (Phase A) on the
+      // server side: re-running the persisted event log produces identical
+      // state.
+      const event = {
+        id: engine.generateEventId(),
+        type: 'practice' as const,
+        learnerId,
+        sessionId: parsed.sessionId ?? `srv-${userId}`,
+        timestamp: engine.getCurrentTime(),
+        skillId: parsed.skillId,
+        itemId: parsed.itemId,
+        correct: parsed.correct,
+        responseTimeMs: parsed.responseTimeMs,
+        ...(parsed.confidence !== undefined ? { confidence: parsed.confidence } : {}),
+        ...(parsed.errorCategory ? { errorCategory: parsed.errorCategory } : {}),
+        ...(parsed.stage ? { stage: parsed.stage } : {}),
+      };
+
+      engine.processEvent(event);
+
+      // Persist the canonical event for the audit trail; persist the engine
+      // snapshot so the next access skips the (slower) event-log replay.
+      await storage.createLearningEvent(coreEventToLearningEvent(userId, event));
+      await getEngineManager().flush(userId);
+
+      const progress = engine.getLearnerProgress(learnerId);
+      const nextAction = engine.getNextAction(learnerId, DEFAULT_SERVER_SESSION_CONFIG);
+
+      res.status(201).json({ event, progress, nextAction });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({
+          error: 'Validation failed',
+          details: error.errors.map((e) => ({ path: e.path.join('.'), message: e.message })),
+        });
+      }
+      logger.error(
+        'Error processing practice event',
+        { module: 'routes' },
+        error instanceof Error ? error : undefined
+      );
+      res.status(500).json({ error: 'Failed to process practice event' });
+    }
+  });
+
   const httpServer = createServer(app);
 
   return httpServer;
