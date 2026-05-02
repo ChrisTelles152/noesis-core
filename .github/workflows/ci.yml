@@ -73,6 +73,31 @@ jobs:
           token: ${{ secrets.CODECOV_TOKEN }}
           fail_ci_if_error: false
 
+  replay-determinism:
+    name: Replay Determinism Gate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      # Dedicated, named gate for the replay-equivalence property suite. If this
+      # job goes red, the determinism contract is broken — do not merge.
+      # Intentionally separate from the main `test` job so the failure is
+      # visible in the PR checklist without scrolling through unrelated output.
+      - name: Run replay-equivalence + determinism gates
+        run: |
+          npx vitest run \
+            packages/core/src/__tests__/replay.test.ts \
+            packages/core/src/__tests__/determinism.test.ts
+
   build:
     name: Build
     runs-on: ubuntu-latest
