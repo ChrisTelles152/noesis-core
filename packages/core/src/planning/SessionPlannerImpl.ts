@@ -25,7 +25,16 @@ import type {
   SessionPlanner,
   TransferTest,
   TransferTestResult,
+  CanonicalStage,
 } from '../constitution.js';
+
+/** All four canonical-loop stages a transfer-test gate must see. */
+const REQUIRED_STAGES: readonly CanonicalStage[] = [
+  'concept_introduction',
+  'practice',
+  'application',
+  'reflection',
+] as const;
 
 /**
  * Extended session configuration with additional planner options
@@ -95,10 +104,17 @@ export class SessionPlannerImpl implements SessionPlanner {
     learnerModel: LearnerModel,
     skillGraph: SkillGraph,
     memoryStates: MemoryState[],
-    config: SessionConfig
+    config: SessionConfig,
+    stageHistory?: Map<string, Set<CanonicalStage>>
   ): SessionAction {
     const mergedConfig = { ...this.config, ...config };
     const now = learnerModel.lastUpdated;
+    const enforceLoop = !!mergedConfig.enforceCanonicalLoop;
+    // When enforceCanonicalLoop is set, gate logic must work even before any
+    // stage events have been recorded — treat absent stageHistory as empty.
+    const effectiveStageHistory: Map<string, Set<CanonicalStage>> | undefined = enforceLoop
+      ? stageHistory ?? new Map()
+      : undefined;
 
     // Priority 1: Due spaced retrieval items
     if (mergedConfig.enforceSpacedRetrieval) {
@@ -119,9 +135,14 @@ export class SessionPlannerImpl implements SessionPlanner {
       }
     }
 
-    // Priority 2: Transfer tests for skills at mastery
+    // Priority 2: Transfer tests for skills at mastery (gated on canonical-loop
+    // completeness when enforceCanonicalLoop is set).
     if (mergedConfig.requireTransferTests) {
-      const transferAction = this.getTransferTestAction(learnerModel, skillGraph);
+      const transferAction = this.getTransferTestAction(
+        learnerModel,
+        skillGraph,
+        effectiveStageHistory
+      );
       if (transferAction) {
         return transferAction;
       }
@@ -141,8 +162,14 @@ export class SessionPlannerImpl implements SessionPlanner {
       }
     }
 
-    // Priority 4: New skill introduction (smallest leverage gap)
-    const newSkillAction = this.getNewSkillAction(learnerModel, skillGraph);
+    // Priority 4: New skill introduction (smallest leverage gap).
+    // When enforceCanonicalLoop is set, a brand-new skill (no stages recorded
+    // yet) yields a `concept_introduction` action instead of `practice`.
+    const newSkillAction = this.getNewSkillAction(
+      learnerModel,
+      skillGraph,
+      effectiveStageHistory
+    );
     if (newSkillAction) {
       return newSkillAction;
     }
@@ -168,7 +195,8 @@ export class SessionPlannerImpl implements SessionPlanner {
     learnerModel: LearnerModel,
     skillGraph: SkillGraph,
     memoryStates: MemoryState[],
-    config: SessionConfig
+    config: SessionConfig,
+    stageHistory?: Map<string, Set<CanonicalStage>>
   ): SessionAction[] {
     const mergedConfig = { ...this.config, ...config };
     const actions: SessionAction[] = [];
@@ -222,7 +250,8 @@ export class SessionPlannerImpl implements SessionPlanner {
         skillGraph,
         memoryStates,
         config,
-        plannedSkills
+        plannedSkills,
+        stageHistory
       );
 
       if (nextAction.type === 'rest') {
@@ -265,11 +294,17 @@ export class SessionPlannerImpl implements SessionPlanner {
   }
 
   /**
-   * Get transfer test action if any skill is ready
+   * Get transfer test action if any skill is ready.
+   *
+   * When `stageHistory` is provided (caller opted in to canonical-loop
+   * enforcement), the gate also requires all four stages
+   * (`concept_introduction → practice → application → reflection`) to have
+   * been recorded for the candidate skill before a transfer test is emitted.
    */
   private getTransferTestAction(
     learnerModel: LearnerModel,
-    skillGraph: SkillGraph
+    skillGraph: SkillGraph,
+    stageHistory?: Map<string, Set<CanonicalStage>>
   ): SessionAction | undefined {
     const skillOrder = skillGraph.getTopologicalOrder();
 
@@ -278,6 +313,15 @@ export class SessionPlannerImpl implements SessionPlanner {
 
       // Check if skill is ready for transfer testing
       if (pMastery >= this.config.transferTestThreshold) {
+        // Canonical-loop gate: skip skills that have not yet completed all
+        // four stages. When stageHistory is undefined, the gate is off.
+        if (stageHistory) {
+          const skillStages = stageHistory.get(skillId);
+          const allStagesSeen =
+            skillStages !== undefined && REQUIRED_STAGES.every((s) => skillStages.has(s));
+          if (!allStagesSeen) continue;
+        }
+
         // Check if transfer test is needed
         const skillTests = this.transferTests.filter((t) => t.skillId === skillId);
         const passedTests = new Set(
@@ -338,10 +382,17 @@ export class SessionPlannerImpl implements SessionPlanner {
    * 1. Has all prerequisites mastered
    * 2. Is not yet mastered
    * 3. Has the highest "leverage" (most skills depend on it)
+   *
+   * When `stageHistory` is provided (caller opted in to canonical-loop
+   * enforcement), a candidate skill with no stages recorded yet yields a
+   * `concept_introduction` action instead of `practice` — the canonical
+   * loop's first stage. Once a stage is recorded for the skill, behaviour
+   * falls back to the regular `practice` recommendation.
    */
   private getNewSkillAction(
     learnerModel: LearnerModel,
-    skillGraph: SkillGraph
+    skillGraph: SkillGraph,
+    stageHistory?: Map<string, Set<CanonicalStage>>
   ): SessionAction | undefined {
     const skillOrder = skillGraph.getTopologicalOrder();
     const candidates: Array<{ skillId: string; leverage: number }> = [];
@@ -385,6 +436,22 @@ export class SessionPlannerImpl implements SessionPlanner {
     });
 
     const target = candidates[0];
+
+    // Canonical-loop gate: if the planner has stage history available and
+    // the candidate skill has no stages recorded yet, recommend
+    // `concept_introduction` first.
+    if (stageHistory) {
+      const seen = stageHistory.get(target.skillId);
+      if (!seen || seen.size === 0) {
+        return {
+          type: 'concept_introduction',
+          skillId: target.skillId,
+          reason: `Concept introduction for new skill (leverage: ${target.leverage} dependents)`,
+          priority: 40 + target.leverage,
+        };
+      }
+    }
+
     return {
       type: 'practice',
       skillId: target.skillId,
@@ -441,7 +508,8 @@ export class SessionPlannerImpl implements SessionPlanner {
     skillGraph: SkillGraph,
     memoryStates: MemoryState[],
     config: SessionConfig,
-    excludeSkills: Set<string>
+    excludeSkills: Set<string>,
+    stageHistory?: Map<string, Set<CanonicalStage>>
   ): SessionAction {
     // Filter memory states
     const filteredStates = memoryStates.filter((s) => !excludeSkills.has(s.skillId));
@@ -457,7 +525,13 @@ export class SessionPlannerImpl implements SessionPlanner {
     };
 
     // Get next action with filtered data
-    const action = this.getNextAction(filteredModel, skillGraph, filteredStates, config);
+    const action = this.getNextAction(
+      filteredModel,
+      skillGraph,
+      filteredStates,
+      config,
+      stageHistory
+    );
 
     // If action uses an excluded skill, return rest
     if (action.skillId && excludeSkills.has(action.skillId)) {
@@ -623,6 +697,9 @@ export class SessionPlannerImpl implements SessionPlanner {
       transfer_test: actions.filter((a) => a.type === 'transfer_test').length,
       prerequisite_probe: actions.filter((a) => a.type === 'prerequisite_probe').length,
       rest: actions.filter((a) => a.type === 'rest').length,
+      concept_introduction: actions.filter((a) => a.type === 'concept_introduction').length,
+      application: actions.filter((a) => a.type === 'application').length,
+      reflection: actions.filter((a) => a.type === 'reflection').length,
     };
 
     const uniqueSkills = new Set(actions.filter((a) => a.skillId).map((a) => a.skillId as string));
@@ -649,6 +726,9 @@ export interface SessionStats {
     transfer_test: number;
     prerequisite_probe: number;
     rest: number;
+    concept_introduction: number;
+    application: number;
+    reflection: number;
   };
   uniqueSkills: number;
   averagePriority: number;

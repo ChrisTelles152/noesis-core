@@ -663,3 +663,352 @@ describe('SessionPlannerImpl', () => {
     });
   });
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Phase C3 — canonical 5-stage learning loop
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('Phase C3: canonical 5-stage learning loop enforcement', () => {
+  // A two-skill graph: 'a' is the natural first leverage gap (no prereqs,
+  // unlocks 'b'). The planner gating tests pivot on what happens when 'a' has
+  // no stage history yet.
+  function buildPlannerSetup(): {
+    planner: SessionPlannerImpl;
+    graph: SkillGraph;
+    learnerModel: LearnerModel;
+    config: SessionConfig;
+  } {
+    const skills = ['a', 'b'];
+    const prereqs = { b: ['a'] };
+    const graph = (() => {
+      // Inline minimal graph builder mirroring createMockSkillGraph above.
+      const skillsMap = new Map<string, { id: string; name: string; prerequisites: string[] }>();
+      for (const s of skills) skillsMap.set(s, { id: s, name: s, prerequisites: prereqs[s] ?? [] });
+      const transitivePrereqs = (id: string, visited = new Set<string>()): string[] => {
+        if (visited.has(id)) return [];
+        visited.add(id);
+        const direct = (skillsMap.get(id)?.prerequisites ?? []).filter((p) => skillsMap.has(p));
+        const result: string[] = [];
+        for (const p of direct) {
+          for (const tp of transitivePrereqs(p, visited)) {
+            if (!result.includes(tp)) result.push(tp);
+          }
+          if (!result.includes(p)) result.push(p);
+        }
+        return result;
+      };
+      return {
+        skills: skillsMap,
+        validate: () => ({ valid: true, errors: [] }),
+        getTopologicalOrder: () => [...skills].sort(),
+        getAllPrerequisites: (skillId: string): string[] => transitivePrereqs(skillId),
+        getDependents: (skillId: string): string[] => {
+          const out: string[] = [];
+          for (const [id, s] of skillsMap) {
+            if (s.prerequisites.includes(skillId)) out.push(id);
+          }
+          return out.sort();
+        },
+        isPrerequisiteOf: (a: string, b: string): boolean => transitivePrereqs(b).includes(a),
+        getEncompassedSkills: () => [],
+        getAllEncompassedSkills: () => [],
+      } as SkillGraph;
+    })();
+
+    const learnerModel: LearnerModel = {
+      learnerId: 'l1',
+      skillProbabilities: new Map([
+        ['a', { skillId: 'a', pMastery: 0.3, pSlip: 0.1, pGuess: 0.2, pLearn: 0.1, lastUpdated: 0 }],
+        ['b', { skillId: 'b', pMastery: 0.3, pSlip: 0.1, pGuess: 0.2, pLearn: 0.1, lastUpdated: 0 }],
+      ]),
+      totalEvents: 0,
+      createdAt: 0,
+      lastUpdated: 1000,
+    };
+
+    const config: SessionConfig = {
+      maxDurationMinutes: 30,
+      targetItems: 20,
+      masteryThreshold: 0.85,
+      enforceSpacedRetrieval: false,
+      requireTransferTests: false,
+      enforceCanonicalLoop: true,
+    };
+
+    const planner = createSessionPlanner();
+    return { planner, graph, learnerModel, config };
+  }
+
+  it('emits concept_introduction (not practice) for a brand-new skill when enforceCanonicalLoop is true', () => {
+    const { planner, graph, learnerModel, config } = buildPlannerSetup();
+
+    // Empty stage history → the leverage-gap candidate ('a') has nothing
+    // recorded yet, so the canonical loop demands concept_introduction first.
+    const action = planner.getNextAction(learnerModel, graph, [], config, new Map());
+
+    expect(action.type).toBe('concept_introduction');
+    expect(action.skillId).toBe('a');
+  });
+
+  it('order constraint: practice cannot precede concept_introduction', () => {
+    const { planner, graph, learnerModel, config } = buildPlannerSetup();
+    const action = planner.getNextAction(learnerModel, graph, [], config, new Map());
+    expect(action.type).not.toBe('practice');
+  });
+
+  it('falls back to practice once concept_introduction has been recorded for the skill', () => {
+    const { planner, graph, learnerModel, config } = buildPlannerSetup();
+
+    const stageHistory = new Map<string, Set<'concept_introduction' | 'practice' | 'application' | 'reflection'>>([
+      ['a', new Set(['concept_introduction'])],
+    ]);
+
+    const action = planner.getNextAction(learnerModel, graph, [], config, stageHistory);
+    expect(action.type).toBe('practice');
+    expect(action.skillId).toBe('a');
+  });
+
+  it('blocks transfer_test until application+reflection have been recorded', () => {
+    // Set 'a' to be at mastery so the transfer-test gate is the natural
+    // candidate. Register a transfer test for 'a'. With only practice +
+    // concept_introduction recorded, the canonical-loop gate must skip it.
+    const { graph, learnerModel } = buildPlannerSetup();
+    learnerModel.skillProbabilities.set('a', {
+      skillId: 'a',
+      pMastery: 0.95,
+      pSlip: 0.1,
+      pGuess: 0.2,
+      pLearn: 0.1,
+      lastUpdated: 0,
+    });
+
+    const transferTests: TransferTest[] = [
+      { id: 'tt-a', skillId: 'a', transferType: 'near', context: 'word problem', passingScore: 0.8 },
+    ];
+    const transferResults: TransferTestResult[] = [];
+    const planner = createSessionPlanner({}, transferTests, transferResults);
+
+    const config: SessionConfig = {
+      maxDurationMinutes: 30,
+      targetItems: 20,
+      masteryThreshold: 0.85,
+      enforceSpacedRetrieval: false,
+      requireTransferTests: true,
+      enforceCanonicalLoop: true,
+    };
+
+    // Only intro + practice recorded — application and reflection missing.
+    const partialHistory = new Map<
+      string,
+      Set<'concept_introduction' | 'practice' | 'application' | 'reflection'>
+    >([['a', new Set(['concept_introduction', 'practice'])]]);
+
+    const action1 = planner.getNextAction(learnerModel, graph, [], config, partialHistory);
+    expect(action1.type).not.toBe('transfer_test');
+
+    // Add application but still no reflection — still gated.
+    const partialHistory2 = new Map(partialHistory);
+    partialHistory2.set('a', new Set(['concept_introduction', 'practice', 'application']));
+    const action2 = planner.getNextAction(learnerModel, graph, [], config, partialHistory2);
+    expect(action2.type).not.toBe('transfer_test');
+
+    // Add reflection — now all four stages are present, gate opens.
+    const fullHistory = new Map(partialHistory);
+    fullHistory.set(
+      'a',
+      new Set(['concept_introduction', 'practice', 'application', 'reflection'])
+    );
+    const action3 = planner.getNextAction(learnerModel, graph, [], config, fullHistory);
+    expect(action3.type).toBe('transfer_test');
+    expect(action3.skillId).toBe('a');
+  });
+
+  it('back-compat: enforceCanonicalLoop=false leaves planner output unchanged', () => {
+    const { planner, graph, learnerModel } = buildPlannerSetup();
+    const config: SessionConfig = {
+      maxDurationMinutes: 30,
+      targetItems: 20,
+      masteryThreshold: 0.85,
+      enforceSpacedRetrieval: false,
+      requireTransferTests: false,
+      // enforceCanonicalLoop omitted → false
+    };
+
+    const action = planner.getNextAction(learnerModel, graph, [], config);
+    // Without the flag, brand-new skill still gets the original 'practice'
+    // recommendation — proves existing consumers are not affected.
+    expect(action.type).toBe('practice');
+    expect(action.skillId).toBe('a');
+  });
+});
+
+describe('Phase C3: engine wires stageHistory into planner; PracticeEvent + StageCompletedEvent populate it', () => {
+  // These integration tests live here (rather than in core.test.ts) so they
+  // sit next to the planner-level tests above and the C2 cognitive-state tests
+  // a directory over. The shared theme is "Phase C verification".
+
+  it('full canonical loop: concept_introduction → practice → application → reflection → transfer_test', async () => {
+    const { createDeterministicEngine } = await import('../engine');
+    const { createSkillGraph } = await import('../graph');
+    const {
+      createPracticeEvent,
+      createStageCompletedEvent,
+      createTransferTestEvent: _createTransferTestEvent,
+      createEventFactoryContext,
+    } = await import('../events');
+
+    const skills = [
+      { id: 'a', name: 'A', prerequisites: [] },
+      { id: 'b', name: 'B', prerequisites: ['a'] },
+    ];
+    const engine = createDeterministicEngine(createSkillGraph(skills), {}, 0);
+    engine.registerTransferTests([
+      { id: 'tt-a', skillId: 'a', transferType: 'near', context: 'ctx', passingScore: 0.8 },
+    ]);
+    const ctx = createEventFactoryContext(
+      () => engine.getCurrentTime(),
+      () => engine.generateEventId()
+    );
+
+    const config: SessionConfig = {
+      maxDurationMinutes: 30,
+      targetItems: 20,
+      masteryThreshold: 0.85,
+      enforceSpacedRetrieval: false,
+      requireTransferTests: true,
+      enforceCanonicalLoop: true,
+    };
+
+    // Step 1: brand new — engine emits concept_introduction.
+    expect(engine.getNextAction('l1', config).type).toBe('concept_introduction');
+
+    // Step 2: record concept_introduction → engine emits practice.
+    engine.processEvent(createStageCompletedEvent(ctx, 'l1', 's1', 'a', 'concept_introduction'));
+    expect(engine.getNextAction('l1', config).type).toBe('practice');
+
+    // Step 3: record some practice events to push pMastery above the
+    // transfer-test threshold (0.8 by planner config) so the gate becomes
+    // the canonical-loop check rather than the mastery check.
+    for (let i = 0; i < 5; i++) {
+      engine.processEvent(
+        createPracticeEvent(ctx, 'l1', 's1', 'a', `q${i}`, true, 500, { confidence: 0.9 })
+      );
+    }
+    // With practice but no application/reflection recorded, transfer_test
+    // is still blocked by the canonical-loop gate.
+    expect(engine.getNextAction('l1', config).type).not.toBe('transfer_test');
+
+    // Step 4: record an application attempt (PracticeEvent with stage='application').
+    engine.processEvent(
+      createPracticeEvent(ctx, 'l1', 's1', 'a', 'q-app', true, 600, {
+        confidence: 0.9,
+      })
+    );
+    // Force the stage='application' tag on the most recent event by emitting
+    // a stage_completed event isn't allowed (it doesn't accept 'application'),
+    // so we instead fire another practice with the stage field set.
+    engine.processEvent({
+      id: engine.generateEventId(),
+      type: 'practice',
+      learnerId: 'l1',
+      sessionId: 's1',
+      timestamp: engine.getCurrentTime(),
+      skillId: 'a',
+      itemId: 'q-app2',
+      correct: true,
+      responseTimeMs: 600,
+      stage: 'application',
+    });
+
+    // Step 5: record reflection.
+    engine.processEvent(createStageCompletedEvent(ctx, 'l1', 's1', 'a', 'reflection'));
+
+    // Now the canonical loop is complete. Engine emits transfer_test.
+    const finalAction = engine.getNextAction('l1', config);
+    expect(finalAction.type).toBe('transfer_test');
+    expect(finalAction.skillId).toBe('a');
+  });
+
+  it('engine.getStageHistory reflects PracticeEvent + StageCompletedEvent contributions', async () => {
+    const { createDeterministicEngine } = await import('../engine');
+    const { createSkillGraph } = await import('../graph');
+    const { createPracticeEvent, createStageCompletedEvent, createEventFactoryContext } =
+      await import('../events');
+
+    const engine = createDeterministicEngine(
+      createSkillGraph([{ id: 'a', name: 'A', prerequisites: [] }]),
+      {},
+      0
+    );
+    const ctx = createEventFactoryContext(
+      () => engine.getCurrentTime(),
+      () => engine.generateEventId()
+    );
+
+    expect(engine.getStageHistory('l1', 'a').size).toBe(0);
+
+    engine.processEvent(createStageCompletedEvent(ctx, 'l1', 's1', 'a', 'concept_introduction'));
+    expect(engine.getStageHistory('l1', 'a').has('concept_introduction')).toBe(true);
+
+    engine.processEvent(createPracticeEvent(ctx, 'l1', 's1', 'a', 'q1', true, 500));
+    expect(engine.getStageHistory('l1', 'a').has('practice')).toBe(true);
+
+    // PracticeEvent with stage='application' records the application stage.
+    engine.processEvent({
+      id: engine.generateEventId(),
+      type: 'practice',
+      learnerId: 'l1',
+      sessionId: 's1',
+      timestamp: engine.getCurrentTime(),
+      skillId: 'a',
+      itemId: 'q-app',
+      correct: true,
+      responseTimeMs: 600,
+      stage: 'application',
+    });
+    expect(engine.getStageHistory('l1', 'a').has('application')).toBe(true);
+
+    engine.processEvent(createStageCompletedEvent(ctx, 'l1', 's1', 'a', 'reflection'));
+    expect(engine.getStageHistory('l1', 'a').has('reflection')).toBe(true);
+
+    expect(engine.getStageHistory('l1', 'a')).toEqual(
+      new Set(['concept_introduction', 'practice', 'application', 'reflection'])
+    );
+  });
+
+  it('stage history survives export/import round-trip', async () => {
+    const { createDeterministicEngine } = await import('../engine');
+    const { createSkillGraph } = await import('../graph');
+    const { createPracticeEvent, createStageCompletedEvent, createEventFactoryContext } =
+      await import('../events');
+
+    const engineA = createDeterministicEngine(
+      createSkillGraph([{ id: 'a', name: 'A', prerequisites: [] }]),
+      {},
+      0
+    );
+    const ctx = createEventFactoryContext(
+      () => engineA.getCurrentTime(),
+      () => engineA.generateEventId()
+    );
+
+    engineA.processEvent(createStageCompletedEvent(ctx, 'l1', 's1', 'a', 'concept_introduction'));
+    engineA.processEvent(createPracticeEvent(ctx, 'l1', 's1', 'a', 'q1', true, 500));
+
+    const exported = engineA.exportState();
+
+    const engineB = createDeterministicEngine(
+      createSkillGraph([{ id: 'a', name: 'A', prerequisites: [] }]),
+      {},
+      0
+    );
+    engineB.importState(exported);
+
+    expect(engineB.getStageHistory('l1', 'a')).toEqual(
+      new Set(['concept_introduction', 'practice'])
+    );
+    // Composes with A1 determinism: re-export equals the imported string.
+    expect(engineB.exportState()).toBe(exported);
+  });
+});
+
