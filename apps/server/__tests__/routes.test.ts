@@ -30,6 +30,7 @@ vi.mock('../storage', () => {
     timestamp: Date;
   }> = [];
   const engineStates = new Map<number, string>();
+  const curricula = new Map<number, unknown>();
   let currentUserId = 1;
   let currentEventId = 1;
 
@@ -74,10 +75,18 @@ vi.mock('../storage', () => {
       loadEngineState: vi.fn(async (userId: number) => {
         return engineStates.get(userId) ?? null;
       }),
+      saveCurriculum: vi.fn(async (userId: number, curriculum: unknown) => {
+        curricula.set(userId, JSON.parse(JSON.stringify(curriculum)));
+      }),
+      loadCurriculum: vi.fn(async (userId: number) => {
+        const c = curricula.get(userId);
+        return c ? (JSON.parse(JSON.stringify(c)) as unknown) : null;
+      }),
       _reset: () => {
         users.clear();
         events.length = 0;
         engineStates.clear();
+        curricula.clear();
         currentUserId = 1;
         currentEventId = 1;
       },
@@ -348,6 +357,116 @@ describe('API Routes', () => {
       const response = await agent.get('/api/engine/state');
 
       expect(response.status).toBe(404);
+    });
+  });
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Phase E2 — Curriculum CRUD
+  // ─────────────────────────────────────────────────────────────────────────
+  describe('POST /api/curriculum/skills', () => {
+    it('rejects unauthenticated requests with 401', async () => {
+      const fresh = request.agent(app);
+      const res = await fresh.post('/api/curriculum/skills').send({
+        skills: [{ id: 'a', name: 'A', prerequisites: [] }],
+      });
+      expect(res.status).toBe(401);
+    });
+
+    it('validates and stores a 3-skill graph', async () => {
+      const res = await agent.post('/api/curriculum/skills').send({
+        skills: [
+          { id: 'a', name: 'A', prerequisites: [] },
+          { id: 'b', name: 'B', prerequisites: ['a'] },
+          { id: 'c', name: 'C', prerequisites: ['b'] },
+        ],
+      });
+      expect(res.status).toBe(201);
+      expect(res.body.saved).toBe(true);
+      expect(res.body.skillCount).toBe(3);
+      expect(storage.saveCurriculum).toHaveBeenCalled();
+    });
+
+    it('rejects skill graphs with cycles (400 + structured errors)', async () => {
+      const res = await agent.post('/api/curriculum/skills').send({
+        skills: [
+          { id: 'a', name: 'A', prerequisites: ['b'] },
+          { id: 'b', name: 'B', prerequisites: ['a'] },
+        ],
+      });
+      expect(res.status).toBe(400);
+      expect(res.body.error).toMatch(/Invalid skill graph/);
+      expect(Array.isArray(res.body.errors)).toBe(true);
+      expect(res.body.errors[0].type).toBe('CYCLE_DETECTED');
+    });
+
+    it('rejects graphs with missing prerequisites', async () => {
+      const res = await agent.post('/api/curriculum/skills').send({
+        skills: [{ id: 'a', name: 'A', prerequisites: ['nonexistent'] }],
+      });
+      expect(res.status).toBe(400);
+      expect(res.body.errors[0].type).toBe('MISSING_PREREQUISITE');
+    });
+
+    it('rejects payloads with no skills (Zod validation)', async () => {
+      const res = await agent.post('/api/curriculum/skills').send({ skills: [] });
+      expect(res.status).toBe(400);
+      expect(res.body.error).toMatch(/Validation failed/);
+    });
+
+    it('accepts itemMappings and transferTests alongside skills', async () => {
+      const res = await agent.post('/api/curriculum/skills').send({
+        skills: [{ id: 'a', name: 'A', prerequisites: [] }],
+        itemMappings: [
+          { itemId: 'q1', primarySkillId: 'a', secondarySkillIds: [], difficulty: 0.3 },
+        ],
+        transferTests: [
+          { id: 'tt-a', skillId: 'a', transferType: 'near', context: 'word', passingScore: 0.8 },
+        ],
+      });
+      expect(res.status).toBe(201);
+      expect(res.body.itemCount).toBe(1);
+      expect(res.body.transferTestCount).toBe(1);
+    });
+  });
+
+  describe('GET /api/curriculum/skills', () => {
+    it('rejects unauthenticated requests with 401', async () => {
+      const fresh = request.agent(app);
+      const res = await fresh.get('/api/curriculum/skills');
+      expect(res.status).toBe(401);
+    });
+
+    it('returns 404 when no curriculum has been saved', async () => {
+      // Make sure the curriculum is NOT present for this query.
+      (storage as any).loadCurriculum.mockResolvedValueOnce(null);
+      const res = await agent.get('/api/curriculum/skills');
+      expect(res.status).toBe(404);
+    });
+
+    it('round-trips: POST then GET returns the exact stored shape', async () => {
+      const payload = {
+        skills: [
+          { id: 'a', name: 'A', prerequisites: [] },
+          { id: 'b', name: 'B', prerequisites: ['a'] },
+        ],
+        itemMappings: [
+          { itemId: 'q1', primarySkillId: 'a', secondarySkillIds: [], difficulty: 0.3 },
+        ],
+        transferTests: [
+          { id: 'tt-a', skillId: 'a', transferType: 'near', context: 'word', passingScore: 0.8 },
+        ],
+      };
+      const post = await agent.post('/api/curriculum/skills').send(payload);
+      expect(post.status).toBe(201);
+
+      const get = await agent.get('/api/curriculum/skills');
+      expect(get.status).toBe(200);
+      // The skills array carries the Zod-applied default `prerequisites: []`
+      // from the schema, which is what's stored — so the round-trip matches
+      // the *parsed* payload, not the literal request body.
+      expect(get.body.skills).toEqual(payload.skills);
+      expect(get.body.itemMappings).toEqual(payload.itemMappings);
+      expect(get.body.transferTests).toEqual(payload.transferTests);
     });
   });
 });

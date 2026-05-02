@@ -15,7 +15,8 @@ import type {
   InsertLearningEvent,
   LearningEventData,
 } from '@shared/schema';
-import type { IStorage } from './storage';
+import type { IStorage, StoredCurriculum } from './storage';
+import type { Skill, ItemSkillMapping, TransferTest } from '@noesis-edu/core';
 
 const SALT_ROUNDS = 12;
 
@@ -103,6 +104,17 @@ export class SqliteStorage implements IStorage {
       );
 
       CREATE INDEX IF NOT EXISTS idx_engine_states_user_id ON engine_states(user_id);
+
+      CREATE TABLE IF NOT EXISTS skill_graphs (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE,
+        skills TEXT NOT NULL,
+        item_mappings TEXT,
+        transfer_tests TEXT,
+        updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_skill_graphs_user_id ON skill_graphs(user_id);
     `);
   }
 
@@ -255,6 +267,38 @@ export class SqliteStorage implements IStorage {
       | { state: string }
       | undefined;
     return row?.state ?? null;
+  }
+
+  // Curriculum (Phase E2)
+  async saveCurriculum(userId: number, curriculum: StoredCurriculum): Promise<void> {
+    this.db
+      .prepare(
+        `INSERT INTO skill_graphs (user_id, skills, item_mappings, transfer_tests, updated_at)
+         VALUES (?, ?, ?, ?, datetime('now'))
+         ON CONFLICT(user_id) DO UPDATE SET
+           skills = excluded.skills,
+           item_mappings = excluded.item_mappings,
+           transfer_tests = excluded.transfer_tests,
+           updated_at = datetime('now')`
+      )
+      .run(
+        userId,
+        JSON.stringify(curriculum.skills),
+        curriculum.itemMappings ? JSON.stringify(curriculum.itemMappings) : null,
+        curriculum.transferTests ? JSON.stringify(curriculum.transferTests) : null
+      );
+  }
+
+  async loadCurriculum(userId: number): Promise<StoredCurriculum | null> {
+    const row = this.db
+      .prepare('SELECT skills, item_mappings, transfer_tests FROM skill_graphs WHERE user_id = ?')
+      .get(userId) as { skills: string; item_mappings: string | null; transfer_tests: string | null } | undefined;
+    if (!row) return null;
+    return {
+      skills: JSON.parse(row.skills) as Skill[],
+      itemMappings: row.item_mappings ? (JSON.parse(row.item_mappings) as ItemSkillMapping[]) : undefined,
+      transferTests: row.transfer_tests ? (JSON.parse(row.transfer_tests) as TransferTest[]) : undefined,
+    };
   }
 
   close(): void {

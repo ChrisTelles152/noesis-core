@@ -7,6 +7,7 @@ import { getLLMManager, configureLLMManager, type LLMLogger } from '@noesis/adap
 import { createError as _createError, ErrorCodes as _ErrorCodes } from './errors';
 import { logger } from './logger';
 import { coreEventToLearningEvent, extractCoreEvents, validateNoesisEvent } from './event-bridge';
+import { createSkillGraph } from '@noesis-edu/core';
 
 // Configure the LLM Manager with the server's structured logger
 const llmLogger: LLMLogger = {
@@ -495,6 +496,118 @@ export async function registerRoutes(app: Express): Promise<Server> {
         error instanceof Error ? error : undefined
       );
       res.status(500).json({ error: 'Failed to load engine state' });
+    }
+  });
+
+  // ───────────────────────────────────────────────────────────────────────
+  // Curriculum (Phase E2)
+  //
+  // PUT/POST stores a user's skill graph (skills + optional itemMappings +
+  // optional transferTests). The graph is validated through createSkillGraph
+  // before being persisted — graphs with cycles or other structural errors
+  // are rejected with 400 and the validation errors echoed back so the
+  // client can fix them.
+  //
+  // GET returns the stored graph or 404 when none has been saved yet.
+  // ───────────────────────────────────────────────────────────────────────
+
+  const curriculumSchema = z.object({
+    skills: z
+      .array(
+        z.object({
+          id: z.string().min(1),
+          name: z.string().min(1),
+          description: z.string().optional(),
+          prerequisites: z.array(z.string()).default([]),
+          encompassedSkills: z.array(z.string()).optional(),
+          category: z.string().optional(),
+          difficulty: z.number().min(0).max(1).optional(),
+        })
+      )
+      .min(1),
+    itemMappings: z
+      .array(
+        z.object({
+          itemId: z.string().min(1),
+          primarySkillId: z.string().min(1),
+          secondarySkillIds: z.array(z.string()).default([]),
+          difficulty: z.number().min(0).max(1),
+        })
+      )
+      .optional(),
+    transferTests: z
+      .array(
+        z.object({
+          id: z.string().min(1),
+          skillId: z.string().min(1),
+          transferType: z.enum(['near', 'far']),
+          context: z.string(),
+          passingScore: z.number().min(0).max(1),
+        })
+      )
+      .optional(),
+  });
+
+  app.post('/api/curriculum/skills', requireAuth, async (req, res) => {
+    try {
+      const parsed = curriculumSchema.parse(req.body);
+
+      // Validate the graph before persisting — surface cycles + missing
+      // prerequisites at the API boundary so the client gets a 400, not
+      // a silent broken curriculum that crashes the engine on hydrate.
+      const graph = createSkillGraph(parsed.skills);
+      const validation = graph.validate();
+      if (!validation.valid) {
+        return res.status(400).json({
+          error: 'Invalid skill graph',
+          errors: validation.errors,
+        });
+      }
+
+      const userId = getUserIdFromRequest(req);
+      await storage.saveCurriculum(userId, {
+        skills: parsed.skills,
+        itemMappings: parsed.itemMappings,
+        transferTests: parsed.transferTests,
+      });
+
+      res.status(201).json({
+        saved: true,
+        skillCount: parsed.skills.length,
+        itemCount: parsed.itemMappings?.length ?? 0,
+        transferTestCount: parsed.transferTests?.length ?? 0,
+      });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({
+          error: 'Validation failed',
+          details: error.errors.map((e) => ({ path: e.path.join('.'), message: e.message })),
+        });
+      }
+      logger.error(
+        'Error saving curriculum',
+        { module: 'routes' },
+        error instanceof Error ? error : undefined
+      );
+      res.status(500).json({ error: 'Failed to save curriculum' });
+    }
+  });
+
+  app.get('/api/curriculum/skills', requireAuth, async (req, res) => {
+    try {
+      const userId = getUserIdFromRequest(req);
+      const curriculum = await storage.loadCurriculum(userId);
+      if (!curriculum) {
+        return res.status(404).json({ error: 'No curriculum saved' });
+      }
+      res.json(curriculum);
+    } catch (error) {
+      logger.error(
+        'Error loading curriculum',
+        { module: 'routes' },
+        error instanceof Error ? error : undefined
+      );
+      res.status(500).json({ error: 'Failed to load curriculum' });
     }
   });
 

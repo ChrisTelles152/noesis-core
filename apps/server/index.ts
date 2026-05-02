@@ -14,6 +14,8 @@ import { initializeWebSocket } from './websocket';
 import { setupOpenApiRoutes } from './openapi';
 import { performanceMiddleware, performanceMonitor } from './performance';
 import { buildHelmetOptions, isRealGazeTrackingEnabled } from './security-headers';
+import { configureEngineManager } from './engine-manager';
+import { storage } from './storage';
 
 // Validate environment at startup
 const envValid = logEnvironmentStatus(log);
@@ -178,6 +180,14 @@ app.use((req, res, next) => {
   });
 
   next();
+});
+
+// Configure the per-user engine manager (Phase E1 + E2). Hydrates an engine
+// on first access for each user from the stored curriculum + event log.
+configureEngineManager({
+  curriculumSource: { loadCurriculum: (userId) => storage.loadCurriculum(userId) },
+  events: storage,
+  state: storage,
 });
 
 (async () => {
