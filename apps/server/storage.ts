@@ -15,6 +15,7 @@ import {
   users,
   learningEvents,
   engineStates,
+  skillGraphs,
   type User,
   type InsertUser,
   type LearningEvent,
@@ -23,6 +24,7 @@ import {
 import { db, isDatabaseConfigured } from './db';
 import { getLogger, type Logger } from './logger';
 import { SqliteStorage } from './sqlite-storage';
+import type { Skill, ItemSkillMapping, TransferTest } from '@noesis-edu/core';
 
 const SALT_ROUNDS = 12;
 
@@ -31,6 +33,19 @@ export interface GoogleUserProfile {
   email: string;
   displayName: string;
   avatarUrl?: string;
+}
+
+/**
+ * Per-user curriculum payload — stored as JSON in skill_graphs.
+ *
+ * Same shape as `Curriculum` from engine-manager.ts. Duplicated here to
+ * avoid pulling the engine-manager module into the storage layer (keeps
+ * the dependency direction one-way: engine-manager → storage).
+ */
+export interface StoredCurriculum {
+  skills: Skill[];
+  itemMappings?: ItemSkillMapping[];
+  transferTests?: TransferTest[];
 }
 
 export interface IStorage {
@@ -52,6 +67,11 @@ export interface IStorage {
   // Core engine state persistence
   saveEngineState(userId: number, state: string): Promise<void>;
   loadEngineState(userId: number): Promise<string | null>;
+
+  // Per-user curriculum (Phase E2). Used by the EngineManager to hydrate
+  // an engine on first access for a user.
+  saveCurriculum(userId: number, curriculum: StoredCurriculum): Promise<void>;
+  loadCurriculum(userId: number): Promise<StoredCurriculum | null>;
 }
 
 // In-memory storage implementation (used when DATABASE_URL is not set)
@@ -59,6 +79,7 @@ export class MemStorage implements IStorage {
   private users: Map<number, User>;
   private learningEvents: Map<number, LearningEvent>;
   private engineStates: Map<number, string>;
+  private curricula: Map<number, StoredCurriculum>;
   currentUserId: number;
   currentEventId: number;
   private initialized: Promise<void>;
@@ -67,6 +88,7 @@ export class MemStorage implements IStorage {
     this.users = new Map();
     this.learningEvents = new Map();
     this.engineStates = new Map();
+    this.curricula = new Map();
     this.currentUserId = 1;
     this.currentEventId = 1;
 
@@ -169,6 +191,18 @@ export class MemStorage implements IStorage {
 
   async loadEngineState(userId: number): Promise<string | null> {
     return this.engineStates.get(userId) ?? null;
+  }
+
+  // Curriculum (Phase E2)
+  async saveCurriculum(userId: number, curriculum: StoredCurriculum): Promise<void> {
+    // Defensive deep clone — callers retain their original objects.
+    this.curricula.set(userId, JSON.parse(JSON.stringify(curriculum)) as StoredCurriculum);
+  }
+
+  async loadCurriculum(userId: number): Promise<StoredCurriculum | null> {
+    const stored = this.curricula.get(userId);
+    if (!stored) return null;
+    return JSON.parse(JSON.stringify(stored)) as StoredCurriculum;
   }
 }
 
@@ -280,6 +314,40 @@ export class DatabaseStorage implements IStorage {
     if (!db) throw new Error('Database not configured');
     const [row] = await db.select().from(engineStates).where(eq(engineStates.userId, userId));
     return row?.state ?? null;
+  }
+
+  // Curriculum (Phase E2)
+  async saveCurriculum(userId: number, curriculum: StoredCurriculum): Promise<void> {
+    if (!db) throw new Error('Database not configured');
+    await db
+      .insert(skillGraphs)
+      .values({
+        userId,
+        skills: curriculum.skills,
+        itemMappings: curriculum.itemMappings ?? null,
+        transferTests: curriculum.transferTests ?? null,
+        updatedAt: new Date(),
+      })
+      .onConflictDoUpdate({
+        target: skillGraphs.userId,
+        set: {
+          skills: curriculum.skills,
+          itemMappings: curriculum.itemMappings ?? null,
+          transferTests: curriculum.transferTests ?? null,
+          updatedAt: new Date(),
+        },
+      });
+  }
+
+  async loadCurriculum(userId: number): Promise<StoredCurriculum | null> {
+    if (!db) throw new Error('Database not configured');
+    const [row] = await db.select().from(skillGraphs).where(eq(skillGraphs.userId, userId));
+    if (!row) return null;
+    return {
+      skills: row.skills as Skill[],
+      itemMappings: (row.itemMappings as ItemSkillMapping[] | null) ?? undefined,
+      transferTests: (row.transferTests as TransferTest[] | null) ?? undefined,
+    };
   }
 }
 

@@ -136,3 +136,24 @@ export const engineStates = pgTable(
 );
 
 export type EngineState = typeof engineStates.$inferSelect;
+
+// Per-user skill graph + item mappings + transfer tests (one row per user,
+// upserted on save). Used by the server-side EngineManager (Phase E2) so the
+// engine can be hydrated and the planner can reason about a real curriculum.
+export const skillGraphs = pgTable(
+  'skill_graphs',
+  {
+    id: serial('id').primaryKey(),
+    userId: integer('user_id')
+      .notNull()
+      .unique()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    skills: jsonb('skills').notNull(), // Skill[]
+    itemMappings: jsonb('item_mappings'), // ItemSkillMapping[] | null
+    transferTests: jsonb('transfer_tests'), // TransferTest[] | null
+    updatedAt: timestamp('updated_at').notNull().defaultNow(),
+  },
+  (table) => [index('skill_graphs_user_id_idx').on(table.userId)]
+);
+
+export type SkillGraphRow = typeof skillGraphs.$inferSelect;
