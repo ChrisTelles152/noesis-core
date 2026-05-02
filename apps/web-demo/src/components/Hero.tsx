@@ -1,6 +1,7 @@
 import { Link } from 'wouter';
 import { Button } from '@/components/ui/button';
 import CodeBlock from '@/components/CodeBlock';
+import spiralEyeUrl from '@/assets/spiral-eye.svg';
 
 export default function Hero() {
   const codeExample = `// Initialize Noesis SDK with default configuration
@@ -47,6 +48,12 @@ console.log('Suggested next step:', response.suggestion);`;
     <section className="py-12 md:py-20 bg-gradient-to-b from-white to-slate-50">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="max-w-4xl mx-auto text-center">
+          <img
+            src={spiralEyeUrl}
+            alt="Noesis"
+            className="mx-auto mb-8 h-16 w-16 text-neural-copper"
+            aria-label="Noesis spiral-eye logo"
+          />
           <h1 className="text-4xl md:text-5xl font-bold text-slate-900 tracking-tight">
             <span className="bg-clip-text text-transparent bg-gradient-to-r from-primary-600 to-secondary-500">
               Adaptive Learning
