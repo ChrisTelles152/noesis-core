@@ -31,21 +31,55 @@ import {
 } from '@noesis-edu/core';
 
 /**
- * Configuration for the core engine adapter
+ * Configuration for the core engine adapter.
+ *
+ * `clock` and `idGenerator` are optional **at the SDK boundary only** —
+ * if omitted, the adapter falls back to `Date.now()` and a UUID-shaped string,
+ * and emits a one-time `console.warn` so the consumer is aware that replay
+ * determinism is no longer guaranteed for events created via this adapter.
+ *
+ * For replay/testing, inject a deterministic clock and idGenerator. For server
+ * code that uses a request-scoped UUID source, inject those.
  */
 export interface CoreAdapterConfig {
   /** Learning ID for this learner */
   learnerId: string;
   /** Debug mode */
   debug?: boolean;
-  /** Custom clock function (defaults to Date.now) */
+  /**
+   * Custom clock function. **Recommended** to inject explicitly. Falls back to
+   * `Date.now()` with a one-time `console.warn` if omitted.
+   */
   clock?: ClockFn;
-  /** Custom ID generator (defaults to UUID-like) */
+  /**
+   * Custom ID generator. **Recommended** to inject explicitly. Falls back to a
+   * UUID-shaped `Math.random()` string with a one-time `console.warn` if omitted.
+   */
   idGenerator?: IdGeneratorFn;
   /** Initial skill definitions */
   skills?: Skill[];
   /** Session configuration */
   sessionConfig?: Partial<SessionConfig>;
+  /**
+   * If `true`, suppress the one-time non-determinism warning when `clock` or
+   * `idGenerator` are omitted. Use only when you are intentionally accepting
+   * non-replayability (e.g. a one-shot demo). Default `false`.
+   */
+  suppressNonDeterminismWarning?: boolean;
+}
+
+/**
+ * Module-level flag so the warning fires at most once per JS process.
+ * Exposed via {@link _resetNonDeterminismWarning} for tests.
+ */
+let nonDeterminismWarningEmitted = false;
+
+/**
+ * Test-only — reset the once-per-process warning latch.
+ * Not part of the public SDK contract.
+ */
+export function _resetNonDeterminismWarning(): void {
+  nonDeterminismWarningEmitted = false;
 }
 
 /**
@@ -88,6 +122,29 @@ export class CoreEngineAdapter {
   constructor(config: CoreAdapterConfig) {
     this.debug = config.debug ?? false;
     this.learnerId = config.learnerId;
+
+    const clockProvided = typeof config.clock === 'function';
+    const idGeneratorProvided = typeof config.idGenerator === 'function';
+    if (
+      (!clockProvided || !idGeneratorProvided) &&
+      !config.suppressNonDeterminismWarning &&
+      !nonDeterminismWarningEmitted
+    ) {
+      nonDeterminismWarningEmitted = true;
+      const missing = [
+        !clockProvided ? 'clock' : null,
+        !idGeneratorProvided ? 'idGenerator' : null,
+      ]
+        .filter(Boolean)
+        .join(' and ');
+      console.warn(
+        `[NoesisSDK] CoreEngineAdapter constructed without ${missing}; falling back to ` +
+          'Date.now() / Math.random(). Replay determinism is NOT guaranteed for events ' +
+          'produced by this adapter. Inject clock + idGenerator to opt in to determinism, ' +
+          'or set suppressNonDeterminismWarning: true to silence this notice.'
+      );
+    }
+
     this.clock = config.clock ?? (() => Date.now());
     this.idGenerator = config.idGenerator ?? generateId;
     this.sessionId = this.idGenerator();
