@@ -16,6 +16,8 @@ import type {
   SessionEvent,
   SessionConfig,
   ImplicitCreditEvent,
+  CognitiveStateEvent,
+  CognitiveStateVector,
 } from '../constitution.js';
 
 export type {
@@ -25,6 +27,9 @@ export type {
   TransferTestEvent,
   SessionEvent,
   NoesisEvent,
+  CognitiveStateEvent,
+  CognitiveStateVector,
+  CognitiveStateMeasurement,
 } from '../constitution.js';
 
 /**
@@ -255,6 +260,29 @@ export function createSessionEndEvent(
     sessionId,
     timestamp: ctx.clock(),
     summary,
+  };
+}
+
+/**
+ * Create a CognitiveStateEvent (NALS).
+ *
+ * The factory uses `ctx.clock` for `timestamp` and `ctx.idGenerator` for `id`.
+ * The vector itself is supplied by the caller (typically an attention/affect
+ * adapter that already filled in per-measurement timestamps and confidences).
+ */
+export function createCognitiveStateEvent(
+  ctx: EventFactoryContext,
+  learnerId: string,
+  sessionId: string,
+  vector: CognitiveStateVector
+): CognitiveStateEvent {
+  return {
+    id: ctx.idGenerator(),
+    type: 'cognitive_state',
+    learnerId,
+    sessionId,
+    timestamp: ctx.clock(),
+    vector,
   };
 }
 
