@@ -13,6 +13,7 @@ import Login from '@/pages/Login';
 import Register from '@/pages/Register';
 import CoreSmoke from '@/pages/CoreSmoke';
 import Diagnostic from '@/pages/Diagnostic';
+import Path from '@/pages/Path';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 
@@ -33,6 +34,7 @@ function Router() {
         <Route path="/register" component={Register} />
         <Route path="/core-smoke" component={CoreSmoke} />
         <Route path="/diagnostic" component={Diagnostic} />
+        <Route path="/path" component={Path} />
         <Route component={NotFound} />
       </Switch>
       {!isAuthPage && !isSmokePage && <Footer />}
