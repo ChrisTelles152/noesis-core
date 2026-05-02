@@ -116,8 +116,10 @@
   },
   "skillNode": {
     "title": "Tópico: {{name}}",
+    "stageOf": "Etapa {{current}} de {{total}}",
     "introduction": "Introdução",
     "introductionLead": "Leia a explicação e continue quando estiver pronto.",
+    "introductionFallback": "Vamos estudar {{name}}. Quando estiver pronto, siga para a prática.",
     "introductionContinue": "Li — continuar",
     "practice": "Prática",
     "practiceLead": "Resolva a questão a seguir.",
@@ -134,12 +136,17 @@
     "transferTest": "Teste de Transferência",
     "transferTestLead": "Mostre que você consegue aplicar a habilidade em diferentes contextos.",
     "submit": "Enviar",
+    "next": "Próxima Etapa",
+    "finish": "Concluir",
     "skip": "Pular",
     "exit": "Voltar à Trilha",
     "correct": "Correto!",
     "incorrect": "Quase lá. Veja como pensar nisso:",
     "explanation": "Explicação",
     "yourAnswer": "Sua resposta",
-    "answerPlaceholder": "Digite sua resposta"
+    "answerPlaceholder": "Digite sua resposta",
+    "noItemForStage": "Sem questão para esta etapa — siga adiante.",
+    "skillNotFound": "Tópico não encontrado.",
+    "backToPath": "Voltar à Trilha"
   }
 }
