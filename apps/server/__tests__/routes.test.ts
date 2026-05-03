@@ -47,6 +47,7 @@ vi.mock('../storage', () => {
   }> = [];
   const engineStates = new Map<number, string>();
   const curricula = new Map<number, unknown>();
+  let systemCurr: unknown = null;
   let currentUserId = 1;
   let currentEventId = 1;
 
@@ -119,11 +120,18 @@ vi.mock('../storage', () => {
           (u as Record<string, unknown>).isAdmin = isAdmin;
         }
       }),
+      getSystemCurriculum: vi.fn(async () => {
+        return systemCurr ? (JSON.parse(JSON.stringify(systemCurr)) as unknown) : null;
+      }),
+      setSystemCurriculum: vi.fn(async (c: unknown) => {
+        systemCurr = JSON.parse(JSON.stringify(c)) as unknown;
+      }),
       _reset: () => {
         users.clear();
         events.length = 0;
         engineStates.clear();
         curricula.clear();
+        systemCurr = null;
         currentUserId = 1;
         currentEventId = 1;
       },
@@ -1084,6 +1092,138 @@ describe('API Routes', () => {
       );
       // At least one data row
       expect(lines.length).toBeGreaterThanOrEqual(2);
+    });
+  });
+
+  describe('Phase H7: admin skill CRUD', () => {
+    let adminAgent: ReturnType<typeof request.agent>;
+    let nonAdminAgent: ReturnType<typeof request.agent>;
+
+    beforeAll(async () => {
+      nonAdminAgent = agent;
+      adminAgent = request.agent(app);
+      await adminAgent
+        .post('/api/auth/register')
+        .send({ username: 'authoradmin', password: 'AdminPass123!' });
+      const allUsers = await storage.listUsers();
+      const me = allUsers.find((u) => u.username === 'authoradmin');
+      if (!me) throw new Error('authoradmin not found in mock storage');
+      await storage.setUserAdmin(me.id, true);
+    });
+
+    it('GET /api/admin/skills returns 403 for non-admin', async () => {
+      const res = await nonAdminAgent.get('/api/admin/skills');
+      expect(res.status).toBe(403);
+    });
+
+    it('full CRUD round-trip: create → read → update → delete', async () => {
+      // Start clean: delete any existing skills (test ordering shouldn't
+      // depend on prior state, so we don't assume).
+      const before = await adminAgent.get('/api/admin/skills');
+      expect(before.status).toBe(200);
+      // Allow either an empty seed or a populated one — we explicitly
+      // clean the slate by deleting everything we know about.
+      for (const s of (before.body.skills as Array<{ id: string }>) ?? []) {
+        await adminAgent.delete(`/api/admin/skills/${s.id}`);
+      }
+
+      // CREATE
+      const create = await adminAgent.post('/api/admin/skills').send({
+        id: 'sk_root',
+        name: 'Root',
+        prerequisites: [],
+        difficulty: 0.1,
+      });
+      expect(create.status).toBe(201);
+      expect(create.body.skill.id).toBe('sk_root');
+      expect(create.body.skillCount).toBe(1);
+
+      // READ — should reflect the new skill
+      const afterCreate = await adminAgent.get('/api/admin/skills');
+      expect(afterCreate.status).toBe(200);
+      const skills1 = afterCreate.body.skills as Array<{ id: string; name: string }>;
+      expect(skills1.find((s) => s.id === 'sk_root')?.name).toBe('Root');
+
+      // UPDATE — change the name
+      const update = await adminAgent.put('/api/admin/skills/sk_root').send({
+        name: 'Root Renamed',
+        prerequisites: [],
+        difficulty: 0.2,
+      });
+      expect(update.status).toBe(200);
+      expect(update.body.skill.name).toBe('Root Renamed');
+
+      const afterUpdate = await adminAgent.get('/api/admin/skills');
+      const skills2 = afterUpdate.body.skills as Array<{ id: string; name: string }>;
+      expect(skills2.find((s) => s.id === 'sk_root')?.name).toBe('Root Renamed');
+
+      // DELETE
+      const del = await adminAgent.delete('/api/admin/skills/sk_root');
+      expect(del.status).toBe(200);
+      expect(del.body.deleted).toBe('sk_root');
+
+      const afterDelete = await adminAgent.get('/api/admin/skills');
+      const skills3 = afterDelete.body.skills as Array<{ id: string }>;
+      expect(skills3.find((s) => s.id === 'sk_root')).toBeUndefined();
+    });
+
+    it('rejects a skill whose prerequisite does not exist (graph validation)', async () => {
+      const res = await adminAgent.post('/api/admin/skills').send({
+        id: 'sk_orphan',
+        name: 'Orphan',
+        prerequisites: ['does_not_exist'],
+        difficulty: 0.5,
+      });
+      expect(res.status).toBe(400);
+      expect(res.body.error).toMatch(/Invalid skill graph/);
+    });
+
+    it('returns 409 when adding a duplicate skill id', async () => {
+      // Seed a skill, then try to create one with the same id.
+      await adminAgent.post('/api/admin/skills').send({
+        id: 'sk_dup',
+        name: 'First',
+        prerequisites: [],
+      });
+      const res = await adminAgent.post('/api/admin/skills').send({
+        id: 'sk_dup',
+        name: 'Second',
+        prerequisites: [],
+      });
+      expect(res.status).toBe(409);
+      // Cleanup so other tests start fresh.
+      await adminAgent.delete('/api/admin/skills/sk_dup');
+    });
+
+    it('returns 404 when updating an unknown skill', async () => {
+      const res = await adminAgent.put('/api/admin/skills/sk_does_not_exist').send({
+        name: 'Phantom',
+        prerequisites: [],
+      });
+      expect(res.status).toBe(404);
+    });
+
+    it('deleting a skill scrubs it from other skills’ prerequisites', async () => {
+      // Seed two skills where B depends on A.
+      await adminAgent
+        .post('/api/admin/skills')
+        .send({ id: 'sk_a', name: 'A', prerequisites: [] });
+      await adminAgent
+        .post('/api/admin/skills')
+        .send({ id: 'sk_b', name: 'B', prerequisites: ['sk_a'] });
+
+      // Delete A — graph would be invalid if B kept the dangling prereq, so
+      // the route must scrub it to keep the system curriculum validatable.
+      const del = await adminAgent.delete('/api/admin/skills/sk_a');
+      expect(del.status).toBe(200);
+
+      const after = await adminAgent.get('/api/admin/skills');
+      const b = (after.body.skills as Array<{ id: string; prerequisites: string[] }>).find(
+        (s) => s.id === 'sk_b',
+      );
+      expect(b?.prerequisites).toEqual([]);
+
+      await adminAgent.delete('/api/admin/skills/sk_b');
     });
   });
 });

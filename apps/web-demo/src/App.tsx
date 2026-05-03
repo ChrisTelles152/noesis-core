@@ -16,6 +16,7 @@ import Diagnostic from '@/pages/Diagnostic';
 import Path from '@/pages/Path';
 import SkillNode from '@/pages/SkillNode';
 import Mentor from '@/pages/Mentor';
+import Authoring from '@/pages/Authoring';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 
@@ -39,6 +40,7 @@ function Router() {
         <Route path="/path" component={Path} />
         <Route path="/skill/:id" component={SkillNode} />
         <Route path="/mentor" component={Mentor} />
+        <Route path="/authoring" component={Authoring} />
         <Route component={NotFound} />
       </Switch>
       {!isAuthPage && !isSmokePage && <Footer />}

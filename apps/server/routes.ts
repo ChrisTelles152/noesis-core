@@ -875,6 +875,133 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // re-derive numbers here, the engine is the source of truth.
   // ───────────────────────────────────────────────────────────────────────
 
+  // ───────────────────────────────────────────────────────────────────────
+  // Authoring admin endpoints (Phase H7)
+  //
+  // Admin-only CRUD for the system-wide skill graph. Each mutation
+  // re-validates the resulting graph through createSkillGraph so a stray
+  // edit can't leave the system curriculum in a state with cycles or
+  // dangling prerequisites.
+  // ───────────────────────────────────────────────────────────────────────
+
+  const adminSkillSchema = z.object({
+    id: z.string().min(1),
+    name: z.string().min(1),
+    description: z.string().optional(),
+    prerequisites: z.array(z.string()).default([]),
+    encompassedSkills: z.array(z.string()).optional(),
+    category: z.string().optional(),
+    difficulty: z.number().min(0).max(1).optional(),
+  });
+
+  app.get('/api/admin/skills', requireAdmin, async (_req, res) => {
+    try {
+      const curriculum = await storage.getSystemCurriculum();
+      res.json(curriculum ?? { skills: [] });
+    } catch (error) {
+      logger.error(
+        'Error loading system curriculum',
+        { module: 'routes' },
+        error instanceof Error ? error : undefined,
+      );
+      res.status(500).json({ error: 'Failed to load system curriculum' });
+    }
+  });
+
+  app.post('/api/admin/skills', requireAdmin, async (req, res) => {
+    try {
+      const incoming = adminSkillSchema.parse(req.body);
+      const current = (await storage.getSystemCurriculum()) ?? { skills: [] };
+      if (current.skills.some((s) => s.id === incoming.id)) {
+        return res.status(409).json({ error: `Skill '${incoming.id}' already exists` });
+      }
+      const next = { ...current, skills: [...current.skills, incoming] };
+      const validation = createSkillGraph(next.skills).validate();
+      if (!validation.valid) {
+        return res.status(400).json({ error: 'Invalid skill graph', errors: validation.errors });
+      }
+      await storage.setSystemCurriculum(next);
+      res.status(201).json({ skill: incoming, skillCount: next.skills.length });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({
+          error: 'Validation failed',
+          details: error.errors.map((e) => ({ path: e.path.join('.'), message: e.message })),
+        });
+      }
+      logger.error(
+        'Error creating system skill',
+        { module: 'routes' },
+        error instanceof Error ? error : undefined,
+      );
+      res.status(500).json({ error: 'Failed to create skill' });
+    }
+  });
+
+  app.put('/api/admin/skills/:id', requireAdmin, async (req, res) => {
+    try {
+      const skillId = req.params.id;
+      // Ignore any client-supplied id in the body — the URL is authoritative.
+      const incoming = adminSkillSchema.parse({ ...req.body, id: skillId });
+      const current = await storage.getSystemCurriculum();
+      if (!current || !current.skills.some((s) => s.id === skillId)) {
+        return res.status(404).json({ error: `Skill '${skillId}' not found` });
+      }
+      const nextSkills = current.skills.map((s) => (s.id === skillId ? incoming : s));
+      const validation = createSkillGraph(nextSkills).validate();
+      if (!validation.valid) {
+        return res.status(400).json({ error: 'Invalid skill graph', errors: validation.errors });
+      }
+      await storage.setSystemCurriculum({ ...current, skills: nextSkills });
+      res.json({ skill: incoming });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({
+          error: 'Validation failed',
+          details: error.errors.map((e) => ({ path: e.path.join('.'), message: e.message })),
+        });
+      }
+      logger.error(
+        'Error updating system skill',
+        { module: 'routes' },
+        error instanceof Error ? error : undefined,
+      );
+      res.status(500).json({ error: 'Failed to update skill' });
+    }
+  });
+
+  app.delete('/api/admin/skills/:id', requireAdmin, async (req, res) => {
+    try {
+      const skillId = req.params.id;
+      const current = await storage.getSystemCurriculum();
+      if (!current || !current.skills.some((s) => s.id === skillId)) {
+        return res.status(404).json({ error: `Skill '${skillId}' not found` });
+      }
+      // Strip the deleted skill from any remaining prerequisites/
+      // encompassedSkills so the resulting graph is still validatable.
+      const nextSkills = current.skills
+        .filter((s) => s.id !== skillId)
+        .map((s) => ({
+          ...s,
+          prerequisites: s.prerequisites.filter((p) => p !== skillId),
+          encompassedSkills: s.encompassedSkills?.filter((e) => e !== skillId),
+        }));
+      const validation = createSkillGraph(nextSkills).validate();
+      if (!validation.valid) {
+        return res.status(400).json({ error: 'Invalid skill graph', errors: validation.errors });
+      }
+      await storage.setSystemCurriculum({ ...current, skills: nextSkills });
+      res.json({ deleted: skillId, skillCount: nextSkills.length });
+    } catch (error) {
+      logger.error(
+        'Error deleting system skill',
+        { module: 'routes' },
+        error instanceof Error ? error : undefined,
+      );
+      res.status(500).json({ error: 'Failed to delete skill' });
+    }
+  });
+
   app.get('/api/mentor/learners', requireAdmin, async (_req, res) => {
     try {
       const users = await storage.listUsers();

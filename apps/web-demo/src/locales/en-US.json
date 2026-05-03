@@ -114,6 +114,30 @@
       "statistics": "Statistics & Probability"
     }
   },
+  "authoring": {
+    "title": "Curriculum Editor",
+    "subtitle": "Add, edit, or remove topics from the system curriculum.",
+    "loading": "Loading topics...",
+    "loadFailed": "Couldn't load the curriculum.",
+    "forbidden": "Only admins can edit the curriculum.",
+    "empty": "No topics yet. Add the first below.",
+    "addNew": "Add Topic",
+    "save": "Save",
+    "cancel": "Cancel",
+    "edit": "Edit",
+    "delete": "Delete",
+    "saving": "Saving...",
+    "saveError": "Save failed: {{error}}",
+    "skillId": "Topic ID",
+    "skillIdPlaceholder": "e.g. linear_equations",
+    "skillName": "Name",
+    "skillNamePlaceholder": "e.g. Linear Equations",
+    "skillDescription": "Description (optional)",
+    "skillCategory": "Category (optional)",
+    "skillDifficulty": "Difficulty (0–1)",
+    "skillPrerequisites": "Prerequisites (comma-separated)",
+    "confirmDelete": "Are you sure you want to delete this topic?"
+  },
   "mentor": {
     "title": "Mentor Dashboard",
     "subtitle": "Per-learner progress across your cohort.",
