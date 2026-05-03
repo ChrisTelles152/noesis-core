@@ -16,6 +16,7 @@ import {
   learningEvents,
   engineStates,
   skillGraphs,
+  systemCurriculum,
   type User,
   type InsertUser,
   type LearningEvent,
@@ -79,6 +80,12 @@ export interface IStorage {
   // touched in code review.
   listUsers(): Promise<User[]>;
   setUserAdmin(userId: number, isAdmin: boolean): Promise<void>;
+
+  // System curriculum (Phase H7). Admin-authored skill graph kept separate
+  // from per-user skill_graphs so editing the template doesn't trample an
+  // active learner's working state.
+  getSystemCurriculum(): Promise<StoredCurriculum | null>;
+  setSystemCurriculum(curriculum: StoredCurriculum): Promise<void>;
 }
 
 // In-memory storage implementation (used when DATABASE_URL is not set)
@@ -223,6 +230,19 @@ export class MemStorage implements IStorage {
     const user = this.users.get(userId);
     if (!user) return;
     this.users.set(userId, { ...user, isAdmin });
+  }
+
+  // System curriculum (Phase H7). In-memory singleton — clones on read/write
+  // so callers can't mutate our stored copy by retaining their reference.
+  private systemCurriculum: StoredCurriculum | null = null;
+
+  async getSystemCurriculum(): Promise<StoredCurriculum | null> {
+    if (!this.systemCurriculum) return null;
+    return JSON.parse(JSON.stringify(this.systemCurriculum)) as StoredCurriculum;
+  }
+
+  async setSystemCurriculum(curriculum: StoredCurriculum): Promise<void> {
+    this.systemCurriculum = JSON.parse(JSON.stringify(curriculum)) as StoredCurriculum;
   }
 }
 
@@ -379,6 +399,40 @@ export class DatabaseStorage implements IStorage {
   async setUserAdmin(userId: number, isAdmin: boolean): Promise<void> {
     if (!db) throw new Error('Database not configured');
     await db.update(users).set({ isAdmin }).where(eq(users.id, userId));
+  }
+
+  // System curriculum (Phase H7) — single-row table keyed by id=1.
+  async getSystemCurriculum(): Promise<StoredCurriculum | null> {
+    if (!db) throw new Error('Database not configured');
+    const [row] = await db.select().from(systemCurriculum).where(eq(systemCurriculum.id, 1));
+    if (!row) return null;
+    return {
+      skills: row.skills as Skill[],
+      itemMappings: (row.itemMappings as ItemSkillMapping[] | null) ?? undefined,
+      transferTests: (row.transferTests as TransferTest[] | null) ?? undefined,
+    };
+  }
+
+  async setSystemCurriculum(curriculum: StoredCurriculum): Promise<void> {
+    if (!db) throw new Error('Database not configured');
+    await db
+      .insert(systemCurriculum)
+      .values({
+        id: 1,
+        skills: curriculum.skills,
+        itemMappings: curriculum.itemMappings ?? null,
+        transferTests: curriculum.transferTests ?? null,
+        updatedAt: new Date(),
+      })
+      .onConflictDoUpdate({
+        target: systemCurriculum.id,
+        set: {
+          skills: curriculum.skills,
+          itemMappings: curriculum.itemMappings ?? null,
+          transferTests: curriculum.transferTests ?? null,
+          updatedAt: new Date(),
+        },
+      });
   }
 }
 

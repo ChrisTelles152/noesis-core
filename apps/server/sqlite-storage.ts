@@ -116,6 +116,15 @@ export class SqliteStorage implements IStorage {
       );
 
       CREATE INDEX IF NOT EXISTS idx_skill_graphs_user_id ON skill_graphs(user_id);
+
+      -- System curriculum (Phase H7) — single-row table keyed by id = 1
+      CREATE TABLE IF NOT EXISTS system_curriculum (
+        id INTEGER PRIMARY KEY,
+        skills TEXT NOT NULL,
+        item_mappings TEXT,
+        transfer_tests TEXT,
+        updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+      );
     `);
 
     // Idempotent migration for `is_admin` (Phase H6). Older databases
@@ -349,6 +358,43 @@ export class SqliteStorage implements IStorage {
     this.db
       .prepare('UPDATE users SET is_admin = ? WHERE id = ?')
       .run(isAdmin ? 1 : 0, userId);
+  }
+
+  // System curriculum (Phase H7)
+  async getSystemCurriculum(): Promise<StoredCurriculum | null> {
+    const row = this.db
+      .prepare('SELECT skills, item_mappings, transfer_tests FROM system_curriculum WHERE id = 1')
+      .get() as
+      | { skills: string; item_mappings: string | null; transfer_tests: string | null }
+      | undefined;
+    if (!row) return null;
+    return {
+      skills: JSON.parse(row.skills) as Skill[],
+      itemMappings: row.item_mappings
+        ? (JSON.parse(row.item_mappings) as ItemSkillMapping[])
+        : undefined,
+      transferTests: row.transfer_tests
+        ? (JSON.parse(row.transfer_tests) as TransferTest[])
+        : undefined,
+    };
+  }
+
+  async setSystemCurriculum(curriculum: StoredCurriculum): Promise<void> {
+    this.db
+      .prepare(
+        `INSERT INTO system_curriculum (id, skills, item_mappings, transfer_tests, updated_at)
+         VALUES (1, ?, ?, ?, datetime('now'))
+         ON CONFLICT(id) DO UPDATE SET
+           skills = excluded.skills,
+           item_mappings = excluded.item_mappings,
+           transfer_tests = excluded.transfer_tests,
+           updated_at = datetime('now')`,
+      )
+      .run(
+        JSON.stringify(curriculum.skills),
+        curriculum.itemMappings ? JSON.stringify(curriculum.itemMappings) : null,
+        curriculum.transferTests ? JSON.stringify(curriculum.transferTests) : null,
+      );
   }
 
   close(): void {

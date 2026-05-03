@@ -169,3 +169,18 @@ export const skillGraphs = pgTable(
 );
 
 export type SkillGraphRow = typeof skillGraphs.$inferSelect;
+
+// System-wide curriculum (Phase H7) — a single row keyed by id=1 holding the
+// admin-authored skills/items/transferTests. Distinct from per-user
+// skill_graphs so an admin can edit the template without touching any
+// learner's actual graph. Engines today still pull per-user; promoting the
+// system curriculum to seed new learners is a follow-up.
+export const systemCurriculum = pgTable('system_curriculum', {
+  id: serial('id').primaryKey(),
+  skills: jsonb('skills').notNull(),
+  itemMappings: jsonb('item_mappings'),
+  transferTests: jsonb('transfer_tests'),
+  updatedAt: timestamp('updated_at').notNull().defaultNow(),
+});
+
+export type SystemCurriculumRow = typeof systemCurriculum.$inferSelect;

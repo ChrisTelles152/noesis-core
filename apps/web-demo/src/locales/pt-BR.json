@@ -114,6 +114,30 @@
       "statistics": "Estatística e Probabilidade"
     }
   },
+  "authoring": {
+    "title": "Editor de Currículo",
+    "subtitle": "Adicione, edite ou remova tópicos do currículo do sistema.",
+    "loading": "Carregando tópicos...",
+    "loadFailed": "Não foi possível carregar o currículo.",
+    "forbidden": "Apenas administradores podem editar o currículo.",
+    "empty": "Nenhum tópico cadastrado. Adicione o primeiro abaixo.",
+    "addNew": "Adicionar Tópico",
+    "save": "Salvar",
+    "cancel": "Cancelar",
+    "edit": "Editar",
+    "delete": "Excluir",
+    "saving": "Salvando...",
+    "saveError": "Erro ao salvar: {{error}}",
+    "skillId": "ID do tópico",
+    "skillIdPlaceholder": "ex: equacoes_lineares",
+    "skillName": "Nome",
+    "skillNamePlaceholder": "ex: Equações Lineares",
+    "skillDescription": "Descrição (opcional)",
+    "skillCategory": "Categoria (opcional)",
+    "skillDifficulty": "Dificuldade (0–1)",
+    "skillPrerequisites": "Pré-requisitos (separados por vírgula)",
+    "confirmDelete": "Tem certeza que deseja excluir este tópico?"
+  },
   "mentor": {
     "title": "Painel do Mentor",
     "subtitle": "Visão dos progressos de cada aprendiz na sua coorte.",
