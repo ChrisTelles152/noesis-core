@@ -1,4 +1,13 @@
-import { pgTable, text, serial, integer, jsonb, timestamp, index } from 'drizzle-orm/pg-core';
+import {
+  pgTable,
+  text,
+  serial,
+  integer,
+  jsonb,
+  timestamp,
+  index,
+  boolean,
+} from 'drizzle-orm/pg-core';
 import { createInsertSchema } from 'drizzle-zod';
 import { z } from 'zod';
 
@@ -11,6 +20,9 @@ export const users = pgTable('users', {
   googleId: text('google_id').unique(),
   displayName: text('display_name'),
   avatarUrl: text('avatar_url'),
+  // Admin flag (Phase H6) — false by default. Promoted via storage.setUserAdmin.
+  // Used by requireAdmin middleware to gate /api/mentor and /api/admin routes.
+  isAdmin: boolean('is_admin').notNull().default(false),
 });
 
 export const insertUserSchema = createInsertSchema(users).pick({

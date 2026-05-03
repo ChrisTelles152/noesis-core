@@ -2,7 +2,7 @@ import type { Express, Request } from 'express';
 import { createServer, type Server } from 'http';
 import { storage } from './storage';
 import { z } from 'zod';
-import { getCurrentUserId, requireAuth } from './auth';
+import { getCurrentUserId, requireAuth, requireAdmin } from './auth';
 import { getLLMManager, configureLLMManager, type LLMLogger } from '@noesis/adapters-llm';
 import { createError as _createError, ErrorCodes as _ErrorCodes } from './errors';
 import { logger } from './logger';
@@ -864,7 +864,129 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ───────────────────────────────────────────────────────────────────────
+  // Mentor / admin endpoints (Phase H6)
+  //
+  // Admin-only views over every learner. Used by the mentor dashboard at
+  // /mentor in the web app to triage who's progressing, who's stuck, and
+  // to export the cohort as CSV for downstream analysis.
+  //
+  // Shape of LearnerProgress comes straight from the engine — no need to
+  // re-derive numbers here, the engine is the source of truth.
+  // ───────────────────────────────────────────────────────────────────────
+
+  app.get('/api/mentor/learners', requireAdmin, async (_req, res) => {
+    try {
+      const users = await storage.listUsers();
+      const manager = getEngineManager();
+      const learners = await Promise.all(
+        users.map(async (u) => {
+          let progress = null;
+          try {
+            const engine = await manager.getEngineForUser(u.id);
+            progress = engine.getLearnerProgress(learnerIdForUser(u.id));
+          } catch (err) {
+            // A single corrupt user's engine shouldn't fail the whole list;
+            // surface a null-progress row so the mentor can still see them.
+            logger.warn('Failed to hydrate engine for mentor view', {
+              module: 'routes',
+              userId: u.id,
+              error: err instanceof Error ? err.message : String(err),
+            });
+          }
+          return {
+            id: u.id,
+            username: u.username,
+            displayName: u.displayName,
+            isAdmin: u.isAdmin,
+            progress,
+          };
+        }),
+      );
+      res.json({ learners });
+    } catch (error) {
+      logger.error(
+        'Error listing learners for mentor view',
+        { module: 'routes' },
+        error instanceof Error ? error : undefined,
+      );
+      res.status(500).json({ error: 'Failed to list learners' });
+    }
+  });
+
+  app.get('/api/mentor/export.csv', requireAdmin, async (_req, res) => {
+    try {
+      const users = await storage.listUsers();
+      const manager = getEngineManager();
+      const rows: string[] = [];
+      // Header
+      rows.push(
+        [
+          'id',
+          'username',
+          'displayName',
+          'isAdmin',
+          'totalSkills',
+          'masteredSkills',
+          'learningSkills',
+          'notStartedSkills',
+          'averageMastery',
+          'totalEvents',
+        ].join(','),
+      );
+      for (const u of users) {
+        let progress: ReturnType<
+          Awaited<ReturnType<typeof manager.getEngineForUser>>['getLearnerProgress']
+        > | null = null;
+        try {
+          const engine = await manager.getEngineForUser(u.id);
+          progress = engine.getLearnerProgress(learnerIdForUser(u.id));
+        } catch {
+          /* keep null — appears as blanks in CSV */
+        }
+        rows.push(
+          [
+            csvCell(u.id),
+            csvCell(u.username),
+            csvCell(u.displayName ?? ''),
+            csvCell(u.isAdmin ? 'true' : 'false'),
+            csvCell(progress?.totalSkills ?? ''),
+            csvCell(progress?.masteredSkills ?? ''),
+            csvCell(progress?.learningSkills ?? ''),
+            csvCell(progress?.notStartedSkills ?? ''),
+            csvCell(progress?.averageMastery ?? ''),
+            csvCell(progress?.totalEvents ?? ''),
+          ].join(','),
+        );
+      }
+      res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+      res.setHeader('Content-Disposition', 'attachment; filename="learners.csv"');
+      res.send(rows.join('\n') + '\n');
+    } catch (error) {
+      logger.error(
+        'Error exporting learners CSV',
+        { module: 'routes' },
+        error instanceof Error ? error : undefined,
+      );
+      res.status(500).json({ error: 'Failed to export learners CSV' });
+    }
+  });
+
   const httpServer = createServer(app);
 
   return httpServer;
+}
+
+/**
+ * RFC-4180-ish CSV cell escaping. Wraps in quotes if the cell contains a
+ * comma, quote, newline, or carriage return; doubles internal quotes.
+ * Sufficient for the mentor export — usernames can hold commas/quotes if a
+ * future identity provider permits them.
+ */
+function csvCell(value: string | number): string {
+  const s = String(value);
+  if (/[",\n\r]/.test(s)) {
+    return '"' + s.replace(/"/g, '""') + '"';
+  }
+  return s;
 }

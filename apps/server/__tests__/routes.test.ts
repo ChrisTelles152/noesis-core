@@ -61,7 +61,19 @@ vi.mock('../storage', () => {
       createUser: vi.fn(async (user: { username: string; password: string }) => {
         const bcrypt = await import('bcrypt');
         const hashedPassword = await bcrypt.hash(user.password, 10);
-        const newUser = { id: currentUserId++, username: user.username, password: hashedPassword };
+        const newUser = {
+          id: currentUserId++,
+          username: user.username,
+          password: hashedPassword,
+          email: null,
+          googleId: null,
+          displayName: null,
+          avatarUrl: null,
+          isAdmin: false,
+        } as { id: number; username: string; password: string; isAdmin: boolean } & Record<
+          string,
+          unknown
+        >;
         users.set(newUser.id, newUser);
         return newUser;
       }),
@@ -97,6 +109,15 @@ vi.mock('../storage', () => {
       loadCurriculum: vi.fn(async (userId: number) => {
         const c = curricula.get(userId);
         return c ? (JSON.parse(JSON.stringify(c)) as unknown) : null;
+      }),
+      listUsers: vi.fn(async () => {
+        return Array.from(users.values());
+      }),
+      setUserAdmin: vi.fn(async (userId: number, isAdmin: boolean) => {
+        const u = users.get(userId);
+        if (u) {
+          (u as Record<string, unknown>).isAdmin = isAdmin;
+        }
       }),
       _reset: () => {
         users.clear();
@@ -981,6 +1002,88 @@ describe('API Routes', () => {
       expect(res.body.count).toBe(5);
       expect(Array.isArray(res.body.events)).toBe(true);
       expect(res.body.events.length).toBe(2);
+    });
+  });
+
+  describe('Phase H6: mentor endpoints', () => {
+    // The default test user from beforeAll is non-admin. We register a second
+    // user, promote them via the mocked storage.setUserAdmin, log in as that
+    // user with a fresh agent, and use both agents to assert the gate.
+
+    let adminAgent: ReturnType<typeof request.agent>;
+    let nonAdminAgent: ReturnType<typeof request.agent>;
+
+    beforeAll(async () => {
+      // Reuse the existing test user as the non-admin probe.
+      nonAdminAgent = agent;
+
+      // Register a second user — will be promoted to admin.
+      adminAgent = request.agent(app);
+      await adminAgent
+        .post('/api/auth/register')
+        .send({ username: 'mentoradmin', password: 'AdminPass123!' });
+
+      // Promote the new user. Mock storage.listUsers returns them with
+      // isAdmin flipped on, which is what passport.deserializeUser will see
+      // on the next request thanks to the in-memory mock.
+      const allUsers = await storage.listUsers();
+      const adminUser = allUsers.find((u) => u.username === 'mentoradmin');
+      if (!adminUser) throw new Error('mentoradmin not found in mock storage');
+      await storage.setUserAdmin(adminUser.id, true);
+    });
+
+    it('GET /api/mentor/learners returns 401 when not authenticated', async () => {
+      const res = await request(app).get('/api/mentor/learners');
+      expect(res.status).toBe(401);
+    });
+
+    it('GET /api/mentor/learners returns 403 for non-admin', async () => {
+      const res = await nonAdminAgent.get('/api/mentor/learners');
+      expect(res.status).toBe(403);
+      expect(res.body.error).toBeDefined();
+    });
+
+    it('GET /api/mentor/learners returns the learner list for admin', async () => {
+      const res = await adminAgent.get('/api/mentor/learners');
+      expect(res.status).toBe(200);
+      expect(Array.isArray(res.body.learners)).toBe(true);
+      expect(res.body.learners.length).toBeGreaterThanOrEqual(2);
+      // Each entry has the expected shape
+      for (const l of res.body.learners) {
+        expect(l).toHaveProperty('id');
+        expect(l).toHaveProperty('username');
+        expect(l).toHaveProperty('isAdmin');
+        expect(l).toHaveProperty('progress');
+      }
+      // Our promoted admin shows isAdmin true; the original test user shows false
+      const admin = res.body.learners.find(
+        (l: { username: string }) => l.username === 'mentoradmin',
+      );
+      const nonAdmin = res.body.learners.find(
+        (l: { username: string }) => l.username === 'testuser',
+      );
+      expect(admin?.isAdmin).toBe(true);
+      expect(nonAdmin?.isAdmin).toBe(false);
+    });
+
+    it('GET /api/mentor/export.csv returns 403 for non-admin', async () => {
+      const res = await nonAdminAgent.get('/api/mentor/export.csv');
+      expect(res.status).toBe(403);
+    });
+
+    it('GET /api/mentor/export.csv returns CSV with text/csv mime + attachment header', async () => {
+      const res = await adminAgent.get('/api/mentor/export.csv');
+      expect(res.status).toBe(200);
+      expect(res.headers['content-type']).toMatch(/text\/csv/);
+      expect(res.headers['content-disposition']).toMatch(/attachment/);
+      expect(res.headers['content-disposition']).toMatch(/learners\.csv/);
+      // Header row is the first line
+      const lines = res.text.trim().split('\n');
+      expect(lines[0]).toBe(
+        'id,username,displayName,isAdmin,totalSkills,masteredSkills,learningSkills,notStartedSkills,averageMastery,totalEvents',
+      );
+      // At least one data row
+      expect(lines.length).toBeGreaterThanOrEqual(2);
     });
   });
 });

@@ -114,6 +114,27 @@
       "statistics": "Estatística e Probabilidade"
     }
   },
+  "mentor": {
+    "title": "Painel do Mentor",
+    "subtitle": "Visão dos progressos de cada aprendiz na sua coorte.",
+    "loading": "Carregando aprendizes...",
+    "loadFailed": "Não foi possível carregar a lista de aprendizes.",
+    "forbidden": "Apenas administradores podem ver esta página.",
+    "empty": "Nenhum aprendiz cadastrado ainda.",
+    "exportCsv": "Exportar CSV",
+    "columns": {
+      "id": "ID",
+      "username": "Usuário",
+      "displayName": "Nome",
+      "totalSkills": "Tópicos",
+      "mastered": "Dominados",
+      "learning": "Aprendendo",
+      "notStarted": "Não iniciados",
+      "averageMastery": "Mastery médio",
+      "totalEvents": "Eventos",
+      "isAdmin": "Admin"
+    }
+  },
   "skillNode": {
     "title": "Tópico: {{name}}",
     "stageOf": "Etapa {{current}} de {{total}}",

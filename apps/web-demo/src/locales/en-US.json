@@ -114,6 +114,27 @@
       "statistics": "Statistics & Probability"
     }
   },
+  "mentor": {
+    "title": "Mentor Dashboard",
+    "subtitle": "Per-learner progress across your cohort.",
+    "loading": "Loading learners...",
+    "loadFailed": "Couldn't load the learner list.",
+    "forbidden": "Only admins can view this page.",
+    "empty": "No learners registered yet.",
+    "exportCsv": "Export CSV",
+    "columns": {
+      "id": "ID",
+      "username": "Username",
+      "displayName": "Display name",
+      "totalSkills": "Skills",
+      "mastered": "Mastered",
+      "learning": "Learning",
+      "notStarted": "Not started",
+      "averageMastery": "Avg mastery",
+      "totalEvents": "Events",
+      "isAdmin": "Admin"
+    }
+  },
   "skillNode": {
     "title": "Topic: {{name}}",
     "stageOf": "Stage {{current}} of {{total}}",
