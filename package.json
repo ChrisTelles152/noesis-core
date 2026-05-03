@@ -28,7 +28,9 @@
     "build:core": "npm run build -w @noesis-edu/core",
     "test:core": "vitest run packages/core",
     "smoke:core": "npm run smoke -w @noesis-edu/core",
-    "release:core": "echo 'To release @noesis-edu/core: 1) npm run build:core 2) npm run test:core 3) npm run smoke:core 4) cd packages/core && npm publish'"
+    "release:core": "npm run build:core && npm run test:core && npm run smoke:core && cd packages/core && npm publish --access public",
+    "release:core:dry-run": "npm run build:core && npm run test:core && npm run smoke:core && cd packages/core && npm publish --access public --dry-run",
+    "verify:core:pack": "cd packages/core && npm pack --dry-run"
   },
   "dependencies": {
     "@fortawesome/fontawesome-svg-core": "^6.7.2",

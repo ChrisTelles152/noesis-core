@@ -5,7 +5,7 @@ All notable changes to `@noesis-edu/core` will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.2.0] - 2026-05-03
 
 ### Phase A — Determinism contract (breaking)
 
@@ -54,12 +54,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   suite + determinism contract suite separately so a failure shows up
   unambiguously in the PR check list.
 
-## [0.2.0] — features added between v0.1.0 and Phase A
+### Pre-Phase-A features (commits between Jan 2026 and Apr 2026)
 
-These shipped as commits between Jan 2026 and Apr 2026. Documented
-retroactively for completeness.
+Documented retroactively — these landed before the determinism contract
+but are still part of the 0.2.0 surface.
 
-### Added
+#### Added
 
 - **Encompassed skills + implicit credit (FIRe-style).** New
   `Skill.encompassedSkills?` field. New `ImplicitCreditEvent` (added to
@@ -83,7 +83,7 @@ retroactively for completeness.
   min over transitive prerequisites)`. Encodes "a skill is only truly
   mastered if its foundation is solid".
 
-### Fixed
+#### Fixed
 
 - `registerTransferTests()` no longer discards custom `SessionPlannerConfig`
   when re-creating the session planner. Original `plannerConfig` is stored

@@ -33,4 +33,4 @@ export * from './persistence/index.js';
 export { DEFAULT_SESSION_CONFIG } from './planning/index.js';
 
 // Version
-export const VERSION = '0.1.0';
+export const VERSION = '0.2.0';
