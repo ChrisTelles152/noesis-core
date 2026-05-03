@@ -233,12 +233,6 @@ export class SqliteStorage implements IStorage {
     };
   }
 
-  async linkGoogleAccount(userId: number, googleId: string, email: string): Promise<void> {
-    this.db
-      .prepare('UPDATE users SET google_id = ?, email = ? WHERE id = ?')
-      .run(googleId, email, userId);
-  }
-
   async verifyPassword(username: string, password: string): Promise<User | null> {
     const user = await this.getUserByUsername(username);
     if (!user || !user.password) return null;
