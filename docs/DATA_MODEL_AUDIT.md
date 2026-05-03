@@ -150,7 +150,6 @@ demo code depends on it.
 | `verifyPassword` | YES | YES | YES | YES |
 | `getUserByGoogleId` | YES (after fix) | YES (after fix) | YES (after fix) | YES |
 | `createGoogleUser` | YES (after fix) | YES (after fix) | YES (after fix) | YES |
-| `linkGoogleAccount` | NO | NO | NO | YES (SQLite only) |
 | `createLearningEvent` | YES | YES | YES | YES |
 | `getLearningEvent` | YES | YES | YES | YES |
 | `getLearningEventsByUserId` | YES | YES | YES | YES |
