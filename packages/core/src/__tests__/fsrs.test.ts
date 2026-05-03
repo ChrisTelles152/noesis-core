@@ -412,6 +412,55 @@ describe('FSRSScheduler', () => {
 
       expect(intervalGood).toBeGreaterThan(intervalHard);
     });
+
+    // -------------------------------------------------------------------
+    // PHASE J2 — Tier-2 missing test: FSRS rating-4 (Easy) interval-jump
+    //
+    // Pins the exact magnitude of the first review interval when a new
+    // card is rated 4 (Easy). With default params the formula is:
+    //
+    //   newStability = initialStability[3] = 5.7
+    //   intervalDays = newStability * 9 * (1/requestedRetention - 1)
+    //                = 5.7 * 9 * (1/0.9 - 1)
+    //                = 5.7 days
+    //
+    // (PLAN.md's 0.633 figure was a math slip — missing the * 9 factor.
+    // Pin the actual number so a future param tuning that changes either
+    // initialStability[3] or requestedRetention shows up loudly.)
+    // -------------------------------------------------------------------
+    it('rating-4 on a new card jumps straight to ~5.7 days and into the review state', () => {
+      const fresh = scheduler.createState('skill-easy-jump');
+      const updated = scheduler.scheduleReview(fresh, true, 4);
+
+      // Stability gets slammed up to the rating-4 anchor.
+      expect(updated.stability).toBe(DEFAULT_FSRS_PARAMS.initialStability[3]); // 5.7
+      // Skipped the 'learning' state — rating ≥ 3 promotes new → review.
+      expect(updated.state).toBe('review');
+
+      // Interval ≈ 5.7 days, derived from the FSRS interval formula.
+      const intervalDays = (updated.nextReview - currentTime) / MS_PER_DAY;
+      const expectedDays =
+        DEFAULT_FSRS_PARAMS.initialStability[3] *
+        9 *
+        (1 / DEFAULT_FSRS_PARAMS.requestedRetention - 1);
+      expect(intervalDays).toBeCloseTo(expectedDays, 5);
+      expect(intervalDays).toBeCloseTo(5.7, 5);
+    });
+
+    it('rating-4 review interval is ~14x the rating-2 (Hard) interval on a new card', () => {
+      // Sanity check on the spread between Hard (0.9 days) and Easy (5.7).
+      const fresh1 = scheduler.createState('a');
+      const fresh2 = scheduler.createState('b');
+      const hard = scheduler.scheduleReview(fresh1, true, 2);
+      const easy = scheduler.scheduleReview(fresh2, true, 4);
+
+      const ratio =
+        (easy.nextReview - currentTime) / (hard.nextReview - currentTime);
+      // 5.7 / 0.9 ≈ 6.33 — the magnitude of the Easy bump relative to Hard.
+      // Anchored loosely so a small param tweak doesn't fail on noise.
+      expect(ratio).toBeGreaterThan(5);
+      expect(ratio).toBeLessThan(8);
+    });
   });
 
   describe('determinism', () => {

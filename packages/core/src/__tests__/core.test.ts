@@ -1763,3 +1763,209 @@ describe('Critical Path: BKT diagnostic initialization followed by practice', ()
     }
   });
 });
+
+// =============================================================================
+// PHASE J1 — TIER-1 MISSING TESTS
+//
+// Pin two behaviors that the audit flagged as untested and high-blast-radius:
+//   1. Practice event for a skill that is not in the graph
+//   2. Multi-learner state isolation when events interleave on one engine
+// =============================================================================
+
+describe('Critical Path: events for skills not in the graph', () => {
+  let graph: SkillGraph;
+
+  beforeEach(() => {
+    graph = createSkillGraph(createTestSkills());
+  });
+
+  it('does not throw when a practice event references an unknown skillId', () => {
+    const engine = createDeterministicEngine(graph, {}, 0);
+    const event: PracticeEvent = {
+      id: 'evt-unknown',
+      type: 'practice',
+      learnerId: 'learner1',
+      sessionId: 'session1',
+      timestamp: 1000,
+      skillId: 'not-in-graph',
+      itemId: 'item1',
+      correct: true,
+      responseTimeMs: 5000,
+    };
+    expect(() => engine.processEvent(event)).not.toThrow();
+  });
+
+  it('lazy-creates a learner-model probability for the unknown skill (forgiving by design)', () => {
+    // The engine doesn't gate on graph membership — it accepts the event
+    // and updates BKT/FSRS state as if the skill existed. Pinning that here
+    // so a future tightening (throw / warn) shows up as a contract change
+    // rather than a silent shift.
+    const engine = createDeterministicEngine(graph, {}, 0);
+    engine.processEvent({
+      id: 'evt-unknown',
+      type: 'practice',
+      learnerId: 'learner1',
+      sessionId: 'session1',
+      timestamp: 1000,
+      skillId: 'not-in-graph',
+      itemId: 'item1',
+      correct: true,
+      responseTimeMs: 5000,
+    });
+
+    const model = engine.getLearnerModel('learner1');
+    expect(model).toBeDefined();
+    expect(model!.skillProbabilities.has('not-in-graph')).toBe(true);
+    // The lazy-created probability moves with the BKT update — a correct
+    // attempt should leave pMastery above the cold-start prior.
+    const probability = model!.skillProbabilities.get('not-in-graph')!;
+    expect(probability.pMastery).toBeGreaterThan(DEFAULT_BKT_PARAMS.pInit);
+  });
+
+  it('lazy-creates a memory state for the unknown skill', () => {
+    const engine = createDeterministicEngine(graph, {}, 0);
+    engine.processEvent({
+      id: 'evt-unknown-mem',
+      type: 'practice',
+      learnerId: 'learner1',
+      sessionId: 'session1',
+      timestamp: 1000,
+      skillId: 'not-in-graph',
+      itemId: 'item1',
+      correct: true,
+      responseTimeMs: 5000,
+    });
+    const states = engine.getMemoryStates('learner1');
+    const stateForUnknown = states.find((s) => s.skillId === 'not-in-graph');
+    expect(stateForUnknown).toBeDefined();
+  });
+
+  it('keeps the graph itself unchanged — unknown skill is not auto-added to the DAG', () => {
+    const engine = createDeterministicEngine(graph, {}, 0);
+    engine.processEvent({
+      id: 'evt-graph-untouched',
+      type: 'practice',
+      learnerId: 'learner1',
+      sessionId: 'session1',
+      timestamp: 1000,
+      skillId: 'not-in-graph',
+      itemId: 'item1',
+      correct: true,
+      responseTimeMs: 5000,
+    });
+    expect(engine.graph.skills.has('not-in-graph')).toBe(false);
+    // The graph still validates — no orphan side effects.
+    expect(engine.graph.validate().valid).toBe(true);
+  });
+});
+
+describe('Critical Path: multi-learner isolation', () => {
+  let graph: SkillGraph;
+
+  beforeEach(() => {
+    graph = createSkillGraph(createTestSkills());
+  });
+
+  function event(
+    learnerId: string,
+    skillId: string,
+    correct: boolean,
+    timestamp: number,
+    seq: number,
+  ): PracticeEvent {
+    return {
+      id: `evt-${learnerId}-${seq}`,
+      type: 'practice',
+      learnerId,
+      sessionId: `${learnerId}-session`,
+      timestamp,
+      skillId,
+      itemId: `item-${seq}`,
+      correct,
+      responseTimeMs: 5000,
+    };
+  }
+
+  it('keeps two learners’ BKT states independent under interleaved events', () => {
+    const engine = createDeterministicEngine(graph, {}, 0);
+
+    // learner-A: 3 correct on arithmetic
+    // learner-B: 3 incorrect on arithmetic
+    // Interleave them so order can't accidentally route updates to the wrong
+    // learner.
+    engine.processEvent(event('learner-A', 'arithmetic', true, 1000, 1));
+    engine.processEvent(event('learner-B', 'arithmetic', false, 1100, 1));
+    engine.processEvent(event('learner-A', 'arithmetic', true, 1200, 2));
+    engine.processEvent(event('learner-B', 'arithmetic', false, 1300, 2));
+    engine.processEvent(event('learner-A', 'arithmetic', true, 1400, 3));
+    engine.processEvent(event('learner-B', 'arithmetic', false, 1500, 3));
+
+    const a = engine.getLearnerModel('learner-A')!;
+    const b = engine.getLearnerModel('learner-B')!;
+
+    expect(a.totalEvents).toBe(3);
+    expect(b.totalEvents).toBe(3);
+
+    // Strong learner sits above the prior, weak one sits below or at it.
+    const aMastery = a.skillProbabilities.get('arithmetic')!.pMastery;
+    const bMastery = b.skillProbabilities.get('arithmetic')!.pMastery;
+    expect(aMastery).toBeGreaterThan(DEFAULT_BKT_PARAMS.pInit);
+    expect(bMastery).toBeLessThan(aMastery);
+  });
+
+  it('keeps two learners’ memory states (FSRS) on disjoint review schedules', () => {
+    const engine = createDeterministicEngine(graph, {}, 0);
+
+    engine.processEvent(event('learner-A', 'arithmetic', true, 1000, 1));
+    engine.processEvent(event('learner-B', 'arithmetic', false, 2000, 1));
+
+    const aStates = engine.getMemoryStates('learner-A');
+    const bStates = engine.getMemoryStates('learner-B');
+
+    const aArith = aStates.find((s) => s.skillId === 'arithmetic')!;
+    const bArith = bStates.find((s) => s.skillId === 'arithmetic')!;
+    // Both have a state, but the next-review timestamps are computed from
+    // their own attempts — different correctness + different timestamp.
+    expect(aArith).toBeDefined();
+    expect(bArith).toBeDefined();
+    expect(aArith.nextReview).not.toBe(bArith.nextReview);
+  });
+
+  it('events for one learner do not register as events on the other', () => {
+    const engine = createDeterministicEngine(graph, {}, 0);
+
+    engine.processEvent(event('learner-A', 'arithmetic', true, 1000, 1));
+    engine.processEvent(event('learner-A', 'arithmetic', true, 2000, 2));
+    // learner-B has no events at all
+    const a = engine.getLearnerModel('learner-A')!;
+    const b = engine.getLearnerModel('learner-B');
+
+    expect(a.totalEvents).toBe(2);
+    // learner-B was never touched — no model exists for them.
+    expect(b).toBeUndefined();
+  });
+
+  it('replays a multi-learner event log byte-identically', () => {
+    const events: PracticeEvent[] = [
+      event('learner-A', 'arithmetic', true, 1000, 1),
+      event('learner-B', 'arithmetic', false, 1100, 1),
+      event('learner-A', 'arithmetic', true, 1200, 2),
+      event('learner-B', 'arithmetic', false, 1300, 2),
+    ];
+
+    const live = createDeterministicEngine(graph, {}, 0);
+    const replay = createDeterministicEngine(graph, {}, 0);
+
+    for (const e of events) live.processEvent(e);
+    replay.replayEvents(events);
+
+    // Two-learner state must round-trip through replay just like the
+    // single-learner case in the existing replay test does.
+    expect(replay.getLearnerModel('learner-A')!.skillProbabilities.get('arithmetic')!.pMastery).toBe(
+      live.getLearnerModel('learner-A')!.skillProbabilities.get('arithmetic')!.pMastery,
+    );
+    expect(replay.getLearnerModel('learner-B')!.skillProbabilities.get('arithmetic')!.pMastery).toBe(
+      live.getLearnerModel('learner-B')!.skillProbabilities.get('arithmetic')!.pMastery,
+    );
+  });
+});
