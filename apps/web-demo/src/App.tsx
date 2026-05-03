@@ -15,6 +15,7 @@ import CoreSmoke from '@/pages/CoreSmoke';
 import Diagnostic from '@/pages/Diagnostic';
 import Path from '@/pages/Path';
 import SkillNode from '@/pages/SkillNode';
+import Mentor from '@/pages/Mentor';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 
@@ -37,6 +38,7 @@ function Router() {
         <Route path="/diagnostic" component={Diagnostic} />
         <Route path="/path" component={Path} />
         <Route path="/skill/:id" component={SkillNode} />
+        <Route path="/mentor" component={Mentor} />
         <Route component={NotFound} />
       </Switch>
       {!isAuthPage && !isSmokePage && <Footer />}

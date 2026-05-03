@@ -72,6 +72,13 @@ export interface IStorage {
   // an engine on first access for a user.
   saveCurriculum(userId: number, curriculum: StoredCurriculum): Promise<void>;
   loadCurriculum(userId: number): Promise<StoredCurriculum | null>;
+
+  // Admin / mentor methods (Phase H6). listUsers powers the mentor dashboard
+  // and CSV export. setUserAdmin is the single seam for promoting a learner
+  // to admin — kept narrow so admin-grant can be audited if the seam is
+  // touched in code review.
+  listUsers(): Promise<User[]>;
+  setUserAdmin(userId: number, isAdmin: boolean): Promise<void>;
 }
 
 // In-memory storage implementation (used when DATABASE_URL is not set)
@@ -124,6 +131,7 @@ export class MemStorage implements IStorage {
       googleId: null,
       displayName: null,
       avatarUrl: null,
+      isAdmin: false,
     };
     this.users.set(id, user);
     return user;
@@ -155,6 +163,7 @@ export class MemStorage implements IStorage {
       googleId: profile.googleId,
       displayName: profile.displayName,
       avatarUrl: profile.avatarUrl || null,
+      isAdmin: false,
     };
     this.users.set(id, user);
     return user;
@@ -203,6 +212,17 @@ export class MemStorage implements IStorage {
     const stored = this.curricula.get(userId);
     if (!stored) return null;
     return JSON.parse(JSON.stringify(stored)) as StoredCurriculum;
+  }
+
+  // Admin / mentor methods (Phase H6)
+  async listUsers(): Promise<User[]> {
+    return Array.from(this.users.values());
+  }
+
+  async setUserAdmin(userId: number, isAdmin: boolean): Promise<void> {
+    const user = this.users.get(userId);
+    if (!user) return;
+    this.users.set(userId, { ...user, isAdmin });
   }
 }
 
@@ -348,6 +368,17 @@ export class DatabaseStorage implements IStorage {
       itemMappings: (row.itemMappings as ItemSkillMapping[] | null) ?? undefined,
       transferTests: (row.transferTests as TransferTest[] | null) ?? undefined,
     };
+  }
+
+  // Admin / mentor methods (Phase H6)
+  async listUsers(): Promise<User[]> {
+    if (!db) throw new Error('Database not configured');
+    return db.select().from(users);
+  }
+
+  async setUserAdmin(userId: number, isAdmin: boolean): Promise<void> {
+    if (!db) throw new Error('Database not configured');
+    await db.update(users).set({ isAdmin }).where(eq(users.id, userId));
   }
 }
 

@@ -60,7 +60,8 @@ export class SqliteStorage implements IStorage {
         email TEXT,
         google_id TEXT UNIQUE,
         display_name TEXT,
-        avatar_url TEXT
+        avatar_url TEXT,
+        is_admin INTEGER NOT NULL DEFAULT 0
       );
 
       CREATE TABLE IF NOT EXISTS learning_events (
@@ -116,19 +117,52 @@ export class SqliteStorage implements IStorage {
 
       CREATE INDEX IF NOT EXISTS idx_skill_graphs_user_id ON skill_graphs(user_id);
     `);
+
+    // Idempotent migration for `is_admin` (Phase H6). Older databases
+    // created before this column existed need it added without losing data.
+    // SQLite's ALTER TABLE ADD COLUMN throws if the column already exists,
+    // so we probe via PRAGMA first.
+    const userColumns = this.db.prepare("PRAGMA table_info(users)").all() as Array<{
+      name: string;
+    }>;
+    if (!userColumns.some((c) => c.name === 'is_admin')) {
+      this.db.exec('ALTER TABLE users ADD COLUMN is_admin INTEGER NOT NULL DEFAULT 0');
+    }
+  }
+
+  /**
+   * Map a raw SQLite row (snake_case columns) into the camelCase User type.
+   * Older read paths in this file return rows without remapping — callers of
+   * those methods only touch fields whose names happen to be snake_case-safe
+   * (id, username, password). New methods + any path that needs is_admin
+   * MUST go through this helper.
+   */
+  private mapUserRow(row: Record<string, unknown>): User {
+    return {
+      id: row.id as number,
+      username: row.username as string,
+      password: (row.password as string | null) ?? null,
+      email: (row.email as string | null) ?? null,
+      googleId: (row.google_id as string | null) ?? null,
+      displayName: (row.display_name as string | null) ?? null,
+      avatarUrl: (row.avatar_url as string | null) ?? null,
+      isAdmin: row.is_admin === 1 || row.is_admin === true,
+    };
   }
 
   // User methods
   async getUser(id: number): Promise<User | undefined> {
-    const row = this.db.prepare('SELECT * FROM users WHERE id = ?').get(id) as User | undefined;
-    return row;
+    const row = this.db.prepare('SELECT * FROM users WHERE id = ?').get(id) as
+      | Record<string, unknown>
+      | undefined;
+    return row ? this.mapUserRow(row) : undefined;
   }
 
   async getUserByUsername(username: string): Promise<User | undefined> {
     const row = this.db.prepare('SELECT * FROM users WHERE username = ?').get(username) as
-      | User
+      | Record<string, unknown>
       | undefined;
-    return row;
+    return row ? this.mapUserRow(row) : undefined;
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
@@ -147,14 +181,15 @@ export class SqliteStorage implements IStorage {
       googleId: null,
       displayName: null,
       avatarUrl: null,
+      isAdmin: false,
     };
   }
 
   async getUserByGoogleId(googleId: string): Promise<User | undefined> {
     const row = this.db.prepare('SELECT * FROM users WHERE google_id = ?').get(googleId) as
-      | User
+      | Record<string, unknown>
       | undefined;
-    return row;
+    return row ? this.mapUserRow(row) : undefined;
   }
 
   async createGoogleUser(profile: {
@@ -185,6 +220,7 @@ export class SqliteStorage implements IStorage {
       googleId: profile.googleId,
       displayName: profile.displayName,
       avatarUrl: profile.avatarUrl || null,
+      isAdmin: false,
     };
   }
 
@@ -299,6 +335,20 @@ export class SqliteStorage implements IStorage {
       itemMappings: row.item_mappings ? (JSON.parse(row.item_mappings) as ItemSkillMapping[]) : undefined,
       transferTests: row.transfer_tests ? (JSON.parse(row.transfer_tests) as TransferTest[]) : undefined,
     };
+  }
+
+  // Admin / mentor methods (Phase H6)
+  async listUsers(): Promise<User[]> {
+    const rows = this.db
+      .prepare('SELECT * FROM users ORDER BY id')
+      .all() as Array<Record<string, unknown>>;
+    return rows.map((r) => this.mapUserRow(r));
+  }
+
+  async setUserAdmin(userId: number, isAdmin: boolean): Promise<void> {
+    this.db
+      .prepare('UPDATE users SET is_admin = ? WHERE id = ?')
+      .run(isAdmin ? 1 : 0, userId);
   }
 
   close(): void {

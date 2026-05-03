@@ -30,6 +30,7 @@ declare global {
       googleId: string | null;
       displayName: string | null;
       avatarUrl: string | null;
+      isAdmin: boolean;
     }
   }
 }
@@ -168,6 +169,23 @@ export function requireAuth(req: Request, res: Response, next: NextFunction): vo
     return next();
   }
   res.status(401).json(createError('Authentication required', ErrorCodes.AUTH_REQUIRED));
+}
+
+// Admin guard — composes requireAuth + isAdmin check. 401 if not signed in,
+// 403 if signed in but not an admin. Used by /api/mentor and /api/admin routes
+// (Phase H6 / H7).
+export function requireAdmin(req: Request, res: Response, next: NextFunction): void {
+  if (!req.isAuthenticated()) {
+    res.status(401).json(createError('Authentication required', ErrorCodes.AUTH_REQUIRED));
+    return;
+  }
+  if (!req.user?.isAdmin) {
+    res
+      .status(403)
+      .json(createError('Admin role required', ErrorCodes.AUTH_INSUFFICIENT_PERMISSIONS));
+    return;
+  }
+  next();
 }
 
 // Optional auth - attaches user if authenticated but doesn't block
