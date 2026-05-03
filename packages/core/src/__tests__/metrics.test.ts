@@ -310,4 +310,30 @@ describe('getLearnerMetrics', () => {
     expect(metricsA.retentionBySkill).not.toHaveProperty('algebra'); // Not practiced
     expect(metricsB.retentionBySkill).not.toHaveProperty('arithmetic'); // Not practiced
   });
+
+  // -------------------------------------------------------------------------
+  // PHASE J / Tier-3 — Edge case: metrics for a learner that has never been
+  // touched by an event. Pin the empty-shape contract so a future change
+  // that throws on missing learners (or returns undefined) is loud.
+  // -------------------------------------------------------------------------
+  it('returns an empty-but-valid metrics object for a learner with no events', () => {
+    const engine = createTestEngine();
+    const metrics = getLearnerMetrics(engine, 'never-seen-this-learner');
+
+    // Object exists; doesn't throw; learnerId echoed back.
+    expect(metrics).toBeDefined();
+    expect(metrics.learnerId).toBe('never-seen-this-learner');
+
+    // Maps are empty — no events means no skill state to read.
+    expect(Object.keys(metrics.masteryBySkill).length).toBe(0);
+    expect(Object.keys(metrics.retentionBySkill).length).toBe(0);
+    expect(metrics.nextReviews).toEqual([]);
+
+    // Averages collapse to 0 when there's nothing to average over.
+    expect(metrics.averageMastery).toBe(0);
+    expect(metrics.averageRetention).toBe(0);
+
+    // No practice events for this learner.
+    expect(metrics.totalPracticeEvents).toBe(0);
+  });
 });

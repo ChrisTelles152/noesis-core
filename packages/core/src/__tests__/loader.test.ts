@@ -221,6 +221,72 @@ describe('exportSkillGraphToJSON', () => {
     expect(exported.skills.find((s) => s.id === 'x')).toBeDefined();
     expect(exported.skills.find((s) => s.id === 'y')?.prerequisites).toEqual(['x']);
   });
+
+  // -----------------------------------------------------------------------
+  // PHASE J / Tier-3 — Round-trip with EVERY optional field populated.
+  //
+  // The existing test only exercises description on one node. Pin a fuller
+  // surface so a future loader-or-exporter change that drops a field
+  // (encompassedSkills, category, difficulty) fails loudly.
+  // -----------------------------------------------------------------------
+  it('preserves every optional field across loadFromJSON → exportToJSON', () => {
+    const original: SkillGraphJSON = {
+      version: '1.0.0',
+      skills: [
+        {
+          id: 'addition',
+          name: 'Addition',
+          prerequisites: [],
+          description: 'Adding integers and naturals',
+          category: 'arithmetic',
+          difficulty: 0.1,
+        },
+        {
+          id: 'long_division',
+          name: 'Long Division',
+          prerequisites: ['addition'],
+          encompassedSkills: ['addition'],
+          description: 'Division with remainder',
+          category: 'arithmetic',
+          difficulty: 0.4,
+        },
+      ],
+    };
+
+    const graph = loadSkillGraphFromJSON(original);
+    const exported = exportSkillGraphToJSON(graph);
+
+    const add = exported.skills.find((s) => s.id === 'addition')!;
+    const div = exported.skills.find((s) => s.id === 'long_division')!;
+
+    // Every populated field on the input survives the round-trip.
+    expect(add.description).toBe('Adding integers and naturals');
+    expect(add.category).toBe('arithmetic');
+    expect(add.difficulty).toBe(0.1);
+    expect(add.prerequisites).toEqual([]);
+
+    expect(div.description).toBe('Division with remainder');
+    expect(div.category).toBe('arithmetic');
+    expect(div.difficulty).toBe(0.4);
+    expect(div.prerequisites).toEqual(['addition']);
+    expect(div.encompassedSkills).toEqual(['addition']);
+  });
+
+  it('omits optional fields on export when not present on input (no spurious nulls)', () => {
+    const original: SkillGraphJSON = {
+      version: '1.0.0',
+      skills: [{ id: 'bare', name: 'Bare', prerequisites: [] }],
+    };
+    const exported = exportSkillGraphToJSON(loadSkillGraphFromJSON(original));
+    const bare = exported.skills.find((s) => s.id === 'bare')!;
+
+    // Round-trip should produce the same minimal shape — not literal null
+    // values that a strict consumer might reject.
+    expect(bare.description).toBeUndefined();
+    expect(bare.category).toBeUndefined();
+    expect(bare.difficulty).toBeUndefined();
+    expect(bare.encompassedSkills).toBeUndefined();
+  });
 });
 
 // =============================================================================

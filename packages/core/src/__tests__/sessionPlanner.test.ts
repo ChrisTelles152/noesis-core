@@ -662,6 +662,74 @@ describe('SessionPlannerImpl', () => {
       expect(action.priority).toBeLessThanOrEqual(100);
     });
   });
+
+  // ───────────────────────────────────────────────────────────────────────
+  // PHASE J2 — Tier-2 missing test: planner + relearning prereq
+  //
+  // Pin the priority resolution between Priority 3 (error-focused practice)
+  // and Priority 4 (new skill introduction): when a prereq is BKT-mastered
+  // but FSRS-relearning, the planner should re-target the prereq, NOT
+  // introduce the dependent. This guards the "learner regressed; back to
+  // foundation before extending" pedagogy.
+  // ───────────────────────────────────────────────────────────────────────
+  describe('Critical Path: relearning prereq blocks dependent-skill introduction', () => {
+    it('returns error-focused practice on the relearning prereq, not new-skill on the dependent', () => {
+      const skillGraph = createMockSkillGraph(['prereq-a', 'skill-b'], {
+        'skill-b': ['prereq-a'],
+      });
+
+      // prereq-a's BKT mastery is high enough to satisfy the gate for
+      // introducing skill-b — but its memory state is `relearning`,
+      // signalling recent failures. The relearning state should win.
+      const learnerModel = createMockLearnerModel(
+        { 'prereq-a': 0.9, 'skill-b': 0.1 },
+        currentTime,
+      );
+      const memoryStates = [
+        createMockMemoryState('prereq-a', {
+          state: 'relearning',
+          failureCount: 2,
+          nextReview: currentTime + MS_PER_DAY, // not yet due — error-focused, not review
+        }),
+      ];
+
+      const action = planner.getNextAction(learnerModel, skillGraph, memoryStates, {
+        ...defaultConfig,
+        enforceSpacedRetrieval: false,
+        requireTransferTests: false,
+      });
+
+      expect(action.type).toBe('practice');
+      expect(action.skillId).toBe('prereq-a');
+      expect(action.reason).toContain('Error-focused');
+    });
+
+    it('once the prereq leaves relearning, the dependent becomes the next target', () => {
+      const skillGraph = createMockSkillGraph(['prereq-a', 'skill-b'], {
+        'skill-b': ['prereq-a'],
+      });
+      const learnerModel = createMockLearnerModel(
+        { 'prereq-a': 0.9, 'skill-b': 0.1 },
+        currentTime,
+      );
+      // Same setup as above but prereq is back in 'review' state.
+      const memoryStates = [
+        createMockMemoryState('prereq-a', {
+          state: 'review',
+          failureCount: 0,
+          nextReview: currentTime + MS_PER_DAY,
+        }),
+      ];
+
+      const action = planner.getNextAction(learnerModel, skillGraph, memoryStates, {
+        ...defaultConfig,
+        enforceSpacedRetrieval: false,
+        requireTransferTests: false,
+      });
+
+      expect(action.skillId).toBe('skill-b');
+    });
+  });
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
