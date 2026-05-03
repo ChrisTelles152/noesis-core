@@ -1,0 +1,55 @@
+name: Release @noesis-edu/core
+
+# Triggered by tags shaped like `core-v0.2.0`. The tag's version is what
+# gets published — there's no implicit `latest`. CI does build, test, smoke,
+# and a sanity-check `npm pack --dry-run` before the actual `npm publish`,
+# so a typo in the tag can't ship a broken artifact.
+
+on:
+  push:
+    tags:
+      - 'core-v*'
+
+jobs:
+  release:
+    name: Build, test, and publish
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          # registry-url is what wires npm publish to use NODE_AUTH_TOKEN
+          # against the public npm registry.
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build, test, smoke @noesis-edu/core
+        run: |
+          npm run build:core
+          npm run test:core
+          npm run smoke:core
+
+      # Sanity-check the artifact contents before we push to npm. This
+      # surfaces "you forgot to add a file to package.json's `files` field"
+      # without burning a registry slot. The grep guard keeps test files
+      # out of the published package.
+      - name: Verify pack contents
+        run: |
+          cd packages/core
+          npm pack --dry-run --json > pack.json
+          if grep -q '"src/.*\.test\.' pack.json; then
+            echo "Test files leaked into the published artifact"
+            exit 1
+          fi
+
+      - name: Publish to npm
+        run: cd packages/core && npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
