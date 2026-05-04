@@ -35,6 +35,7 @@ export * from './calibration/index.js';
 export * from './history/index.js';
 export * from './mastery/index.js';
 export * from './session/index.js';
+export * from './logging/index.js';
 
 // Explicit re-export for discoverability
 export { DEFAULT_SESSION_CONFIG } from './planning/index.js';
