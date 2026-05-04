@@ -364,33 +364,49 @@
 ## 5.1 — Algorithm tuning (NEEDS_HUMAN — pedagogy decisions)
 **Sources:** `docs/ALGORITHM_AUDIT.md` Warning #1, Observation #1; `docs/ACTION_PLAN.md` M7, M8.
 
-### 5.1.1 — BKT default-parameter tuning (M7)
-- 2 consecutive correct answers cross 0.85 with defaults (`pInit=0.3, pLearn=0.1, pSlip=0.1, pGuess=0.2`). Literature suggests 4–6.
-- **Action:** lower `pLearn` to 0.05 OR lower `pInit` to 0.1; or accept current behavior with a documented pedagogy rationale.
+### 5.1.1 — BKT default-parameter tuning (M7) — ✅ RESOLVED 2026-05-03
+- **Decision:** Keep current defaults (`pInit=0.3, pLearn=0.1, pSlip=0.1, pGuess=0.2`). Retune post-pilot from real data instead of literature.
+- **Rationale:** At pilot scale (~10–20 learners over weeks) we cannot statistically distinguish 2-attempt convergence from 4-attempt convergence — there isn't enough signal to validate either parameter set against the other. Tuning to literature without our own data would be cargo-cult adjustment.
+- **Documented in:** `docs/ALGORITHM_AUDIT.md` Warning #1 (Status: ACKNOWLEDGED). Convergence numbers pinned in `packages/core/src/__tests__/bkt.test.ts > BKT convergence numbers (default params)` — 1 correct → 0.6927, 2 correct → 0.9193.
+- **Commit:** `685297c` (J4).
+- **Memory:** `project_bkt_defaults_decision.md`.
 
-### 5.1.2 — FSRS spec-conformance (M8)
+### 5.1.2 — FSRS spec-conformance (M8) — 🟡 OPEN
 - Implementation uses `R(t) = (1 + t/(9S))^(-1)` (reciprocal); FSRS v4/v5 spec uses `(1 + 19t/(81S))^(-2)` (power-law). Implementation is more "optimistic" about retention at long intervals.
-- **Action:** decide whether to converge to spec or document the divergence.
+- **Three options on the table** (see `STATUS.md` "What's open"):
+  - Document divergence + pin with regression tests (recommended for pilot — cheap, no behavior change).
+  - Converge to spec — bigger engineering change, all FSRS tests need new pinned numbers.
+  - Make it configurable via a `useFsrsSpec: true` flag.
+- **Forward-pointer:** §5.1.2's "ideal state" question (per-learner adaptive curves) is operationalized as **Phase M** in `PLAN.md` — three milestones (M1 instrumentation now / M2 population fit post-pilot / M3 per-learner fit). M1 is actionable today regardless of the §5.1.2 choice.
 
-## 5.2 — Tier-1 missing tests (HIGH blast radius)
-**Sources:** `docs/TESTING_STRATEGY.md` Tier-1 #4, #5.
+## 5.2 — Tier-1 missing tests (HIGH blast radius) — ✅ DONE
+**Sources:** `docs/TESTING_STRATEGY.md` Tier-1 #4, #5. **Commit:** `55771ba` (J1).
 
-### 5.2.1 — Events for unknown skills
-- New test in `packages/core/src/__tests__/core.test.ts` — process a `practice` event for a skill not in the graph; assert correct behavior (decide: throw vs ignore vs warn).
+### 5.2.1 — Events for unknown skills — DONE
+- 4 tests in `packages/core/src/__tests__/core.test.ts > Critical Path: events for skills not in the graph`. Pin the engine's current behavior: accepts the event, lazy-creates BKT probability + FSRS state, leaves the graph unchanged.
 
-### 5.2.2 — Multi-learner isolation
-- Two learners in same engine; verify state independence.
+### 5.2.2 — Multi-learner isolation — DONE
+- 5 tests in `packages/core/src/__tests__/core.test.ts > Critical Path: multi-learner isolation`. Pin: independent BKT, independent FSRS, no cross-talk on event counts, multi-learner replay byte-identical.
 
-## 5.3 — Tier-2 missing tests
-- BKT convergence numbers (correct/incorrect counts to cross thresholds).
-- Session planner with relearning-state prerequisites blocking dependents.
-- FSRS rating=4 (Easy) interval-jump behavior on new cards.
+## 5.3 — Tier-2 missing tests — ✅ DONE
+**Commit:** `55771ba` (J2).
+- BKT convergence numbers — `bkt.test.ts > BKT convergence numbers (default params)` pins 1 correct → 0.6927, 2 correct → 0.9193, mixed sequences, monotonic decrease on failures.
+- Planner+relearning prereq — `sessionPlanner.test.ts > Critical Path: relearning prereq blocks dependent-skill introduction` pins error-focused practice wins over new-skill intro when prereq is in relearning state.
+- FSRS rating=4 (Easy) interval-jump — `fsrs.test.ts > rating effects` pins ~5.7 days interval (the original PLAN.md figure of 0.633 was a math slip).
 
-## 5.4 — Tier-3+ tests
-- Diagnostic engine empty/minimal item-mappings; transfer-gate `getTransferStatus` workflow; metrics edge cases; graph-loader round-trip with all optional fields; health-check degraded states; perf-monitor retention limits; WebSocket auth edge cases; logger child-context propagation.
+## 5.4 — Tier-3+ tests — ⚠️ PARTIAL (3 of ~8 done)
+**Commit:** `55771ba` (the included subset).
+- ✅ Diagnostic engine empty/minimal item-mappings → `diagnostic.test.ts > analyzeResults: edge cases`.
+- ✅ Graph-loader round-trip with all optional fields → `loader.test.ts > exportSkillGraphToJSON`.
+- ✅ Metrics empty-shape for unknown learner → `metrics.test.ts`.
+- ⏳ Transfer-gate `getTransferStatus` workflow — existing tests cover most; deferred.
+- ⏳ Health-check degraded states — server-side, may move with apps under the ADR.
+- ⏳ Perf-monitor retention limits — likely moves with apps under the ADR.
+- ⏳ WebSocket auth edge cases — likely moves with apps under the ADR.
+- ⏳ Logger child-context propagation — likely moves with apps under the ADR.
 
-## 5.5 — `docs/DATA_MODEL_AUDIT.md` text updates (L7)
-**Status:** Captured under §3.6. NOT_STARTED.
+## 5.5 — `docs/DATA_MODEL_AUDIT.md` text updates (L7) — ✅ DONE
+**Commits:** `c7d7dc4` (Phase F.6 — RESOLVED inline notes per gap), `eb1cb6c` (J3 — `linkGoogleAccount` row removed).
 
 ---
 
@@ -399,9 +415,13 @@
 > Each item is a decision that blocks downstream work. None are pure engineering. Listed in
 > approximate priority order (most-blocking first).
 
-## 6.1 — Repo split: extract apps OR amend INTENTION (BLOCKS Phase 2 and Phase 4)
-- Recommendation in `PRODUCTION_READINESS.md`: Path A (extract apps; this repo becomes pure SDK + docs site).
-- Decision rationale required for INTENTION update either way.
+## 6.1 — Repo split: extract apps OR amend INTENTION — ✅ RESOLVED 2026-05-03
+- **Decision:** Path A. `apps/server` + `apps/web-demo` extract out of this repo entirely. This repo becomes pure SDK + `docs/site/`.
+- **Destination:** `noesis-pilot` repo renamed to `noesis-app` (preserves git history). The pilot CLI moves to `noesis-app/packages/pilot-cli/`.
+- **Stack rewrite:** Next.js 16 + React 19 + App Router + Supabase SSR + Drizzle on Supabase Postgres. Not a port of the existing Vite+Express stack — a rewrite.
+- **Migration plan:** 5 phases laid out in `docs/architecture/UNIFICATION_ADR.md`. The ADR is the canonical execution document; `PLAN.md` Phase K2 is renumbered to point at it.
+- **Cross-repo coordination:** the same migration consolidates the duplicate engine forks in `noesis-eng` / `noesis-math` / `noesis-delf` into `@noesis-edu/core@0.3.0` first, then extracts apps from this repo, then reduces verticals to content packs.
+- **Status of related work:** `PLAN.md` Phase L (pilot-scale simplification) is now mostly moot — once apps extract, most of L's targets disappear with them.
 
 ## 6.2 — Two-org GitHub split (`noesis-open` / `noesis-dev`)
 - Bound to 6.1 but separable: even Path B can keep one repo with two orgs if proprietary surfaces are split per package.
@@ -446,6 +466,41 @@
 > Preserved from `docs/ACTION_PLAN.md` for historical continuity. Each line links a fix to its
 > commit and is verifiable in the current code (Phase 2 verification confirmed all of these except
 > where noted).
+
+## A.0 — Work shipped 2026-05-01 → 2026-05-03 (this consolidation)
+
+| Phase | Commit | What landed |
+|---|---|---|
+| H1 | `2348f7e` | pt-BR i18n with en-US fallback (`apps/web-demo/src/lib/i18n.ts`, locale files, all existing pages translated, 5 verification tests) |
+| H2 | `040f4be` | `@noesis/content-pt-br-math` — 25-skill DAG + 50 practice items + 5 golden sequences, validated by 19 tests |
+| H3 | `0aa6994` | `/diagnostic` placement quiz UI — uses core's DiagnosticEngine, persists estimates to `localStorage`, 6 tests |
+| H4 | `f2343ae` | `/path` guided learning UI + `SkillNodeCard` — 4 status states, prereq-gated, 22 tests (13 status logic + 9 page) |
+| H5 | `0560d14` | `/skill/:id` per-skill canonical-loop walkthrough — 4 stages, item picker with golden-sequence preference, 16 tests |
+| H6 | `34926d6` | `/mentor` admin dashboard + CSV export, `isAdmin` flag, `requireAdmin` middleware, 11 tests |
+| H7 | `9b92422` | `/authoring` admin curriculum editor, system-wide curriculum CRUD endpoints, 15 tests |
+| I1–I4 | `b305a65` | Real `release:core` script + `release.yml` workflow + `@noesis-edu/core@0.2.0` + Astro Starlight docs site + `vercel.json`, 16 tests |
+| J1+J2+J3-tier3 | `55771ba` | Tier-1/Tier-2/Tier-3 audit-backlog tests (Phase J pure-engineering subset), 22 tests |
+| J3 | `eb1cb6c` | Deleted orphan `linkGoogleAccount` from `SqliteStorage` after investigation, regression tests guard re-introduction |
+| J4 | `685297c` | §5.1.1 RESOLVED — BKT defaults rationale documented in `docs/ALGORITHM_AUDIT.md` Warning #1 (Status: ACKNOWLEDGED) |
+
+**Totals at end of 2026-05-03 session:** 1166 tests across 65 files (was 1019 / 51 at the start). Lint clean. Typecheck clean. CI gates: lint, typecheck, full test suite, dedicated replay-determinism job.
+
+**Strategic decisions made during this period:**
+- §5.1.1 BKT defaults — keep current, retune post-pilot from real data.
+- §6.1 repo split — Path A confirmed via `docs/architecture/UNIFICATION_ADR.md` (rename `noesis-pilot` → `noesis-app`, Next.js+Supabase rewrite, content packs as npm packages).
+- Phase M added to `PLAN.md` — adaptive FSRS scheduling with three milestones (M1 instrumentation now / M2 population fit post-pilot / M3 per-learner fit). Operationalizes the existing `project_adaptive_fsrs.md` memory.
+
+**Decisions deferred or open:**
+- §5.1.2 FSRS spec conformance — three options on the table, recommendation is "document divergence + pin." Closes Phase M's prerequisite question.
+- §6.8 privacy / data governance / telemetry — required before any live pilot data flows; Brazilian pilot makes LGPD relevant.
+- §6.3 / §6.4 / §6.6 / §6.13 — license, physics scope, real-LLM vs rules-based, audience priority.
+
+**Manual external steps pending (user-side):**
+- Set `NPM_TOKEN` GitHub secret + tag `core-v0.2.0` to publish 0.2.0 to npm.
+- Connect repo to Vercel to deploy `docs/site/`.
+- End-to-end manual walkthrough of the H-block flow as a learner (validates the Vite stack one last time before the ADR migration rewrites it).
+
+---
 
 | Item | Source | Commit | Verified in code? |
 |---|---|---|---|

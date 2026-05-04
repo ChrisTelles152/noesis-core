@@ -8,6 +8,38 @@
 
 ---
 
+# Completion status as of 2026-05-03
+
+| Phase | Status | Notes |
+|---|---|---|
+| **A** Determinism contract | ✅ DONE | Commits `3-stage A1+A2+A3` (see `git log --grep "Phase A"`). Pinned by `determinism.test.ts` + `replay.test.ts` + dedicated CI job. |
+| **B** Auto-persistence | ✅ DONE | `CoreEngineAdapter` API + transports + `useNoesisSDK` wired. |
+| **C** NALS + canonical loop | ✅ DONE | C1+C2+C3 landed; planner gating behind `enforceCanonicalLoop`. |
+| **D** WebGazer demoted | ✅ DONE | Simulated tracker default; helmet conditional on env flag. |
+| **E** Server-side engine | ✅ DONE | E1–E6 all landed. EngineManager + skill_graphs + 4 endpoints + WS broadcast + pagination. |
+| **F** Documentation reconciliation | ✅ DONE | F1–F6 all landed. STATUS.md is now a one-page redirect; API_REFERENCE.md is canonical. |
+| **G** Brand DNA | ✅ DONE | Palette + spiral-eye logo + dual font system. |
+| **H** Brazilian STEM pilot | ✅ DONE | H1–H7 all landed (i18n / content pack / diagnostic / path / canonical-loop screen / mentor dashboard / authoring admin). |
+| **I** npm publish + Vercel docs | ✅ DONE in repo | I1–I4 all coded + tested. **External steps still required:** set `NPM_TOKEN` GitHub secret and tag `core-v0.2.0` (publishes 0.2.0 to npm); connect repo to Vercel (deploys docs site). |
+| **J1** Tier-1 missing tests | ✅ DONE | Unknown-skill behavior + multi-learner isolation pinned in `core.test.ts`. |
+| **J2** Tier-2 missing tests | ✅ DONE | BKT convergence (1 → 0.6927, 2 → 0.9193) + planner relearning + FSRS rating-4 (5.7 days) pinned. |
+| **J3** Remove dead `linkGoogleAccount` | ✅ DONE | Deleted from sqlite-storage; regression tests in `storage-contract.test.ts` guard it from coming back. |
+| **J4** BKT defaults pedagogy | ✅ DONE / ACKNOWLEDGED | §5.1.1 RESOLVED 2026-05-03: keep current defaults, retune post-pilot from real data. Documented in `docs/ALGORITHM_AUDIT.md` Warning #1. |
+| **J5** FSRS spec conformance | 🟡 PENDING DECISION | §5.1.2 still open. Options: document divergence + pin (recommended) / converge to spec / make configurable. |
+| **J6** Dependency cleanup | ⏳ NOT STARTED | Safe regardless of repo split. Drop `@replit/*`, dedupe `webgazer` and `openai` between root and adapter packages, sweep with depcheck. |
+| **K** Repo split | ✅ DECIDED, ⏳ EXECUTION PENDING | §6.1 RESOLVED 2026-05-03 via [`docs/architecture/UNIFICATION_ADR.md`](docs/architecture/UNIFICATION_ADR.md). Path A confirmed: this repo becomes pure SDK + docs site; `apps/` extract into a renamed `noesis-pilot` → `noesis-app` (Next.js 16 + Supabase + Drizzle). The ADR's 5-phase migration (engine consolidation → app skeleton → extract → reduce verticals to packs → harden) supersedes the original K2/K3 framing. |
+| **L** Pilot-scale simplification | ⚠️ MOSTLY MOOT | Largely subsumed by the UNIFICATION_ADR — once `apps/` extract out of this repo, most of L's targets (server simplification, storage simplification) are gone. **Reinforced by the user's "pilot is production-grade — do NOT delete working infrastructure" philosophy** (see `project_pilot_philosophy.md` memory). Keep only the `attached_assets/` move from L1 (a docs cleanup, not infrastructure deletion). |
+| **M** Adaptive FSRS scheduling | 🆕 PLANNED | New phase added 2026-05-03. M1 = instrumentation (do now); M2 = population fit (post-pilot); M3 = per-learner fit (when M2's defaults plateau). |
+
+**Test suite at the time of this update: 1166 tests across 65 files. Lint clean. Typecheck clean.**
+
+Open decisions still blocking work:
+- **§5.1.2** (FSRS spec conformance) → unblocks J5.
+- **§6.8** (privacy / data governance / telemetry policy) → required before live pilot data, regardless of ADR migration.
+- **§6.3 / §6.4 / §6.6 / §6.13** — license, physics scope, real-LLM vs rules-based, audience priority. None block the ADR migration directly; each shapes downstream scope.
+
+---
+
 # 0. Truth-audit corrections (what changed after re-verification)
 
 | Earlier tier | Item | Now confirmed | Evidence |
@@ -460,27 +492,45 @@
 
 # Phase K — Repo split (`PRODUCTION_READINESS.md` §3.1, §4e, §5)
 
-> **BLOCKED on §6.1 of `todo.md`.**
+> **DECIDED 2026-05-03.** §6.1 resolved in favor of Path A via [`docs/architecture/UNIFICATION_ADR.md`](docs/architecture/UNIFICATION_ADR.md).
+>
+> **K1's decision tree is closed.** K2's specific instructions ("new repo `noesis-mvp-demo`") are superseded — the destination is `noesis-pilot` renamed to `noesis-app`, with a Next.js 16 + Supabase + Drizzle stack rewrite (not a port). K3 (Path B / monorepo legitimization) is no longer on the table.
+>
+> **The execution plan now lives in the ADR's 5-phase migration plan.** Cross-referenced below for navigation.
 
-## K1 — Decision
-- Path A: extract apps to `noesis-mvp-demo`; keep this repo as `noesis-core` SDK + `docs/site/`.
-- Path B: amend `INTENTION.md` to legitimize the monorepo; rename to `noesis-platform`.
+## K1 — Decision (RESOLVED)
+- ✅ Path A confirmed.
+- Destination repo: `noesis-pilot` renamed to `noesis-app` (preserves git history; the existing pilot CLI moves to `noesis-app/packages/pilot-cli/`).
+- Stack: Next.js 16 + React 19 + App Router + Supabase SSR + Drizzle on Supabase Postgres.
+- Pack interface: subjects ship as versioned npm packages (`@noesis-content/<id>`). `packages/content-pt-br-math` is the prototype.
 
-## K2 — Execute Path A (if chosen)
-- New repo `noesis-mvp-demo` with `apps/server` + `apps/web-demo` + `shared/schema.ts` + `Dockerfile` + `docker-compose.yml`.
-- New repo `noesis-pilot-br` for Phase-1 product (consumes `@noesis-edu/core` and `@noesis/content-pt-br-math` as published packages).
-- Trim root `package.json` to dev dependencies only.
-- **Verification test:** `it('this repo only ships SDK packages')` — assert `apps/` directory does not exist.
+## K2 — Execute Path A (per ADR Phase 3)
+The ADR's Phase 3 ("Extract `noesis-core`'s Apps") is the renumbered K2. Steps from the ADR:
 
-## K3 — Execute Path B (if chosen)
-- Amend `INTENTION.md` and `architecture/CORE_SDK_CONSTITUTION.md`.
-- **Verification test:** `it('INTENTION mentions monorepo and acknowledges apps/')` — read `INTENTION.md`, assert language matches the amendment.
+1. Port `apps/web-demo` Vite routes → Next.js App Router routes in `noesis-app`.
+2. Port `apps/server` Express routes → Next.js Route Handlers.
+3. Port `shared/schema.ts` → `noesis-app/db/schema.ts` (Drizzle on Supabase Postgres).
+4. Replace Passport auth → Supabase Auth.
+5. Migrate i18n (pt-BR/en-US).
+6. In `noesis-core`: delete `apps/`, `shared/`, `Dockerfile`, `docker-compose.yml`, `vercel.json` (currently wires docs/site, may need update to keep docs deploys), `vite.config.ts`, `drizzle.config.ts`, root-level UI deps. Update `package.json` to remove `apps/*` workspace and trim deps.
+
+**Verification test (unchanged from original PLAN):** `it('this repo only ships SDK packages')` — assert `apps/` directory does not exist.
+
+**Estimated:** 2–3 weeks per ADR.
+
+## K3 — Path B is no longer on the table
+Closed. The ADR ratifies Path A.
+
+## K0 — Engine consolidation prerequisite (per ADR Phase 1)
+**This work happens in `@noesis-edu/core` and is logically a *prerequisite* to K2.** It centralizes BKT/FSRS/planner/mastery code currently duplicated across `noesis-eng/src/lib/noesis/`, `noesis-math/src/lib/noesis/`, and `noesis-delf/src/lib/noesis/` into `@noesis-edu/core@0.3.0`. Coordinated cross-repo PR series. Estimated 2–3 weeks per ADR.
+
+> Note: the ADR uses "Phase H" for engine consolidation; that's the *cross-repo* sense. Our internal Phase H (Brazilian STEM pilot product, completed) is a different namespace. Don't confuse them.
 
 ---
 
 # Phase L — Pilot-scale simplification (conditional, depends on Phase K)
 
-> **BLOCKED on §6.1 of `todo.md`.** If Path A is taken, much of this happens automatically. If Path B, it still applies.
+> **STATUS 2026-05-03: Mostly moot.** With the UNIFICATION_ADR ratifying Path A, `apps/server` and `apps/web-demo` extract out of this repo entirely — most of L's targets disappear with them. What remains is the `attached_assets/` move (a docs cleanup, not infrastructure deletion). The user's "pilot is production-grade — do NOT delete working infrastructure" philosophy (see `project_pilot_philosophy.md` memory) reinforces: don't simplify for simplicity's sake.
 
 ## L1 — Delete pilot-overkill files
 - `apps/server/performance.ts` (if perf monitoring is overkill).
@@ -495,6 +545,47 @@
 - CSRF: keep (security layer).
 - Rate limiting: collapse 4 tiers → 2 (general + LLM).
 - **Verification test:** suite of `it('does not export <removed-symbol>')` regression tests + smoke tests on the simplified endpoints.
+
+> ⚠️ **Conflict with stated pilot philosophy.** The user has explicitly recorded ("pilot is production-grade — do NOT delete working infrastructure" — see `project_pilot_philosophy.md` in memory) that simplifying away production infrastructure for pilot scale is the wrong tradeoff. L1's deletions (`performance.ts`, `openapi.ts`) and L2's collapses (one storage backend, simpler health checks, simpler WS, fewer rate-limit tiers) all conflict with that principle. **Before executing Phase L, re-confirm scope with the user.** The most likely outcome is dropping L2 entirely and only keeping L1's `attached_assets/` move (which is a docs cleanup, not infrastructure deletion).
+
+---
+
+# Phase M — Adaptive FSRS scheduling (post-pilot)
+
+> **Why M exists.** §5.1.2's FSRS curve question naturally evolves into "should the curve be learned per-learner from real review data, instead of a fixed formula?" The canonical FSRS algorithm has done exactly this since v4.5 — fitting ~17 weights per learner from their review history. Phase M operationalizes that path. M1 is the only milestone actionable today; M2 and M3 wait for pilot data.
+>
+> Cross-reference: `project_adaptive_fsrs.md` in memory; INTENTION.md's "Time and randomness must be injectable" principle (the determinism contract is what makes per-learner fitting auditable later).
+
+## M1 — Instrument the review log so a fitter can run later
+- **Files:** `packages/core/src/constitution.ts` (add fields to `PracticeEvent` if missing); `packages/core/src/engine/NoesisCoreEngineImpl.ts`; `apps/server/event-bridge.ts`; `apps/server/storage.ts` (verify the persisted shape carries everything).
+- **Steps:**
+  1. Audit the current `PracticeEvent` shape against the fields a fitter needs: `learnerId`, `skillId`, `timestamp`, `correct`, `responseTimeMs`, `confidence?`, `priorElapsedDays`, `priorStability`, `priorDifficulty`, `priorState` (new/learning/review/relearning).
+  2. Where fields are missing, add them as optional and populate them in `processPracticeEvent` from the pre-update memory state.
+  3. Ensure the event log persisted to `learning_events` carries them in the JSON payload (no schema change needed; the column is `jsonb`).
+  4. Add a regression test that asserts the persisted event includes every fitter-needed field after a single `processEvent` call.
+- **Verification test:** `it('practice events log every field a future FSRS fitter needs')` — process a practice event, read the persisted event log, assert presence of all fields named above.
+- **Estimated scope:** ~1 PR. Defensive only — no behavior change.
+
+## M2 — Population-level fit (post-pilot)
+- **Trigger:** After the pilot generates ≥3 weeks of data.
+- **Files:** New `packages/core/src/memory/fsrsFitter.ts`; offline script in `scripts/fit-fsrs-population.mjs`.
+- **Steps:**
+  1. Implement a maximum-likelihood fitter for the FSRS retention/stability formula. Output: a single set of population params (a `FSRSParams` object).
+  2. Run offline against the pilot's `learning_events` log. Log fitted params + predicted-vs-actual residual curves.
+  3. Decide whether the fitted params materially differ from current defaults. If so, replace the defaults in `FSRSScheduler.ts` and bump the FSRS regression tests to the new pinned numbers.
+  4. Document the fit + the decision in `docs/ALGORITHM_AUDIT.md` Observation #1.
+- **Verification test:** `it('fitter recovers known params on synthetic data')` — generate synthetic review log from a known param set; run fitter; assert recovered params within tolerance. Plus the regression-test bumps from step 3.
+- **Estimated scope:** ~1 PR for the fitter, ~1 PR for the offline run + decision.
+
+## M3 — Per-learner fit (when M2's defaults plateau)
+- **Trigger:** When the population fit (M2) has stabilized and individual-learner residuals show systematic patterns the population fit can't capture.
+- **Files:** `packages/core/src/constitution.ts` (add per-learner FSRS params field); `packages/core/src/engine/NoesisCoreEngineImpl.ts` (params lookup with cold-start fallback to population defaults); `packages/core/src/memory/FSRSScheduler.ts` (accept per-call params, not just constructor params); refit trigger policy in `apps/server/engine-manager.ts` or a worker.
+- **Steps:**
+  1. Add per-learner `Map<learnerId, FSRSParams>` to engine state. Snapshot version bumps from 1.3 → 1.4. `importState` tolerates pre-1.4 snapshots (treats absent map as empty → cold-start everyone on population defaults).
+  2. Add a refit trigger policy (proposal: amortized — refit lazily on the next scheduling call after N new reviews). Confidence bounds: <50 reviews → use population defaults; 50–500 → blend; ≥500 → full per-learner fit.
+  3. Surface "is this learner fit or default?" on the mentor dashboard so a teacher can spot calibration gaps.
+- **Verification test:** `it('per-learner fit produces tighter predictions than population fit on a multi-learner synthetic dataset')` + replay-determinism test asserting that snapshot round-trips preserve per-learner params.
+- **Estimated scope:** ~2–3 PRs.
 
 ---
 
