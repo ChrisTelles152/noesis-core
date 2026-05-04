@@ -28,6 +28,20 @@ export interface NoesisStateStore {
 }
 
 /**
+ * Optimistic-lock-aware persistence. Used wherever silent overwrites are
+ * unacceptable (BKT state, FSRS state, session state).
+ */
+export {
+  OptimisticLockConflictError,
+  InMemoryOptimisticStore,
+  createInMemoryOptimisticStore,
+  updateWithRetry,
+  type OptimisticLockingStore,
+  type VersionedValue,
+  type UpdateWithRetryOptions,
+} from './OptimisticLockingStateStore.js';
+
+/**
  * In-memory state store for testing and development.
  * State is lost when the process exits.
  */
