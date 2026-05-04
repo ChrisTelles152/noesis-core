@@ -32,6 +32,7 @@ export * from './config/index.js';
 export * from './answer/index.js';
 export * from './fatigue/index.js';
 export * from './calibration/index.js';
+export * from './history/index.js';
 
 // Explicit re-export for discoverability
 export { DEFAULT_SESSION_CONFIG } from './planning/index.js';
