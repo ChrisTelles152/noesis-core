@@ -29,6 +29,7 @@ export * from './diagnostic/index.js';
 export * from './engine/index.js';
 export * from './persistence/index.js';
 export * from './config/index.js';
+export * from './answer/index.js';
 
 // Explicit re-export for discoverability
 export { DEFAULT_SESSION_CONFIG } from './planning/index.js';
