@@ -230,13 +230,16 @@ The interface between shell and pack is the `PackManifest` (sub-decision 5) plus
 ## Migration Plan (phased)
 
 ### Phase 1 — Engine Consolidation (Phase H)
-*Estimated: 2–3 weeks. Owner: noesis-core repo + cross-repo PR series.*
+*Estimated: 4–5 weeks. Owner: noesis-core repo + cross-repo PR series.*
+*Detailed plan: `docs/architecture/PHASE_H_DIVERGENCE_LOG.md` (sub-phases H-1 through H-5).*
 
-1. Inventory engine duplication: diff `noesis-eng/src/lib/noesis/` vs `noesis-math/src/lib/noesis/` vs `noesis-delf/src/lib/noesis/`.
-2. Identify universal vs subject-specific code. Universal goes to `@noesis-edu/core`; subject-specific stays in eventual pack packages.
-3. Publish `@noesis-edu/core@0.3.0` with the consolidated engine.
-4. Open coordinated PRs in eng/math/delf to upgrade to `0.3.0` and delete `src/lib/noesis/` copies.
-5. Verification: contract tests in `noesis-proof` pass against all three apps with the new core.
+1. **H-1 (~1.5–2 weeks):** Pull universal-but-missing modules into `@noesis-edu/core@0.3.0-rc`: `MultiChannelBKTEngine`, `LayeredMasteryModel`, `BudgetedSessionPlanner`, `SessionLifecycleManager`, `OptimisticLockingStateStore`, `SessionMetricsLogger`, `PlannerSnapshot`, `ItemHistoryAggregator`, `FatigueDetector`, `EloDifficultyCalibrator`, `AnswerNormalizer` interface, `EngineConfigOverrides` type.
+2. **H-2 (~2–3 days):** Push-down delf first as lowest-risk reference migration; validates new core API.
+3. **H-3 (~1 week):** Push-down math (replace 9 service files with core imports; move math-specific to `@noesis-content/math-br`).
+4. **H-4 (~1.5 weeks):** Push-down eng (highest divergence; replace 9 service files; move English contractions/grammar regex/etc. to `@noesis-content/eng`).
+5. **H-5:** Promote `0.3.0-rc` to stable; downstream consumers (eng/math/delf, `noesis-proof`, `open-source-logic-v1`, planned `knowledgetracker-v1`) update pinned version.
+
+**Verification:** replay-equivalence tests in `noesis-proof/adelaide` confirm identical pMastery/FSRS sequences pre- and post-migration; all existing test suites pass; no new behavior change in delf.
 
 ### Phase 2 — Establish `noesis-app` Skeleton
 *Estimated: 1 week. Owner: renamed noesis-pilot repo.*
