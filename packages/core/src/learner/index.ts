@@ -14,4 +14,21 @@ export {
   type BKTParams,
 } from './BKTEngine.js';
 
+export {
+  MultiChannelBKTEngine,
+  createMultiChannelBKTEngine,
+  calculateBKTUpdate,
+  applyCategoryModifier,
+  utcDateString,
+  DEFAULT_DRILLING_DISCOUNT,
+  type ChannelId,
+  type ChannelBKTConfig,
+  type SkillCategoryModifier,
+  type DrillingDiscountConfig,
+  type MultiChannelBKTConfig,
+  type ChannelSkillProbability,
+  type BKTAttemptResult,
+  type BKTComputeResult,
+} from './MultiChannelBKTEngine.js';
+
 export type { ClockFn } from '../events/index.js';
