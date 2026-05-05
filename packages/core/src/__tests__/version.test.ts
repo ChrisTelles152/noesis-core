@@ -19,9 +19,9 @@ describe('VERSION constant', () => {
     expect(VERSION).toBe(pkg.version);
   });
 
-  it('is currently 0.2.0', () => {
+  it('is currently 0.3.0-rc.0', () => {
     // Pinned so a release script that only updates one of the two
     // sources fails this test loudly. Bump in lockstep.
-    expect(VERSION).toBe('0.2.0');
+    expect(VERSION).toBe('0.3.0-rc.0');
   });
 });
