@@ -240,7 +240,6 @@ export function utcDateString(timestamp: number): string {
  */
 export class MultiChannelBKTEngine {
   private readonly config: MultiChannelBKTConfig;
-  private readonly drillingDiscount: DrillingDiscountConfig;
   /** skillId -> channelId -> state */
   private readonly state: Map<string, Map<ChannelId, ChannelSkillProbability>> = new Map();
 
@@ -256,7 +255,6 @@ export class MultiChannelBKTEngine {
       }
     }
     this.config = config;
-    this.drillingDiscount = config.drillingDiscount ?? DEFAULT_DRILLING_DISCOUNT;
   }
 
   /**
