@@ -98,6 +98,65 @@ jobs:
             packages/core/src/__tests__/replay.test.ts \
             packages/core/src/__tests__/determinism.test.ts
 
+  test-core:
+    name: Core Tests (named gate)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      # Named gate that surfaces @noesis-edu/core failures separately from
+      # the broad `test` job, which runs every workspace's vitest suite. A
+      # core-only red here is louder than a single line in the broad job.
+      - name: Run @noesis-edu/core test suite
+        run: npm run test:core
+
+  core-package:
+    name: Core Package (build + smoke + pack)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      # Build dist/ first — verify:core:pack reads files listed in
+      # packages/core/package.json's `files` field; if dist/ is missing the
+      # pack check silently produces an under-sized artifact.
+      - name: Build @noesis-edu/core
+        run: npm run build:core
+
+      # Smoke test exercises only the public exports of @noesis-edu/core
+      # against src/ via tsx — catches regressions in the consumer-visible
+      # surface that unit tests against internal implementation might miss.
+      - name: Smoke test @noesis-edu/core
+        run: npm run smoke:core
+
+      # Sanity-check what would actually ship to npm. Mirrors the guard in
+      # release.yml so we catch a broken artifact at PR time, not at tag time.
+      - name: Verify pack contents
+        run: |
+          cd packages/core
+          npm pack --dry-run --json > pack.json
+          if grep -q '"src/.*\.test\.' pack.json; then
+            echo "Test files leaked into the published artifact"
+            exit 1
+          fi
+
   build:
     name: Build
     runs-on: ubuntu-latest
