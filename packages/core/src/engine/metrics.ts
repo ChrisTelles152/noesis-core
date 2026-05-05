@@ -7,6 +7,16 @@
 
 import type { NoesisCoreEngineImpl } from './NoesisCoreEngineImpl.js';
 import { calculateRetention } from '../memory/index.js';
+import type {
+  LayeredMasteryModel,
+  MasteryLayer,
+  PackMasterySummary,
+} from '../mastery/index.js';
+import type {
+  ChannelSkillProbability,
+} from '../learner/MultiChannelBKTEngine.js';
+import type { FatigueDetector, FatigueSignal } from '../fatigue/index.js';
+import type { EloDifficultyCalibrator } from '../calibration/index.js';
 
 /**
  * Milliseconds per day for time calculations
@@ -77,6 +87,60 @@ export interface LearnerMetrics {
    * NOT a guarantee - actual learning varies by individual.
    */
   estimatedEventsToFullMastery: number;
+
+  /**
+   * Layered mastery classification (Unstarted/Learning/Learned/Mastered) per
+   * skill. Present only when LearnerMetricsOptions.layeredMastery is supplied.
+   * Added in 0.3.0.
+   */
+  layeredMastery?: Record<string, MasteryLayer>;
+
+  /**
+   * Per-pack mastery summary (skillsLearned/skillsMastered/etc.). Present only
+   * when LearnerMetricsOptions.layeredMastery is supplied. Added in 0.3.0.
+   */
+  layeredMasterySummary?: PackMasterySummary;
+
+  /**
+   * Fatigue signal at metrics-computation time. Present only when
+   * LearnerMetricsOptions.fatigue is supplied. Added in 0.3.0.
+   */
+  fatigue?: {
+    signal: FatigueSignal;
+    sessionDurationMs: number;
+    attemptCount: number;
+  };
+
+  /**
+   * Difficulty calibration ratings. Present only when
+   * LearnerMetricsOptions.difficulty is supplied. Added in 0.3.0.
+   */
+  difficulty?: {
+    learnerRatings: Record<string, number>;
+    itemRatings: Record<string, number>;
+  };
+}
+
+/**
+ * Optional helpers for expanding LearnerMetrics with the 0.3.0 fields.
+ *
+ * All fields are optional; supplying any one of them adds the corresponding
+ * section to the returned LearnerMetrics. Missing helpers leave the
+ * corresponding output fields undefined.
+ */
+export interface LearnerMetricsOptions {
+  /**
+   * Wire layered mastery: pass the model + the per-skill ChannelSkillProbability
+   * arrays (typically produced by walking MultiChannelBKTEngine.getAllStates()).
+   */
+  layeredMastery?: {
+    model: LayeredMasteryModel;
+    states: Map<string, ChannelSkillProbability[]>;
+  };
+  /** Wire fatigue signal: pass the per-session FatigueDetector. */
+  fatigue?: FatigueDetector;
+  /** Wire difficulty ratings: pass the per-learner EloDifficultyCalibrator. */
+  difficulty?: EloDifficultyCalibrator;
 }
 
 /**
@@ -97,7 +161,8 @@ export interface LearnerMetrics {
 export function getLearnerMetrics(
   engine: NoesisCoreEngineImpl,
   learnerId: string,
-  atTime?: number
+  atTime?: number,
+  options?: LearnerMetricsOptions
 ): LearnerMetrics {
   const timestamp = atTime ?? engine.getCurrentTime();
   const model = engine.getLearnerModel(learnerId);
@@ -176,6 +241,43 @@ export function getLearnerMetrics(
   const unmasteredSkills = Math.max(0, masteryCount - skillsMastered);
   const estimatedEventsToFullMastery = unmasteredSkills * eventsPerSkill;
 
+  // 0.3.0 additions: layered mastery, fatigue signal, difficulty calibration.
+  // All fields are populated only when the corresponding helper is supplied
+  // via LearnerMetricsOptions. Missing helpers → fields stay undefined.
+  let layeredMastery: Record<string, MasteryLayer> | undefined;
+  let layeredMasterySummary: PackMasterySummary | undefined;
+  if (options?.layeredMastery) {
+    const { model, states } = options.layeredMastery;
+    const classified = model.classifyPack(states, timestamp);
+    layeredMastery = {};
+    for (const [skillId, status] of classified) {
+      layeredMastery[skillId] = status.layer;
+    }
+    layeredMasterySummary = model.summarizePack(states, timestamp);
+  }
+
+  let fatigue: LearnerMetrics['fatigue'];
+  if (options?.fatigue) {
+    fatigue = {
+      signal: options.fatigue.check(),
+      sessionDurationMs: options.fatigue.getSessionDuration(),
+      attemptCount: options.fatigue.getAttemptCount(),
+    };
+  }
+
+  let difficulty: LearnerMetrics['difficulty'];
+  if (options?.difficulty) {
+    const learnerRatings: Record<string, number> = {};
+    for (const [skillId, rating] of options.difficulty.getAllLearnerRatings()) {
+      learnerRatings[skillId] = rating;
+    }
+    const itemRatings: Record<string, number> = {};
+    for (const [itemId, rating] of options.difficulty.getAllItemRatings()) {
+      itemRatings[itemId] = rating;
+    }
+    difficulty = { learnerRatings, itemRatings };
+  }
+
   return {
     learnerId,
     timestamp,
@@ -188,5 +290,9 @@ export function getLearnerMetrics(
     skillsDue,
     totalPracticeEvents,
     estimatedEventsToFullMastery,
+    layeredMastery,
+    layeredMasterySummary,
+    fatigue,
+    difficulty,
   };
 }
