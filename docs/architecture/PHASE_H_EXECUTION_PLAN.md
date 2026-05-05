@@ -11,48 +11,52 @@ Mark subtasks `[x]` as they complete.
 
 ---
 
-## Phase H-1 — Pull-up to `@noesis-edu/core@0.3.0-rc` (in noesis-core)
+## Phase H-1 — Pull-up to `@noesis-edu/core@0.3.0-rc.0` ✅ **COMPLETE 2026-05-04**
 
-### Sub-phase H-1.A — Foundation (types, interfaces; no logic)
+PR #16: https://github.com/Noesis-Edu/noesis-core/pull/16
+Branch: `phase-h-1/core-0.3.0` (24 commits)
+Tests: 379 → **742** (+363 across 15 new test files)
 
-- [ ] **H-1.A.1** Create feature branch `phase-h-1/core-0.3.0` off `ChrisTelles152/system-audit` (or main once merged).
-- [ ] **H-1.A.2** Add `EngineConfigOverrides` type in `packages/core/src/constitution.ts`. Includes optional overrides for BKT priors per channel, FSRS intervals, mastery thresholds, session budget, response-time thresholds, fatigue thresholds, calibrator constants. Pure type — no implementation. Add validator `validateEngineConfigOverrides()`. Tests: shape parsing + validation.
-- [ ] **H-1.A.3** Add `AnswerNormalizer` interface in `packages/core/src/answer/index.ts` (new dir). Method signatures: `normalize(input: string): string`, `matches(input: string, expected: string | string[]): boolean`. Add `LevenshteinMatcher` impl with typo-tolerance budget by length. Tests: Levenshtein cases, normalization round-trip.
-- [ ] **H-1.A.4** Add `Channel` type + `ChannelConfig` + `ChannelMapping` in `constitution.ts`. Channel is a string ID (e.g., `"recog_mc"`, `"cloze"`, `"prod_typed"`, `"typed_answer"`, `"multiple_choice"`); core does not enforce a fixed channel set. `ChannelConfig` is `{ id: Channel; bktParams: BKTParams; responseTimeThresholdMs: number }`. Tests: type-only.
+### Sub-phase H-1.A — Foundation ✅
 
-### Sub-phase H-1.B — Pure modules (no engine state deps)
+- [x] **H-1.A.1** Feature branch `phase-h-1/core-0.3.0` created.
+- [x] **H-1.A.2** `EngineConfigOverrides` type + `validateEngineConfigOverrides()` (commit `092c4b9`, 18 tests).
+- [x] **H-1.A.3** `AnswerNormalizer` interface + `LevenshteinMatcher` (commit `202c7a4`, 29 tests).
+- [x] **H-1.A.4** `Channel` type folded into A.2 — single source of truth in `EngineConfigOverrides.ts`.
 
-- [ ] **H-1.B.1** Port `FatigueDetector` from `noesis-math/athens/src/lib/noesis/fatigueDetector.ts` to `packages/core/src/fatigue/FatigueDetector.ts`. Strip Supabase coupling — pure rolling-window detector: input `{ latencyMs, correct, timestamp }[]`, output `{ fatigued: bool, reason: string | null }`. Tests: ported from math + edge cases.
-- [ ] **H-1.B.2** Port `EloDifficultyCalibrator` from `noesis-math/athens/src/lib/noesis/difficultyCalibrator.ts` to `packages/core/src/calibration/EloDifficultyCalibrator.ts`. Pure Elo update — no persistence. Add `DifficultyState` interface and `EloDifficultyCalibratorConfig`. Tests: ported from math + symmetry checks.
-- [ ] **H-1.B.3** Port `ItemHistoryAggregator` from `noesis-eng/banjul/src/lib/noesis/itemHistoryService.ts` to `packages/core/src/history/ItemHistoryAggregator.ts`. Strip Supabase coupling — input `ItemAttempt[]`, output `{ seenIds, weakIds }`. Tests: ported from eng + threshold edge cases.
+### Sub-phase H-1.B — Pure modules ✅
 
-### Sub-phase H-1.C — Engine extensions (depend on foundation)
+- [x] **H-1.B.1** `FatigueDetector` clock-injected port (commit `6c4fbcf`, 14 tests).
+- [x] **H-1.B.2** `EloDifficultyCalibrator` with serialize/deserialize + deterministic tie-breaking (commit `1a713c7`, 23 tests).
+- [x] **H-1.B.3** `ItemHistoryAggregator` Supabase-coupling stripped (commit `7992bab`, 23 tests).
 
-- [ ] **H-1.C.1** Add `MultiChannelBKTEngine` in `packages/core/src/learner/MultiChannelBKTEngine.ts`. Extends `BKTEngine` with: per-channel state (`Map<channelId, SkillProbability>` per skill), per-channel BKT params via `ChannelConfig[]`, drilling discount (`shouldDiscount`/`applyDiscount`), pluggable BKT modifier slot (no built-in grammar modifier — that's pack-supplied). Backward-compat: single-channel callers use a `"default"` channel with no API change. Tests: per-channel pMastery isolation, drilling discount, modifier slot, backward-compat with single-channel `BKTEngine` calls.
-- [ ] **H-1.C.2** Add `LayeredMasteryModel` in `packages/core/src/mastery/LayeredMasteryModel.ts`. Computes `MasteryLayer = "Unstarted" | "Learning" | "Learned" | "Mastered"` from `SkillProbability` + attempt history + clock. Configurable thresholds via `LayeredMasteryConfig` (defaults match converged values: Learned ≥0.75 + ≥3 attempts; Mastered ≥0.85 + ≥6 attempts + ≥3 correct + ≥2 cal-days + ≥24h cooling-off + lastCorrect=true). Channel aggregation: 2 mastered channels OR primary mastered + secondary learned. Tests: ported from eng + revocation edge cases.
+### Sub-phase H-1.C — Engine extensions ✅
 
-### Sub-phase H-1.D — Session machinery
+- [x] **H-1.C.1** `MultiChannelBKTEngine` with drilling discount + category modifier slot (commit `bb7bf64`, 41 tests).
+- [x] **H-1.C.2** `LayeredMasteryModel` with calendar-day cooling-off + soft revocation (commit `c436c09`, 42 tests).
 
-- [ ] **H-1.D.1** Add `BudgetedSessionPlanner` in `packages/core/src/planning/BudgetedSessionPlanner.ts`. Extends `SessionPlannerImpl` with: review/error/new allocation (60/25/15% defaults, configurable via `EngineConfigOverrides`), weakness-threshold-based error repair, backlog control (50% reduction after 3 growth sessions), skill-introduction caps (1 early / 2 late, threshold session 10). Tests: allocation correctness, backlog reduction, intro caps.
-- [ ] **H-1.D.2** Add `SessionLifecycleManager` in `packages/core/src/session/SessionLifecycleManager.ts`. Methods: `createSession`, `getSessionPlan`, `endSession`, `getSessionTracker`, `deleteSessionCaches`. Storage abstracted via `NoesisStateStore`. Tests: lifecycle transitions.
-- [ ] **H-1.D.3** Add `PlannerSnapshot` in `packages/core/src/planning/PlannerSnapshot.ts`. Captures BKT/FSRS state + planned items + visibility at session start. Used for replay determinism. Tests: snapshot round-trip.
-- [ ] **H-1.D.4** Add `OptimisticLockingStateStore` in `packages/core/src/persistence/OptimisticLockingStateStore.ts`. Implements `NoesisStateStore` with `state_version` optimistic locking. Postgres-agnostic via injected db handle. Tests: concurrent-write conflict detection.
-- [ ] **H-1.D.5** Add `SessionMetricsLogger` in `packages/core/src/logging/SessionMetricsLogger.ts`. Consumes `NoesisEvent[]`, produces session-level metrics (attempts, correct count, accuracy, durations). No I/O. Tests: aggregation correctness.
+### Sub-phase H-1.D — Session machinery ✅
 
-### Sub-phase H-1.E — Surface updates
+- [x] **H-1.D.1** `BudgetedSessionPlanner` with backlog control + new-skill caps (commit `7250ffe`, 33 tests).
+- [x] **H-1.D.2** `SessionLifecycleManager` pure in-memory bookkeeping (commit `51bdd73`, 35 tests).
+- [x] **H-1.D.3** `PlannerSnapshot` for deterministic session replay (commit `4ef3198`, 16 tests).
+- [x] **H-1.D.4** `OptimisticLockingStateStore` interface + memory impl + retry helper (commit `9fa023d`, 24 tests).
+- [x] **H-1.D.5** `SessionMetricsLogger` pure aggregator + stateful buffer (commit `9f403f3`, 30 tests).
 
-- [ ] **H-1.E.1** Expand `getLearnerMetrics()` in `packages/core/src/engine/metrics.ts` to include `layeredMastery: Record<skillId, MasteryLayer>`, `fatigue: { detected, reason }`, `difficulty: { ratings, calibration }`. Additive only — existing fields untouched. Tests: shape + new fields.
-- [ ] **H-1.E.2** Extend `createNoesisCoreEngine` factory to accept `EngineConfigOverrides`. Wires overrides through to BKT/FSRS/planner/mastery/fatigue. Tests: override propagation.
-- [ ] **H-1.E.3** Update `packages/core/src/index.ts` to export all new modules + types. Verify barrel completeness.
-- [ ] **H-1.E.4** Add `@noesis-edu/core/contracts` subpath export in `packages/core/package.json`. Types-only entry point so pack manifests can import types without pulling the runtime. Subpath maps to `dist/constitution.js` + the new minimal type files.
+### Sub-phase H-1.E — Surface updates ✅
 
-### Sub-phase H-1.F — Release prep
+- [x] **H-1.E.1** `getLearnerMetrics()` expanded with layered mastery + fatigue + difficulty options (commit `f137747`, 7 new tests).
+- [x] **H-1.E.2** `createNoesisCoreEngine` accepts `EngineConfigOverrides`; reserved fields properly typed (commit `00f4d8a`, 8 + 9 tests).
+- [x] **H-1.E.3** Barrel completeness lock — every 0.3.0 module reachable from package root (commit `f05cc11`, 20 tests).
+- [x] **H-1.E.4** `@noesis-edu/core/contracts` types-only subpath added to `package.json` exports (commit `fe1c589`, 9 tests).
 
-- [ ] **H-1.F.1** Bump `packages/core/package.json` version to `0.3.0-rc.0`. Update `VERSION` constant in `index.ts`.
-- [ ] **H-1.F.2** Write `packages/core/CHANGELOG.md` entry covering all additions.
-- [ ] **H-1.F.3** Write `docs/migration/0.2-to-0.3.md` migration guide for downstream consumers (delf/eng/math, noesis-proof, OSL, KT).
-- [ ] **H-1.F.4** Run `npm run test:core`, `npm run smoke:core`, `npm run build:core`, `npm run verify:core:pack`. All must pass.
-- [ ] **H-1.F.5** Open PR `phase-h-1/core-0.3.0` → main. Title: "feat(core): Phase H-1 — pull-up to 0.3.0-rc.0". Body links to ADR + divergence log + this plan.
+### Sub-phase H-1.F — Release prep ✅
+
+- [x] **H-1.F.1** Version bumped to `0.3.0-rc.0` (package.json + VERSION constant + pinned-version test).
+- [x] **H-1.F.2** CHANGELOG.md keep-a-changelog entry covering every new module.
+- [x] **H-1.F.3** `docs/migration/0.2-to-0.3.md` consumer migration guide.
+- [x] **H-1.F.4** All four release-prep checks passed: test:core (742/742), build:core (tsc clean), smoke:core (6/6), verify:core:pack (145.6 kB packed / 595.9 kB unpacked / 167 files).
+- [x] **H-1.F.5** PR #16 opened (commit `0b86d4b`).
 
 ---
 

@@ -29,7 +29,9 @@
     "test:core": "vitest run packages/core",
     "smoke:core": "npm run smoke -w @noesis-edu/core",
     "release:core": "npm run build:core && npm run test:core && npm run smoke:core && cd packages/core && npm publish --access public",
+    "release:core:rc": "npm run build:core && npm run test:core && npm run smoke:core && cd packages/core && npm publish --access public --tag rc",
     "release:core:dry-run": "npm run build:core && npm run test:core && npm run smoke:core && cd packages/core && npm publish --access public --dry-run",
+    "release:core:rc:dry-run": "npm run build:core && npm run test:core && npm run smoke:core && cd packages/core && npm publish --access public --tag rc --dry-run",
     "verify:core:pack": "cd packages/core && npm pack --dry-run"
   },
   "dependencies": {
