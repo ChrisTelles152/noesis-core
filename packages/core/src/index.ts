@@ -41,4 +41,4 @@ export * from './logging/index.js';
 export { DEFAULT_SESSION_CONFIG } from './planning/index.js';
 
 // Version
-export const VERSION = '0.2.0';
+export const VERSION = '0.3.0-rc.0';
