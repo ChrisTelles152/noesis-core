@@ -25,6 +25,14 @@ import type { BKTParams } from '../learner/BKTEngine.js';
 import type { FSRSParams } from '../memory/FSRSScheduler.js';
 import type { SessionConfig } from '../constitution.js';
 import { validateBKTParams } from '../learner/BKTEngine.js';
+import type {
+  SkillCategoryModifier,
+  DrillingDiscountConfig,
+} from '../learner/MultiChannelBKTEngine.js';
+import type { LayeredMasteryConfig } from '../mastery/LayeredMasteryModel.js';
+import type { SessionBudgetConfig } from '../planning/BudgetedSessionPlanner.js';
+import type { FatigueConfig } from '../fatigue/FatigueDetector.js';
+import type { EloCalibratorConfig } from '../calibration/EloDifficultyCalibrator.js';
 
 /**
  * Channel identifier — a string ID for an assessment channel
@@ -93,21 +101,45 @@ export interface EngineConfigOverrides {
   responseTimeThresholdsMs?: ChannelResponseTimeOverrides;
 
   /**
-   * Reserved for upcoming H-1 modules. These fields are declared but unused
-   * until the corresponding modules land:
-   *   - layeredMastery: tunable Learned/Mastered thresholds (H-1.C.2)
-   *   - budgetedPlanner: review/error/new allocation, backlog control,
-   *     skill-introduction caps (H-1.D.1)
-   *   - fatigue: window size, latency/accuracy thresholds, session cap (H-1.B.1)
-   *   - calibrator: Elo K-factors, default rating, bounds (H-1.B.2)
-   *
-   * Adding them here as `unknown` lets pack manifests carry forward-compatible
-   * overrides today; the modules will type-narrow them on consumption.
+   * Layered mastery config — Learned/Mastered tier thresholds + cooling-off.
+   * (Typed in 0.3.0; was `unknown` in 0.3.0-rc earlier.)
    */
-  layeredMastery?: unknown;
-  budgetedPlanner?: unknown;
-  fatigue?: unknown;
-  calibrator?: unknown;
+  layeredMastery?: Partial<LayeredMasteryConfig>;
+
+  /**
+   * Budgeted session planner config — budget, review/error/new allocation,
+   * backlog control, skill-introduction caps.
+   */
+  budgetedPlanner?: Partial<SessionBudgetConfig>;
+
+  /**
+   * Fatigue detector config — window, latency/accuracy thresholds, session cap.
+   */
+  fatigue?: Partial<FatigueConfig>;
+
+  /**
+   * Elo difficulty calibrator config — K-factors, default rating, bounds.
+   */
+  calibrator?: Partial<EloCalibratorConfig>;
+
+  /**
+   * MultiChannelBKTEngine drilling discount — applied after N attempts in
+   * the same session.
+   */
+  drillingDiscount?: DrillingDiscountConfig;
+
+  /**
+   * Per-skill-category BKT modifiers (e.g. English grammar:
+   * `{ pLearnMultiplier: 0.85, pSlipAdd: 0.03 }`).
+   */
+  skillCategoryModifiers?: Record<string, SkillCategoryModifier>;
+
+  /**
+   * Pack-supplied item-type → channel mapping (e.g.
+   * `{ mcq: "recog_mc", cloze: "cloze", typing: "prod_typed" }`).
+   * Channel IDs are pack-defined.
+   */
+  itemTypeToChannel?: Record<string, Channel>;
 }
 
 /**
@@ -219,6 +251,108 @@ export function validateEngineConfigOverrides(
           message: `must be a positive finite number, got ${ms}`,
         });
       }
+    }
+  }
+
+  if (overrides.layeredMastery) {
+    const lm = overrides.layeredMastery;
+    if (lm.learned?.pMasteryThreshold !== undefined) {
+      const v = lm.learned.pMasteryThreshold;
+      if (v < 0 || v > 1) {
+        errors.push({
+          path: 'layeredMastery.learned.pMasteryThreshold',
+          message: `must be between 0 and 1, got ${v}`,
+        });
+      }
+    }
+    if (lm.learned?.minAttempts !== undefined && lm.learned.minAttempts < 0) {
+      errors.push({
+        path: 'layeredMastery.learned.minAttempts',
+        message: `must be >= 0, got ${lm.learned.minAttempts}`,
+      });
+    }
+    if (lm.mastered?.pMasteryThreshold !== undefined) {
+      const v = lm.mastered.pMasteryThreshold;
+      if (v < 0 || v > 1) {
+        errors.push({
+          path: 'layeredMastery.mastered.pMasteryThreshold',
+          message: `must be between 0 and 1, got ${v}`,
+        });
+      }
+    }
+    if (lm.mastered?.coolingOffHours !== undefined && lm.mastered.coolingOffHours < 0) {
+      errors.push({
+        path: 'layeredMastery.mastered.coolingOffHours',
+        message: `must be >= 0, got ${lm.mastered.coolingOffHours}`,
+      });
+    }
+  }
+
+  if (overrides.budgetedPlanner) {
+    const bp = overrides.budgetedPlanner;
+    if (bp.defaultBudget !== undefined && bp.defaultBudget <= 0) {
+      errors.push({
+        path: 'budgetedPlanner.defaultBudget',
+        message: `must be positive, got ${bp.defaultBudget}`,
+      });
+    }
+    if (bp.minBudget !== undefined && bp.maxBudget !== undefined && bp.minBudget > bp.maxBudget) {
+      errors.push({
+        path: 'budgetedPlanner',
+        message: `minBudget (${bp.minBudget}) must be <= maxBudget (${bp.maxBudget})`,
+      });
+    }
+  }
+
+  if (overrides.fatigue) {
+    const f = overrides.fatigue;
+    if (f.windowSize !== undefined && f.windowSize <= 0) {
+      errors.push({
+        path: 'fatigue.windowSize',
+        message: `must be positive, got ${f.windowSize}`,
+      });
+    }
+    if (f.sessionCapMs !== undefined && f.sessionCapMs <= 0) {
+      errors.push({
+        path: 'fatigue.sessionCapMs',
+        message: `must be positive, got ${f.sessionCapMs}`,
+      });
+    }
+  }
+
+  if (overrides.calibrator) {
+    const c = overrides.calibrator;
+    if (
+      c.minRating !== undefined &&
+      c.maxRating !== undefined &&
+      c.minRating > c.maxRating
+    ) {
+      errors.push({
+        path: 'calibrator',
+        message: `minRating (${c.minRating}) must be <= maxRating (${c.maxRating})`,
+      });
+    }
+    if (c.kLearner !== undefined && c.kLearner < 0) {
+      errors.push({
+        path: 'calibrator.kLearner',
+        message: `must be >= 0, got ${c.kLearner}`,
+      });
+    }
+  }
+
+  if (overrides.drillingDiscount) {
+    const d = overrides.drillingDiscount;
+    if (d.attemptsBeforeDiscount < 0) {
+      errors.push({
+        path: 'drillingDiscount.attemptsBeforeDiscount',
+        message: `must be >= 0, got ${d.attemptsBeforeDiscount}`,
+      });
+    }
+    if (d.multiplier < 0 || d.multiplier > 1) {
+      errors.push({
+        path: 'drillingDiscount.multiplier',
+        message: `must be between 0 and 1, got ${d.multiplier}`,
+      });
     }
   }
 

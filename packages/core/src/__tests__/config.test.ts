@@ -190,15 +190,125 @@ describe('EngineConfigOverrides', () => {
     });
   });
 
-  describe('forward-compatible reserved fields', () => {
-    it('accepts unknown layeredMastery / budgetedPlanner / fatigue / calibrator values', () => {
-      const overrides: EngineConfigOverrides = {
-        layeredMastery: { someFutureField: 'x' },
-        budgetedPlanner: 42,
-        fatigue: null,
-        calibrator: { K_LEARNER: 32 },
-      };
-      expect(validateEngineConfigOverrides(overrides)).toEqual([]);
+  describe('typed pack-supplied fields (0.3.0)', () => {
+    it('accepts a valid layeredMastery override', () => {
+      expect(
+        validateEngineConfigOverrides({
+          layeredMastery: {
+            learned: { pMasteryThreshold: 0.75, minAttempts: 3 },
+            mastered: {
+              pMasteryThreshold: 0.85,
+              minAttempts: 6,
+              minCorrect: 3,
+              minCalendarDays: 2,
+              coolingOffHours: 24,
+              requireLastCorrect: true,
+            },
+          },
+        })
+      ).toEqual([]);
+    });
+
+    it('rejects layeredMastery thresholds out of [0,1]', () => {
+      const errs = validateEngineConfigOverrides({
+        layeredMastery: {
+          learned: { pMasteryThreshold: 1.5, minAttempts: 3 },
+          mastered: {
+            pMasteryThreshold: -0.1,
+            minAttempts: 6,
+            minCorrect: 3,
+            minCalendarDays: 2,
+            coolingOffHours: 24,
+            requireLastCorrect: true,
+          },
+        },
+      });
+      expect(errs.map((e) => e.path).sort()).toEqual([
+        'layeredMastery.learned.pMasteryThreshold',
+        'layeredMastery.mastered.pMasteryThreshold',
+      ]);
+    });
+
+    it('accepts a valid budgetedPlanner override', () => {
+      expect(
+        validateEngineConfigOverrides({
+          budgetedPlanner: { defaultBudget: 18, minBudget: 15, maxBudget: 20 },
+        })
+      ).toEqual([]);
+    });
+
+    it('rejects min > max budget', () => {
+      const errs = validateEngineConfigOverrides({
+        budgetedPlanner: { minBudget: 25, maxBudget: 15 },
+      });
+      expect(errs).toHaveLength(1);
+      expect(errs[0].path).toBe('budgetedPlanner');
+    });
+
+    it('accepts a valid fatigue override', () => {
+      expect(
+        validateEngineConfigOverrides({
+          fatigue: {
+            windowSize: 10,
+            latencyIncreaseThreshold: 0.2,
+            accuracyDecreaseThreshold: 0.1,
+            sessionCapMs: 900_000,
+            minSamplesForDetection: 6,
+          },
+        })
+      ).toEqual([]);
+    });
+
+    it('rejects non-positive fatigue windowSize / sessionCapMs', () => {
+      const errs = validateEngineConfigOverrides({
+        fatigue: { windowSize: 0, sessionCapMs: -1 },
+      });
+      expect(errs.map((e) => e.path).sort()).toEqual([
+        'fatigue.sessionCapMs',
+        'fatigue.windowSize',
+      ]);
+    });
+
+    it('accepts a valid calibrator override', () => {
+      expect(
+        validateEngineConfigOverrides({
+          calibrator: {
+            defaultRating: 1200,
+            kLearner: 32,
+            kItem: 16,
+            minRating: 100,
+            maxRating: 3000,
+          },
+        })
+      ).toEqual([]);
+    });
+
+    it('rejects calibrator min > max rating', () => {
+      const errs = validateEngineConfigOverrides({
+        calibrator: { minRating: 3000, maxRating: 100 },
+      });
+      expect(errs).toHaveLength(1);
+      expect(errs[0].path).toBe('calibrator');
+    });
+
+    it('accepts drillingDiscount + skillCategoryModifiers + itemTypeToChannel', () => {
+      expect(
+        validateEngineConfigOverrides({
+          drillingDiscount: { attemptsBeforeDiscount: 2, multiplier: 0.3 },
+          skillCategoryModifiers: {
+            grammar: { pLearnMultiplier: 0.85, pSlipAdd: 0.03 },
+          },
+          itemTypeToChannel: { mcq: 'recog_mc', cloze: 'cloze' },
+        })
+      ).toEqual([]);
+    });
+
+    it('rejects drillingDiscount.multiplier outside [0,1]', () => {
+      const errs = validateEngineConfigOverrides({
+        drillingDiscount: { attemptsBeforeDiscount: 2, multiplier: 1.5 },
+      });
+      expect(errs).toHaveLength(1);
+      expect(errs[0].path).toBe('drillingDiscount.multiplier');
     });
   });
 });

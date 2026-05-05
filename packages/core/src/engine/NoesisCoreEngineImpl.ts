@@ -45,6 +45,10 @@ import { createTransferGate, type TransferGateConfig } from '../transfer/index.j
 import { createDiagnosticEngine, type DiagnosticConfig } from '../diagnostic/index.js';
 import type { ClockFn, IdGeneratorFn, EventFactoryContext } from '../events/index.js';
 import {
+  assertValidEngineConfigOverrides,
+  type EngineConfigOverrides,
+} from '../config/index.js';
+import {
   createEventFactoryContext,
   createImplicitCreditEvent,
   requireClock,
@@ -140,6 +144,22 @@ export interface CoreEngineConfig {
   /** Minimum learning speed required to receive implicit credit. Default 1.0.
    *  Learners below this speed on a skill must practice it explicitly. */
   implicitCreditMinSpeed?: number;
+  /**
+   * Pack-supplied engine configuration overrides (introduced in 0.3.0).
+   *
+   * When supplied, these are validated eagerly via
+   * `assertValidEngineConfigOverrides` in the constructor. The global
+   * fields (`bktDefaults`, `fsrs`, `session`) are merged into the
+   * legacy per-component config above as a fallback — the explicit
+   * `bkt` / `fsrs` / `planner` fields above still win when both are set.
+   *
+   * Per-channel and pack-specific fields (`bktChannels`,
+   * `responseTimeThresholdsMs`, `skillCategoryModifiers`,
+   * `itemTypeToChannel`, `layeredMastery`, `budgetedPlanner`,
+   * `fatigue`, `calibrator`, `drillingDiscount`) are stashed verbatim
+   * and exposed via `getConfigOverrides()` for MCBKT-aware consumers.
+   */
+  overrides?: EngineConfigOverrides;
 }
 
 /**
@@ -187,6 +207,8 @@ export class NoesisCoreEngineImpl implements NoesisCoreEngine {
   private readonly implicitCreditFraction: number;
   private readonly implicitCreditMinSpeed: number;
   private readonly eventContext: EventFactoryContext;
+  /** Pack-supplied overrides (frozen on construction). */
+  private readonly configOverrides?: EngineConfigOverrides;
 
   // Internal state
   private learnerModels: Map<string, LearnerModel> = new Map();
@@ -225,15 +247,29 @@ export class NoesisCoreEngineImpl implements NoesisCoreEngine {
     this.graph = skillGraph;
     this.clock = requireClock(clock);
     this.idGenerator = requireIdGenerator(idGenerator);
-    this.plannerConfig = config.planner || {};
+
+    // Validate pack-supplied overrides eagerly — bad values fail at engine
+    // construction, not at first practice event.
+    if (config.overrides) {
+      assertValidEngineConfigOverrides(config.overrides);
+    }
+    this.configOverrides = config.overrides;
+
+    // Merge override.session into the legacy planner config (planner config
+    // is a SessionConfig superset). Explicit config.planner still wins.
+    const sessionFromOverrides = config.overrides?.session ?? {};
+    this.plannerConfig = { ...sessionFromOverrides, ...(config.planner || {}) };
     this.ratingConfig = { ...DEFAULT_RATING_CONFIG, ...config.rating };
     this.implicitCreditFraction = config.implicitCreditFraction ?? 0.5;
     this.implicitCreditMinSpeed = config.implicitCreditMinSpeed ?? 1.0;
     this.eventContext = createEventFactoryContext(this.clock, this.idGenerator);
 
-    // Initialize components
-    this.learnerEngine = createBKTEngine(config.bkt, this.clock);
-    this.memoryScheduler = createFSRSScheduler(config.fsrs, this.clock);
+    // Initialize components. Explicit per-component config (bkt / fsrs)
+    // takes precedence over override.bktDefaults / override.fsrs.
+    const bktConfig = config.bkt ?? config.overrides?.bktDefaults;
+    const fsrsConfig = config.fsrs ?? config.overrides?.fsrs;
+    this.learnerEngine = createBKTEngine(bktConfig, this.clock);
+    this.memoryScheduler = createFSRSScheduler(fsrsConfig, this.clock);
     this.transferGate = createTransferGate(config.transfer);
     this.diagnosticEngine = createDiagnosticEngine(config.diagnostic);
 
@@ -901,6 +937,17 @@ export class NoesisCoreEngineImpl implements NoesisCoreEngine {
    */
   getCurrentTime(): number {
     return this.clock();
+  }
+
+  /**
+   * Get the pack-supplied EngineConfigOverrides this engine was constructed
+   * with, or `undefined` if none were supplied. MCBKT-aware consumers
+   * (LayeredMasteryModel, BudgetedSessionPlanner, FatigueDetector,
+   * EloDifficultyCalibrator) can read per-channel + pack-specific tuning
+   * from this surface. Added in 0.3.0.
+   */
+  getConfigOverrides(): EngineConfigOverrides | undefined {
+    return this.configOverrides;
   }
 }
 
