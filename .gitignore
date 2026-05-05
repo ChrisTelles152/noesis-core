@@ -12,6 +12,9 @@ server/public
 # Testing
 coverage
 
+# Phase H equivalence framework run reports — regenerated on every run
+packages/core/tests/outputs/
+
 # Environment
 .env
 .env.local

@@ -1,0 +1,15 @@
+{
+  "fixtureVersion": "1.0.0",
+  "id": "smoke-mcbkt-001",
+  "concern": "bkt-multichannel",
+  "description": "10-event MultiChannelBKTEngine smoke fixture exercising cold-init, multi-channel state separation, drilling-discount activation after the third attempt on the same (skill, channel), the skillCategoryModifier path (grammar pLearnMultiplier=0.85 / pSlipAdd=0.03), correct + incorrect updates, and cross-UTC-day correctDays accumulation. Authored alongside the noesis-core agent's smoke run of noesis-proof's phaseh-equivalence framework against core 0.3.0-rc.0.",
+  "producedBy": "noesis-core/phaseh-equivalence-smoke",
+  "producedAt": "2026-05-05T00:00:00Z",
+  "engineModulesUnderTest": ["MultiChannelBKTEngine"],
+  "packId": "smoke-test-pack",
+  "packVersion": "0.0.0",
+  "seedTime": 1704067200000,
+  "learnerId": "smoke-learner-mcbkt-001",
+  "sessionId": "smoke-session-mcbkt-001",
+  "stateShapeVersion": "1.0.0"
+}
