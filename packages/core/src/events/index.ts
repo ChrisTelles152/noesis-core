@@ -16,6 +16,9 @@ import type {
   SessionEvent,
   SessionConfig,
   ImplicitCreditEvent,
+  CognitiveStateEvent,
+  CognitiveStateVector,
+  StageCompletedEvent,
 } from '../constitution.js';
 
 export type {
@@ -25,6 +28,11 @@ export type {
   TransferTestEvent,
   SessionEvent,
   NoesisEvent,
+  CognitiveStateEvent,
+  CognitiveStateVector,
+  CognitiveStateMeasurement,
+  StageCompletedEvent,
+  CanonicalStage,
 } from '../constitution.js';
 
 /**
@@ -43,28 +51,40 @@ export type ClockFn = () => number;
 export type IdGeneratorFn = () => string;
 
 /**
- * Default clock using Date.now()
+ * Runtime guard — throws if `clock` is not a function.
  *
- * NOTE: This is a NON-DETERMINISTIC default for convenience.
- * For deterministic operation (testing, replay), inject a custom clock.
+ * Used by Core constructors to enforce the determinism contract:
+ * the wall clock must be injected by the caller. JavaScript callers that
+ * bypass TypeScript's required-parameter check still hit this guard.
+ *
+ * For replay/test, use `createDeterministicEngine(...)`.
+ * For production paths that need wall-clock time, use `createSystemEngine(...)`,
+ * which opts in to `Date.now()` explicitly.
  */
-export const defaultClock: ClockFn = () => Date.now();
+export function requireClock(clock: ClockFn | undefined): ClockFn {
+  if (typeof clock !== 'function') {
+    throw new Error(
+      'Noesis: clock must be injected. Use createDeterministicEngine(...) for replay, ' +
+        'or createSystemEngine(...) for production paths that opt in to Date.now().'
+    );
+  }
+  return clock;
+}
 
 /**
- * Default ID generator using UUID v4
+ * Runtime guard — throws if `idGenerator` is not a function.
  *
- * NOTE: This is a NON-DETERMINISTIC default for convenience.
- * For deterministic operation (testing, replay), use createDeterministicIdGenerator()
- * or inject a custom ID generator.
+ * Counterpart to {@link requireClock}. Same contract, same escape hatches.
  */
-export const defaultIdGenerator: IdGeneratorFn = (): string => {
-  // Simple UUID v4 implementation (no dependencies)
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
-    const r = (Math.random() * 16) | 0;
-    const v = c === 'x' ? r : (r & 0x3) | 0x8;
-    return v.toString(16);
-  });
-};
+export function requireIdGenerator(idGenerator: IdGeneratorFn | undefined): IdGeneratorFn {
+  if (typeof idGenerator !== 'function') {
+    throw new Error(
+      'Noesis: idGenerator must be injected. Use createDeterministicEngine(...) for replay, ' +
+        'or createSystemEngine(...) for production paths that opt in to crypto.randomUUID().'
+    );
+  }
+  return idGenerator;
+}
 
 /**
  * Create a deterministic ID generator for testing/replay
@@ -84,13 +104,14 @@ export interface EventFactoryContext {
 }
 
 /**
- * Create default factory context
+ * Create an event factory context. Both `clock` and `idGenerator` are required —
+ * silent defaults are not allowed. See {@link requireClock} for the rationale.
  */
 export function createEventFactoryContext(
-  clock: ClockFn = defaultClock,
-  idGenerator: IdGeneratorFn = defaultIdGenerator
+  clock: ClockFn,
+  idGenerator: IdGeneratorFn
 ): EventFactoryContext {
-  return { clock, idGenerator };
+  return { clock: requireClock(clock), idGenerator: requireIdGenerator(idGenerator) };
 }
 
 /**
@@ -242,6 +263,57 @@ export function createSessionEndEvent(
     sessionId,
     timestamp: ctx.clock(),
     summary,
+  };
+}
+
+/**
+ * Create a CognitiveStateEvent (NALS).
+ *
+ * The factory uses `ctx.clock` for `timestamp` and `ctx.idGenerator` for `id`.
+ * The vector itself is supplied by the caller (typically an attention/affect
+ * adapter that already filled in per-measurement timestamps and confidences).
+ */
+export function createCognitiveStateEvent(
+  ctx: EventFactoryContext,
+  learnerId: string,
+  sessionId: string,
+  vector: CognitiveStateVector
+): CognitiveStateEvent {
+  return {
+    id: ctx.idGenerator(),
+    type: 'cognitive_state',
+    learnerId,
+    sessionId,
+    timestamp: ctx.clock(),
+    vector,
+  };
+}
+
+/**
+ * Create a StageCompletedEvent for a non-practice stage.
+ *
+ * Use for `concept_introduction` (learner finished the intro screen) and
+ * `reflection` (learner wrote a reflection). Practice and application stages
+ * are recorded automatically via {@link createPracticeEvent} (set
+ * `PracticeEvent.stage = 'application'` to mark application).
+ */
+export function createStageCompletedEvent(
+  ctx: EventFactoryContext,
+  learnerId: string,
+  sessionId: string,
+  skillId: string,
+  stage: 'concept_introduction' | 'reflection',
+  options: { notes?: string } = {}
+): StageCompletedEvent {
+  return {
+    id: ctx.idGenerator(),
+    type: 'stage_completed',
+    learnerId,
+    sessionId,
+    timestamp: ctx.clock(),
+    skillId,
+    stage,
+    notes: options.notes,
   };
 }
 

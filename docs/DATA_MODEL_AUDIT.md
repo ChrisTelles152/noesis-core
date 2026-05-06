@@ -30,7 +30,14 @@
 
 ## Critical Gaps
 
-### Gap 1: Core Engine State Never Persisted (CRITICAL)
+> **Resolution status (2026-05-02):** Gap 1 and Gap 2 below are both
+> RESOLVED. The narrative is preserved as historical context. See the
+> "RESOLVED" notes inline; current state is documented in
+> [`docs/API_REFERENCE.md`](./API_REFERENCE.md) and the engine
+> implementation. Gap 3 (two mastery systems) is also closed —
+> `MasteryTracker` is `@deprecated` and `CoreEngineAdapter` is canonical.
+
+### Gap 1: Core Engine State Never Persisted (CRITICAL) — RESOLVED
 
 The core engine maintains four pieces of internal state:
 - `learnerModels: Map<string, LearnerModel>` — BKT probability estimates per skill per learner
@@ -40,14 +47,31 @@ The core engine maintains four pieces of internal state:
 
 The engine has `exportState()` (serializes all to JSON string) and `importState()` (restores from JSON string). The `NoesisStateStore` interface (`packages/core/src/persistence/index.ts`) defines `load(learnerId)` and `save(learnerId, state)` methods.
 
-**But nobody calls them:**
+**But nobody calls them:** *(historical text — no longer accurate)*
 - `apps/server/routes.ts` — never references the core engine at all
 - `packages/sdk-web/src/core/CoreEngineAdapter.ts` — creates engine but never persists state
 - `packages/sdk-web/src/NoesisSDK.ts` — wraps CoreEngineAdapter but adds no persistence
 
-**Impact:** Every server restart or page refresh resets learners to cold-start. All mastery progress, spaced repetition schedules, and diagnostic results are lost.
+**Impact (historical):** Every server restart or page refresh resets learners to cold-start. All mastery progress, spaced repetition schedules, and diagnostic results are lost.
 
-### Gap 2: Server Events Incompatible with Core Engine Events (CRITICAL)
+**RESOLVED:**
+
+- **Server side.** `engine_states` table stores per-user snapshots
+  (`shared/schema.ts`). `IStorage.saveEngineState` / `loadEngineState` are
+  implemented in MemStorage / DatabaseStorage / SqliteStorage. Routes
+  `PUT /api/engine/state` and `GET /api/engine/state` upsert / read
+  snapshots. The Phase E `EngineManager` (`apps/server/engine-manager.ts`)
+  hydrates a per-user engine on first access by importing the snapshot
+  (or replaying the event log when no snapshot exists, including a
+  graceful fall-through path for corrupt snapshots).
+- **Client side.** `CoreEngineAdapter.persistTo(transport)` /
+  `hydrate(transport)` / `flush()` (Phase B) install autosave through a
+  `PersistenceTransport`. `httpTransport(url)` ships matching the
+  server's `PUT/GET /api/engine/state` wire format. `useNoesisSDK`
+  wires both ends so the demo persists every mutation within ~1s and
+  rehydrates on next mount.
+
+### Gap 2: Server Events Incompatible with Core Engine Events (CRITICAL) — RESOLVED
 
 The server stores events as:
 ```typescript
@@ -70,9 +94,20 @@ The core engine expects:
 - Server events have no `sessionId` or `id` (UUID) fields
 - Core events are strongly typed with discriminated unions; server events are string-typed
 
-**Impact:** Cannot replay server-stored events through `engine.replayEvents()`. Cannot reconstruct learner state from the database. Breaks the determinism/replay contract defined in the Core SDK Constitution.
+**Impact (historical):** Cannot replay server-stored events through `engine.replayEvents()`. Cannot reconstruct learner state from the database. Breaks the determinism/replay contract defined in the Core SDK Constitution.
 
-### Gap 3: Two Independent Mastery Systems (HIGH)
+**RESOLVED:** `apps/server/event-bridge.ts` provides the bidirectional
+converter. `coreEventToLearningEvent(userId, event)` wraps the canonical
+`NoesisEvent` JSON-serialized inside `learning_events.data._coreEvent`,
+preserving every field. `extractCoreEvents(rows)` filters and sorts
+core events back out of stored learning events for replay through
+`engine.replayEvents()`. Routes `POST /api/core/events`,
+`POST /api/core/events/batch`, and `GET /api/core/events` use the
+bridge. The Phase E `EngineManager.hydrateEngine()` calls
+`extractCoreEvents` as a fallback hydration path. Composes with Phase A
+determinism: the rebuild is byte-identical when events are intact.
+
+### Gap 3: Two Independent Mastery Systems (HIGH) — RESOLVED
 
 | System | Location | Algorithm | State |
 |--------|----------|-----------|-------|
@@ -80,6 +115,13 @@ The core engine expects:
 | SDK MasteryTracker | `packages/sdk-web/src/policies/mastery.ts` | Weighted moving average + exponential spacing | `LearningObjective[]` with progress/attempts |
 
 These track the same concept (skill mastery) with completely different algorithms, different data structures, and different interfaces. A learner's mastery could be 0.9 in the core engine and 0.3 in MasteryTracker simultaneously.
+
+**RESOLVED:** `MasteryTracker` is now `@deprecated` (full JSDoc at
+`packages/sdk-web/src/policies/mastery.ts`). `CoreEngineAdapter` is the
+canonical mastery surface. `NoesisSDK.recordPractice()` syncs events to
+both for back-compat with existing demo code, but new consumers should
+use `sdk.core` exclusively. The legacy tracker will be removed when no
+demo code depends on it.
 
 ---
 
@@ -108,7 +150,6 @@ These track the same concept (skill mastery) with completely different algorithm
 | `verifyPassword` | YES | YES | YES | YES |
 | `getUserByGoogleId` | YES (after fix) | YES (after fix) | YES (after fix) | YES |
 | `createGoogleUser` | YES (after fix) | YES (after fix) | YES (after fix) | YES |
-| `linkGoogleAccount` | NO | NO | NO | YES (SQLite only) |
 | `createLearningEvent` | YES | YES | YES | YES |
 | `getLearningEvent` | YES | YES | YES | YES |
 | `getLearningEventsByUserId` | YES | YES | YES | YES |

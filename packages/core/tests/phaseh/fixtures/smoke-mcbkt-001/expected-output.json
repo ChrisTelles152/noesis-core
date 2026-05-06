@@ -1,0 +1,592 @@
+{
+  "snapshotsAfterEvent": [
+    {
+      "eventIndex": 0,
+      "state": {
+        "skills": {
+          "grammar.simple_present": {
+            "recog_mc": {
+              "skillId": "grammar.simple_present",
+              "channel": "recog_mc",
+              "pMastery": 0.6497993119266056,
+              "attempts": 1,
+              "correctCount": 1,
+              "sessionAttempts": 1,
+              "currentSessionId": "smoke-session-mcbkt-001",
+              "correctDays": ["2024-01-01"],
+              "firstSeenAt": 1704067260000,
+              "firstCorrectAt": 1704067260000,
+              "lastAttemptAt": 1704067260000,
+              "lastCorrect": true,
+              "lastUpdated": 1704067260000
+            }
+          }
+        }
+      }
+    },
+    {
+      "eventIndex": 1,
+      "state": {
+        "skills": {
+          "grammar.simple_present": {
+            "recog_mc": {
+              "skillId": "grammar.simple_present",
+              "channel": "recog_mc",
+              "pMastery": 0.8829983411864415,
+              "attempts": 2,
+              "correctCount": 2,
+              "sessionAttempts": 2,
+              "currentSessionId": "smoke-session-mcbkt-001",
+              "correctDays": ["2024-01-01"],
+              "firstSeenAt": 1704067260000,
+              "firstCorrectAt": 1704067260000,
+              "lastAttemptAt": 1704067320000,
+              "lastCorrect": true,
+              "lastUpdated": 1704067320000
+            }
+          }
+        }
+      }
+    },
+    {
+      "eventIndex": 2,
+      "state": {
+        "skills": {
+          "grammar.simple_present": {
+            "recog_mc": {
+              "skillId": "grammar.simple_present",
+              "channel": "recog_mc",
+              "pMastery": 0.9647234687361852,
+              "attempts": 3,
+              "correctCount": 3,
+              "sessionAttempts": 3,
+              "currentSessionId": "smoke-session-mcbkt-001",
+              "correctDays": ["2024-01-01"],
+              "firstSeenAt": 1704067260000,
+              "firstCorrectAt": 1704067260000,
+              "lastAttemptAt": 1704067380000,
+              "lastCorrect": true,
+              "lastUpdated": 1704067380000
+            }
+          }
+        }
+      }
+    },
+    {
+      "eventIndex": 3,
+      "state": {
+        "skills": {
+          "grammar.simple_present": {
+            "cloze": {
+              "skillId": "grammar.simple_present",
+              "channel": "cloze",
+              "pMastery": 0.6284137931034482,
+              "attempts": 1,
+              "correctCount": 1,
+              "sessionAttempts": 1,
+              "currentSessionId": "smoke-session-mcbkt-001",
+              "correctDays": ["2024-01-01"],
+              "firstSeenAt": 1704067440000,
+              "firstCorrectAt": 1704067440000,
+              "lastAttemptAt": 1704067440000,
+              "lastCorrect": true,
+              "lastUpdated": 1704067440000
+            },
+            "recog_mc": {
+              "skillId": "grammar.simple_present",
+              "channel": "recog_mc",
+              "pMastery": 0.9647234687361852,
+              "attempts": 3,
+              "correctCount": 3,
+              "sessionAttempts": 3,
+              "currentSessionId": "smoke-session-mcbkt-001",
+              "correctDays": ["2024-01-01"],
+              "firstSeenAt": 1704067260000,
+              "firstCorrectAt": 1704067260000,
+              "lastAttemptAt": 1704067380000,
+              "lastCorrect": true,
+              "lastUpdated": 1704067380000
+            }
+          }
+        }
+      }
+    },
+    {
+      "eventIndex": 4,
+      "state": {
+        "skills": {
+          "grammar.simple_present": {
+            "cloze": {
+              "skillId": "grammar.simple_present",
+              "channel": "cloze",
+              "pMastery": 0.6284137931034482,
+              "attempts": 1,
+              "correctCount": 1,
+              "sessionAttempts": 1,
+              "currentSessionId": "smoke-session-mcbkt-001",
+              "correctDays": ["2024-01-01"],
+              "firstSeenAt": 1704067440000,
+              "firstCorrectAt": 1704067440000,
+              "lastAttemptAt": 1704067440000,
+              "lastCorrect": true,
+              "lastUpdated": 1704067440000
+            },
+            "recog_mc": {
+              "skillId": "grammar.simple_present",
+              "channel": "recog_mc",
+              "pMastery": 0.8324543351596934,
+              "attempts": 4,
+              "correctCount": 3,
+              "sessionAttempts": 4,
+              "currentSessionId": "smoke-session-mcbkt-001",
+              "correctDays": ["2024-01-01"],
+              "firstSeenAt": 1704067260000,
+              "firstCorrectAt": 1704067260000,
+              "lastAttemptAt": 1704067500000,
+              "lastCorrect": false,
+              "lastUpdated": 1704067500000
+            }
+          }
+        }
+      }
+    },
+    {
+      "eventIndex": 5,
+      "state": {
+        "skills": {
+          "grammar.simple_present": {
+            "cloze": {
+              "skillId": "grammar.simple_present",
+              "channel": "cloze",
+              "pMastery": 0.6284137931034482,
+              "attempts": 1,
+              "correctCount": 1,
+              "sessionAttempts": 1,
+              "currentSessionId": "smoke-session-mcbkt-001",
+              "correctDays": ["2024-01-01"],
+              "firstSeenAt": 1704067440000,
+              "firstCorrectAt": 1704067440000,
+              "lastAttemptAt": 1704067440000,
+              "lastCorrect": true,
+              "lastUpdated": 1704067440000
+            },
+            "recog_mc": {
+              "skillId": "grammar.simple_present",
+              "channel": "recog_mc",
+              "pMastery": 0.8324543351596934,
+              "attempts": 4,
+              "correctCount": 3,
+              "sessionAttempts": 4,
+              "currentSessionId": "smoke-session-mcbkt-001",
+              "correctDays": ["2024-01-01"],
+              "firstSeenAt": 1704067260000,
+              "firstCorrectAt": 1704067260000,
+              "lastAttemptAt": 1704067500000,
+              "lastCorrect": false,
+              "lastUpdated": 1704067500000
+            }
+          },
+          "vocab.greetings": {
+            "recog_mc": {
+              "skillId": "vocab.greetings",
+              "channel": "recog_mc",
+              "pMastery": 0.6657303370786517,
+              "attempts": 1,
+              "correctCount": 1,
+              "sessionAttempts": 1,
+              "currentSessionId": "smoke-session-mcbkt-001",
+              "correctDays": ["2024-01-01"],
+              "firstSeenAt": 1704067560000,
+              "firstCorrectAt": 1704067560000,
+              "lastAttemptAt": 1704067560000,
+              "lastCorrect": true,
+              "lastUpdated": 1704067560000
+            }
+          }
+        }
+      }
+    },
+    {
+      "eventIndex": 6,
+      "state": {
+        "skills": {
+          "grammar.simple_present": {
+            "cloze": {
+              "skillId": "grammar.simple_present",
+              "channel": "cloze",
+              "pMastery": 0.6284137931034482,
+              "attempts": 1,
+              "correctCount": 1,
+              "sessionAttempts": 1,
+              "currentSessionId": "smoke-session-mcbkt-001",
+              "correctDays": ["2024-01-01"],
+              "firstSeenAt": 1704067440000,
+              "firstCorrectAt": 1704067440000,
+              "lastAttemptAt": 1704067440000,
+              "lastCorrect": true,
+              "lastUpdated": 1704067440000
+            },
+            "recog_mc": {
+              "skillId": "grammar.simple_present",
+              "channel": "recog_mc",
+              "pMastery": 0.8324543351596934,
+              "attempts": 4,
+              "correctCount": 3,
+              "sessionAttempts": 4,
+              "currentSessionId": "smoke-session-mcbkt-001",
+              "correctDays": ["2024-01-01"],
+              "firstSeenAt": 1704067260000,
+              "firstCorrectAt": 1704067260000,
+              "lastAttemptAt": 1704067500000,
+              "lastCorrect": false,
+              "lastUpdated": 1704067500000
+            }
+          },
+          "vocab.greetings": {
+            "recog_mc": {
+              "skillId": "vocab.greetings",
+              "channel": "recog_mc",
+              "pMastery": 0.3283532536520585,
+              "attempts": 2,
+              "correctCount": 1,
+              "sessionAttempts": 2,
+              "currentSessionId": "smoke-session-mcbkt-001",
+              "correctDays": ["2024-01-01"],
+              "firstSeenAt": 1704067560000,
+              "firstCorrectAt": 1704067560000,
+              "lastAttemptAt": 1704067620000,
+              "lastCorrect": false,
+              "lastUpdated": 1704067620000
+            }
+          }
+        }
+      }
+    },
+    {
+      "eventIndex": 7,
+      "state": {
+        "skills": {
+          "grammar.simple_present": {
+            "cloze": {
+              "skillId": "grammar.simple_present",
+              "channel": "cloze",
+              "pMastery": 0.6284137931034482,
+              "attempts": 1,
+              "correctCount": 1,
+              "sessionAttempts": 1,
+              "currentSessionId": "smoke-session-mcbkt-001",
+              "correctDays": ["2024-01-01"],
+              "firstSeenAt": 1704067440000,
+              "firstCorrectAt": 1704067440000,
+              "lastAttemptAt": 1704067440000,
+              "lastCorrect": true,
+              "lastUpdated": 1704067440000
+            },
+            "prod_typed": {
+              "skillId": "grammar.simple_present",
+              "channel": "prod_typed",
+              "pMastery": 0.7650302114803624,
+              "attempts": 1,
+              "correctCount": 1,
+              "sessionAttempts": 1,
+              "currentSessionId": "smoke-session-mcbkt-001",
+              "correctDays": ["2024-01-01"],
+              "firstSeenAt": 1704067680000,
+              "firstCorrectAt": 1704067680000,
+              "lastAttemptAt": 1704067680000,
+              "lastCorrect": true,
+              "lastUpdated": 1704067680000
+            },
+            "recog_mc": {
+              "skillId": "grammar.simple_present",
+              "channel": "recog_mc",
+              "pMastery": 0.8324543351596934,
+              "attempts": 4,
+              "correctCount": 3,
+              "sessionAttempts": 4,
+              "currentSessionId": "smoke-session-mcbkt-001",
+              "correctDays": ["2024-01-01"],
+              "firstSeenAt": 1704067260000,
+              "firstCorrectAt": 1704067260000,
+              "lastAttemptAt": 1704067500000,
+              "lastCorrect": false,
+              "lastUpdated": 1704067500000
+            }
+          },
+          "vocab.greetings": {
+            "recog_mc": {
+              "skillId": "vocab.greetings",
+              "channel": "recog_mc",
+              "pMastery": 0.3283532536520585,
+              "attempts": 2,
+              "correctCount": 1,
+              "sessionAttempts": 2,
+              "currentSessionId": "smoke-session-mcbkt-001",
+              "correctDays": ["2024-01-01"],
+              "firstSeenAt": 1704067560000,
+              "firstCorrectAt": 1704067560000,
+              "lastAttemptAt": 1704067620000,
+              "lastCorrect": false,
+              "lastUpdated": 1704067620000
+            }
+          }
+        }
+      }
+    },
+    {
+      "eventIndex": 8,
+      "state": {
+        "skills": {
+          "grammar.simple_present": {
+            "cloze": {
+              "skillId": "grammar.simple_present",
+              "channel": "cloze",
+              "pMastery": 0.6284137931034482,
+              "attempts": 1,
+              "correctCount": 1,
+              "sessionAttempts": 1,
+              "currentSessionId": "smoke-session-mcbkt-001",
+              "correctDays": ["2024-01-01"],
+              "firstSeenAt": 1704067440000,
+              "firstCorrectAt": 1704067440000,
+              "lastAttemptAt": 1704067440000,
+              "lastCorrect": true,
+              "lastUpdated": 1704067440000
+            },
+            "prod_typed": {
+              "skillId": "grammar.simple_present",
+              "channel": "prod_typed",
+              "pMastery": 0.7650302114803624,
+              "attempts": 1,
+              "correctCount": 1,
+              "sessionAttempts": 1,
+              "currentSessionId": "smoke-session-mcbkt-001",
+              "correctDays": ["2024-01-01"],
+              "firstSeenAt": 1704067680000,
+              "firstCorrectAt": 1704067680000,
+              "lastAttemptAt": 1704067680000,
+              "lastCorrect": true,
+              "lastUpdated": 1704067680000
+            },
+            "recog_mc": {
+              "skillId": "grammar.simple_present",
+              "channel": "recog_mc",
+              "pMastery": 0.8324543351596934,
+              "attempts": 4,
+              "correctCount": 3,
+              "sessionAttempts": 4,
+              "currentSessionId": "smoke-session-mcbkt-001",
+              "correctDays": ["2024-01-01"],
+              "firstSeenAt": 1704067260000,
+              "firstCorrectAt": 1704067260000,
+              "lastAttemptAt": 1704067500000,
+              "lastCorrect": false,
+              "lastUpdated": 1704067500000
+            }
+          },
+          "vocab.greetings": {
+            "cloze": {
+              "skillId": "vocab.greetings",
+              "channel": "cloze",
+              "pMastery": 0.6432432432432432,
+              "attempts": 1,
+              "correctCount": 1,
+              "sessionAttempts": 1,
+              "currentSessionId": "smoke-session-mcbkt-001",
+              "correctDays": ["2024-01-01"],
+              "firstSeenAt": 1704067740000,
+              "firstCorrectAt": 1704067740000,
+              "lastAttemptAt": 1704067740000,
+              "lastCorrect": true,
+              "lastUpdated": 1704067740000
+            },
+            "recog_mc": {
+              "skillId": "vocab.greetings",
+              "channel": "recog_mc",
+              "pMastery": 0.3283532536520585,
+              "attempts": 2,
+              "correctCount": 1,
+              "sessionAttempts": 2,
+              "currentSessionId": "smoke-session-mcbkt-001",
+              "correctDays": ["2024-01-01"],
+              "firstSeenAt": 1704067560000,
+              "firstCorrectAt": 1704067560000,
+              "lastAttemptAt": 1704067620000,
+              "lastCorrect": false,
+              "lastUpdated": 1704067620000
+            }
+          }
+        }
+      }
+    },
+    {
+      "eventIndex": 9,
+      "state": {
+        "skills": {
+          "grammar.simple_present": {
+            "cloze": {
+              "skillId": "grammar.simple_present",
+              "channel": "cloze",
+              "pMastery": 0.9151491102953212,
+              "attempts": 2,
+              "correctCount": 2,
+              "sessionAttempts": 2,
+              "currentSessionId": "smoke-session-mcbkt-001",
+              "correctDays": ["2024-01-01", "2024-01-02"],
+              "firstSeenAt": 1704067440000,
+              "firstCorrectAt": 1704067440000,
+              "lastAttemptAt": 1704153660000,
+              "lastCorrect": true,
+              "lastUpdated": 1704153660000
+            },
+            "prod_typed": {
+              "skillId": "grammar.simple_present",
+              "channel": "prod_typed",
+              "pMastery": 0.7650302114803624,
+              "attempts": 1,
+              "correctCount": 1,
+              "sessionAttempts": 1,
+              "currentSessionId": "smoke-session-mcbkt-001",
+              "correctDays": ["2024-01-01"],
+              "firstSeenAt": 1704067680000,
+              "firstCorrectAt": 1704067680000,
+              "lastAttemptAt": 1704067680000,
+              "lastCorrect": true,
+              "lastUpdated": 1704067680000
+            },
+            "recog_mc": {
+              "skillId": "grammar.simple_present",
+              "channel": "recog_mc",
+              "pMastery": 0.8324543351596934,
+              "attempts": 4,
+              "correctCount": 3,
+              "sessionAttempts": 4,
+              "currentSessionId": "smoke-session-mcbkt-001",
+              "correctDays": ["2024-01-01"],
+              "firstSeenAt": 1704067260000,
+              "firstCorrectAt": 1704067260000,
+              "lastAttemptAt": 1704067500000,
+              "lastCorrect": false,
+              "lastUpdated": 1704067500000
+            }
+          },
+          "vocab.greetings": {
+            "cloze": {
+              "skillId": "vocab.greetings",
+              "channel": "cloze",
+              "pMastery": 0.6432432432432432,
+              "attempts": 1,
+              "correctCount": 1,
+              "sessionAttempts": 1,
+              "currentSessionId": "smoke-session-mcbkt-001",
+              "correctDays": ["2024-01-01"],
+              "firstSeenAt": 1704067740000,
+              "firstCorrectAt": 1704067740000,
+              "lastAttemptAt": 1704067740000,
+              "lastCorrect": true,
+              "lastUpdated": 1704067740000
+            },
+            "recog_mc": {
+              "skillId": "vocab.greetings",
+              "channel": "recog_mc",
+              "pMastery": 0.3283532536520585,
+              "attempts": 2,
+              "correctCount": 1,
+              "sessionAttempts": 2,
+              "currentSessionId": "smoke-session-mcbkt-001",
+              "correctDays": ["2024-01-01"],
+              "firstSeenAt": 1704067560000,
+              "firstCorrectAt": 1704067560000,
+              "lastAttemptAt": 1704067620000,
+              "lastCorrect": false,
+              "lastUpdated": 1704067620000
+            }
+          }
+        }
+      }
+    }
+  ],
+  "finalState": {
+    "skills": {
+      "grammar.simple_present": {
+        "cloze": {
+          "skillId": "grammar.simple_present",
+          "channel": "cloze",
+          "pMastery": 0.9151491102953212,
+          "attempts": 2,
+          "correctCount": 2,
+          "sessionAttempts": 2,
+          "currentSessionId": "smoke-session-mcbkt-001",
+          "correctDays": ["2024-01-01", "2024-01-02"],
+          "firstSeenAt": 1704067440000,
+          "firstCorrectAt": 1704067440000,
+          "lastAttemptAt": 1704153660000,
+          "lastCorrect": true,
+          "lastUpdated": 1704153660000
+        },
+        "prod_typed": {
+          "skillId": "grammar.simple_present",
+          "channel": "prod_typed",
+          "pMastery": 0.7650302114803624,
+          "attempts": 1,
+          "correctCount": 1,
+          "sessionAttempts": 1,
+          "currentSessionId": "smoke-session-mcbkt-001",
+          "correctDays": ["2024-01-01"],
+          "firstSeenAt": 1704067680000,
+          "firstCorrectAt": 1704067680000,
+          "lastAttemptAt": 1704067680000,
+          "lastCorrect": true,
+          "lastUpdated": 1704067680000
+        },
+        "recog_mc": {
+          "skillId": "grammar.simple_present",
+          "channel": "recog_mc",
+          "pMastery": 0.8324543351596934,
+          "attempts": 4,
+          "correctCount": 3,
+          "sessionAttempts": 4,
+          "currentSessionId": "smoke-session-mcbkt-001",
+          "correctDays": ["2024-01-01"],
+          "firstSeenAt": 1704067260000,
+          "firstCorrectAt": 1704067260000,
+          "lastAttemptAt": 1704067500000,
+          "lastCorrect": false,
+          "lastUpdated": 1704067500000
+        }
+      },
+      "vocab.greetings": {
+        "cloze": {
+          "skillId": "vocab.greetings",
+          "channel": "cloze",
+          "pMastery": 0.6432432432432432,
+          "attempts": 1,
+          "correctCount": 1,
+          "sessionAttempts": 1,
+          "currentSessionId": "smoke-session-mcbkt-001",
+          "correctDays": ["2024-01-01"],
+          "firstSeenAt": 1704067740000,
+          "firstCorrectAt": 1704067740000,
+          "lastAttemptAt": 1704067740000,
+          "lastCorrect": true,
+          "lastUpdated": 1704067740000
+        },
+        "recog_mc": {
+          "skillId": "vocab.greetings",
+          "channel": "recog_mc",
+          "pMastery": 0.3283532536520585,
+          "attempts": 2,
+          "correctCount": 1,
+          "sessionAttempts": 2,
+          "currentSessionId": "smoke-session-mcbkt-001",
+          "correctDays": ["2024-01-01"],
+          "firstSeenAt": 1704067560000,
+          "firstCorrectAt": 1704067560000,
+          "lastAttemptAt": 1704067620000,
+          "lastCorrect": false,
+          "lastUpdated": 1704067620000
+        }
+      }
+    }
+  }
+}

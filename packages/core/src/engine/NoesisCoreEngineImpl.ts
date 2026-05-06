@@ -32,6 +32,10 @@ import type {
   TransferTest,
   TransferTestResult,
   ItemSkillMapping,
+  CognitiveStateEvent,
+  CognitiveStateVector,
+  StageCompletedEvent,
+  CanonicalStage,
 } from '../constitution.js';
 
 import { BKTEngine, createBKTEngine, type BKTParams } from '../learner/index.js';
@@ -40,7 +44,13 @@ import { SessionPlannerImpl, type SessionPlannerConfig } from '../planning/index
 import { createTransferGate, type TransferGateConfig } from '../transfer/index.js';
 import { createDiagnosticEngine, type DiagnosticConfig } from '../diagnostic/index.js';
 import type { ClockFn, IdGeneratorFn, EventFactoryContext } from '../events/index.js';
-import { createEventFactoryContext, createImplicitCreditEvent } from '../events/index.js';
+import { assertValidEngineConfigOverrides, type EngineConfigOverrides } from '../config/index.js';
+import {
+  createEventFactoryContext,
+  createImplicitCreditEvent,
+  requireClock,
+  requireIdGenerator,
+} from '../events/index.js';
 
 /**
  * Core engine configuration
@@ -131,10 +141,34 @@ export interface CoreEngineConfig {
   /** Minimum learning speed required to receive implicit credit. Default 1.0.
    *  Learners below this speed on a skill must practice it explicitly. */
   implicitCreditMinSpeed?: number;
+  /**
+   * Pack-supplied engine configuration overrides (introduced in 0.3.0).
+   *
+   * When supplied, these are validated eagerly via
+   * `assertValidEngineConfigOverrides` in the constructor. The global
+   * fields (`bktDefaults`, `fsrs`, `session`) are merged into the
+   * legacy per-component config above as a fallback — the explicit
+   * `bkt` / `fsrs` / `planner` fields above still win when both are set.
+   *
+   * Per-channel and pack-specific fields (`bktChannels`,
+   * `responseTimeThresholdsMs`, `skillCategoryModifiers`,
+   * `itemTypeToChannel`, `layeredMastery`, `budgetedPlanner`,
+   * `fatigue`, `calibrator`, `drillingDiscount`) are stashed verbatim
+   * and exposed via `getConfigOverrides()` for MCBKT-aware consumers.
+   */
+  overrides?: EngineConfigOverrides;
 }
 
 /**
  * Serialized state format
+ *
+ * Versioning:
+ *  - 1.0 — original (BKT, FSRS, transfer, event log).
+ *  - 1.1 — added `learnerSpeeds`.
+ *  - 1.2 — added `cognitiveStates` (NALS, Phase C2).
+ *
+ * Backward compatibility: import accepts any prior version and treats missing
+ * fields as empty.
  */
 interface SerializedState {
   version: string;
@@ -145,6 +179,10 @@ interface SerializedState {
   eventLog: NoesisEvent[];
   /** Per-user per-skill learning speed multipliers (added in v1.1) */
   learnerSpeeds?: Array<[string, Array<[string, number]>]>;
+  /** Per-learner Cognitive-State Vector timeline (added in v1.2) */
+  cognitiveStates?: Array<[string, CognitiveStateVector[]]>;
+  /** Per-learner per-skill canonical-loop stage history (added in v1.3) */
+  stageHistory?: Array<[string, Array<[string, CanonicalStage[]]>]>;
 }
 
 /**
@@ -166,6 +204,8 @@ export class NoesisCoreEngineImpl implements NoesisCoreEngine {
   private readonly implicitCreditFraction: number;
   private readonly implicitCreditMinSpeed: number;
   private readonly eventContext: EventFactoryContext;
+  /** Pack-supplied overrides (frozen on construction). */
+  private readonly configOverrides?: EngineConfigOverrides;
 
   // Internal state
   private learnerModels: Map<string, LearnerModel> = new Map();
@@ -176,25 +216,57 @@ export class NoesisCoreEngineImpl implements NoesisCoreEngine {
   private eventLog: NoesisEvent[] = [];
   // Per-user, per-skill learning speed multipliers (learnerId → skillId → speed)
   private learnerSpeeds: Map<string, Map<string, number>> = new Map();
+  // Per-learner Cognitive-State Vector timeline (learnerId → ordered vectors).
+  // Appended to on every cognitive_state event; never overwritten in place
+  // so the history is auditable and replay-safe.
+  private cognitiveStates: Map<string, CognitiveStateVector[]> = new Map();
+  // Canonical-loop stage history (learnerId → skillId → set of stages seen).
+  // Used by the planner when SessionConfig.enforceCanonicalLoop is true.
+  // Populated from PracticeEvent (stage defaults to 'practice') and from
+  // StageCompletedEvent (concept_introduction / reflection).
+  private stageHistory: Map<string, Map<string, Set<CanonicalStage>>> = new Map();
 
+  /**
+   * @param skillGraph - The skill DAG this engine will operate over.
+   * @param config - Optional core-engine configuration (BKT, FSRS, planner, etc.).
+   * @param clock - Wall-clock function. **Required**: must be injected by the caller
+   *               so replay determinism is preserved. Throws if not a function.
+   *               For replay/test, use {@link createDeterministicEngine}.
+   *               For production paths, use {@link createSystemEngine} to opt in to `Date.now()`.
+   * @param idGenerator - Event-ID generator. **Required** for the same reason as `clock`.
+   */
   constructor(
     skillGraph: SkillGraph,
     config: CoreEngineConfig = {},
-    clock: ClockFn = () => Date.now(),
-    idGenerator: IdGeneratorFn = () => `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+    clock: ClockFn,
+    idGenerator: IdGeneratorFn
   ) {
     this.graph = skillGraph;
-    this.clock = clock;
-    this.idGenerator = idGenerator;
-    this.plannerConfig = config.planner || {};
+    this.clock = requireClock(clock);
+    this.idGenerator = requireIdGenerator(idGenerator);
+
+    // Validate pack-supplied overrides eagerly — bad values fail at engine
+    // construction, not at first practice event.
+    if (config.overrides) {
+      assertValidEngineConfigOverrides(config.overrides);
+    }
+    this.configOverrides = config.overrides;
+
+    // Merge override.session into the legacy planner config (planner config
+    // is a SessionConfig superset). Explicit config.planner still wins.
+    const sessionFromOverrides = config.overrides?.session ?? {};
+    this.plannerConfig = { ...sessionFromOverrides, ...(config.planner || {}) };
     this.ratingConfig = { ...DEFAULT_RATING_CONFIG, ...config.rating };
     this.implicitCreditFraction = config.implicitCreditFraction ?? 0.5;
     this.implicitCreditMinSpeed = config.implicitCreditMinSpeed ?? 1.0;
-    this.eventContext = createEventFactoryContext(clock, idGenerator);
+    this.eventContext = createEventFactoryContext(this.clock, this.idGenerator);
 
-    // Initialize components
-    this.learnerEngine = createBKTEngine(config.bkt, clock);
-    this.memoryScheduler = createFSRSScheduler(config.fsrs, clock);
+    // Initialize components. Explicit per-component config (bkt / fsrs)
+    // takes precedence over override.bktDefaults / override.fsrs.
+    const bktConfig = config.bkt ?? config.overrides?.bktDefaults;
+    const fsrsConfig = config.fsrs ?? config.overrides?.fsrs;
+    this.learnerEngine = createBKTEngine(bktConfig, this.clock);
+    this.memoryScheduler = createFSRSScheduler(fsrsConfig, this.clock);
     this.transferGate = createTransferGate(config.transfer);
     this.diagnosticEngine = createDiagnosticEngine(config.diagnostic);
 
@@ -231,7 +303,53 @@ export class NoesisCoreEngineImpl implements NoesisCoreEngine {
       case 'implicit_credit':
         this.processImplicitCreditEvent(event as import('../constitution.js').ImplicitCreditEvent);
         break;
+      case 'cognitive_state':
+        this.processCognitiveStateEvent(event);
+        break;
+      case 'stage_completed':
+        this.processStageCompletedEvent(event);
+        break;
     }
+  }
+
+  /**
+   * Record a canonical-loop stage transition for the given learner+skill.
+   * Idempotent — if the stage is already in the set, the call is a no-op.
+   */
+  private recordStage(learnerId: string, skillId: string, stage: CanonicalStage): void {
+    let perLearner = this.stageHistory.get(learnerId);
+    if (!perLearner) {
+      perLearner = new Map();
+      this.stageHistory.set(learnerId, perLearner);
+    }
+    let perSkill = perLearner.get(skillId);
+    if (!perSkill) {
+      perSkill = new Set();
+      perLearner.set(skillId, perSkill);
+    }
+    perSkill.add(stage);
+  }
+
+  /**
+   * Reduce a StageCompletedEvent — record the stage in stageHistory.
+   * Used for stages that have no practice attempt (concept_introduction,
+   * reflection). Practice and application stages are recorded automatically
+   * via processPracticeEvent.
+   */
+  private processStageCompletedEvent(event: StageCompletedEvent): void {
+    this.recordStage(event.learnerId, event.skillId, event.stage);
+  }
+
+  /**
+   * Append a Cognitive-State Vector to the per-learner timeline.
+   *
+   * The reducer is intentionally minimal: it stores the vector verbatim and
+   * does not mutate it. Downstream consumers (planner, analytics) are
+   * responsible for interpreting confidence/staleness.
+   */
+  private processCognitiveStateEvent(event: CognitiveStateEvent): void {
+    const existing = this.cognitiveStates.get(event.learnerId) ?? [];
+    this.cognitiveStates.set(event.learnerId, [...existing, event.vector]);
   }
 
   /**
@@ -239,6 +357,10 @@ export class NoesisCoreEngineImpl implements NoesisCoreEngine {
    */
   private processPracticeEvent(event: PracticeEvent): void {
     const { learnerId, skillId, correct } = event;
+
+    // Record canonical-loop stage progression. Default 'practice'; consumers
+    // that mark application attempts via event.stage record 'application' too.
+    this.recordStage(learnerId, skillId, event.stage ?? 'practice');
 
     // Update learner model
     let model = this.learnerModels.get(learnerId);
@@ -406,12 +528,66 @@ export class NoesisCoreEngineImpl implements NoesisCoreEngine {
   }
 
   /**
+   * Get the most recent Cognitive-State Vector for a learner, or undefined
+   * if no cognitive_state events have been processed for them.
+   *
+   * Returned object is a fresh shallow copy — mutating it does not affect
+   * engine state (the underlying vectors are stored verbatim, not cloned).
+   */
+  getCognitiveState(learnerId: string): CognitiveStateVector | undefined {
+    const timeline = this.cognitiveStates.get(learnerId);
+    if (!timeline || timeline.length === 0) return undefined;
+    const latest = timeline[timeline.length - 1];
+    return latest ? { ...latest } : undefined;
+  }
+
+  /**
+   * Get the full Cognitive-State Vector timeline for a learner, ordered
+   * from oldest to newest. Returns an empty array when no events have
+   * been processed.
+   *
+   * The returned array is a copy — appending to it does not mutate engine
+   * state — but the inner vectors are shared references.
+   */
+  getCognitiveStateHistory(learnerId: string): CognitiveStateVector[] {
+    return [...(this.cognitiveStates.get(learnerId) ?? [])];
+  }
+
+  /**
+   * Get the set of canonical-loop stages recorded for a given learner+skill.
+   * Returns an empty set when nothing has been recorded.
+   *
+   * The returned set is a defensive copy.
+   */
+  getStageHistory(learnerId: string, skillId: string): Set<CanonicalStage> {
+    const set = this.stageHistory.get(learnerId)?.get(skillId);
+    return new Set(set);
+  }
+
+  /**
+   * Get the full per-skill stage map for a learner, suitable for passing
+   * into {@link SessionPlanner.getNextAction} as the stageHistory argument.
+   * Returns `undefined` when no stages have been recorded.
+   */
+  private getStageHistoryForLearner(
+    learnerId: string
+  ): Map<string, Set<CanonicalStage>> | undefined {
+    return this.stageHistory.get(learnerId);
+  }
+
+  /**
    * Get next recommended action
    */
   getNextAction(learnerId: string, config: SessionConfig): SessionAction {
     const model = this.getOrCreateLearnerModel(learnerId);
     const states = this.getMemoryStates(learnerId);
-    return this.sessionPlanner.getNextAction(model, this.graph, states, config);
+    return this.sessionPlanner.getNextAction(
+      model,
+      this.graph,
+      states,
+      config,
+      this.getStageHistoryForLearner(learnerId)
+    );
   }
 
   /**
@@ -420,7 +596,13 @@ export class NoesisCoreEngineImpl implements NoesisCoreEngine {
   planSession(learnerId: string, config: SessionConfig): SessionAction[] {
     const model = this.getOrCreateLearnerModel(learnerId);
     const states = this.getMemoryStates(learnerId);
-    return this.sessionPlanner.planSession(model, this.graph, states, config);
+    return this.sessionPlanner.planSession(
+      model,
+      this.graph,
+      states,
+      config,
+      this.getStageHistoryForLearner(learnerId)
+    );
   }
 
   /**
@@ -458,7 +640,7 @@ export class NoesisCoreEngineImpl implements NoesisCoreEngine {
     const now = this.clock();
 
     const serialized: SerializedState = {
-      version: '1.0.0',
+      version: '1.3.0',
       timestamp: now,
       learnerModels: Array.from(this.learnerModels.entries()).map(([learnerId, model]) => ({
         learnerId,
@@ -477,10 +659,27 @@ export class NoesisCoreEngineImpl implements NoesisCoreEngine {
       this.learnerSpeeds.entries()
     ).map(([learnerId, speeds]) => [learnerId, Array.from(speeds.entries())]);
 
+    // Serialize per-learner Cognitive-State Vector timelines (v1.2).
+    const cognitiveStatesArray: [string, CognitiveStateVector[]][] = Array.from(
+      this.cognitiveStates.entries()
+    );
+
+    // Serialize per-learner per-skill stage history (v1.3). Stages are
+    // serialized as arrays for portability; importState turns them back
+    // into Sets.
+    const stageHistoryArray: [string, [string, CanonicalStage[]][]][] = Array.from(
+      this.stageHistory.entries()
+    ).map(([learnerId, perSkill]) => [
+      learnerId,
+      Array.from(perSkill.entries()).map(([skillId, stages]) => [skillId, Array.from(stages)]),
+    ]);
+
     return JSON.stringify({
       ...serialized,
       memoryStates: memoryStatesArray,
       learnerSpeeds: learnerSpeedsArray,
+      cognitiveStates: cognitiveStatesArray,
+      stageHistory: stageHistoryArray,
     });
   }
 
@@ -513,6 +712,35 @@ export class NoesisCoreEngineImpl implements NoesisCoreEngine {
         this.learnerSpeeds.set(learnerId, new Map(speedEntries));
       }
     }
+
+    // Restore Cognitive-State Vector timelines (v1.2; backward compatible —
+    // pre-1.2 snapshots have no `cognitiveStates` field, in which case the
+    // map starts empty).
+    this.cognitiveStates.clear();
+    if (parsed.cognitiveStates) {
+      for (const [learnerId, timeline] of parsed.cognitiveStates as [
+        string,
+        CognitiveStateVector[],
+      ][]) {
+        this.cognitiveStates.set(learnerId, [...timeline]);
+      }
+    }
+
+    // Restore canonical-loop stage history (v1.3; backward compatible —
+    // pre-1.3 snapshots have no `stageHistory` field).
+    this.stageHistory.clear();
+    if (parsed.stageHistory) {
+      for (const [learnerId, perSkill] of parsed.stageHistory as [
+        string,
+        [string, CanonicalStage[]][],
+      ][]) {
+        const skillMap = new Map<string, Set<CanonicalStage>>();
+        for (const [skillId, stages] of perSkill) {
+          skillMap.set(skillId, new Set(stages));
+        }
+        this.stageHistory.set(learnerId, skillMap);
+      }
+    }
   }
 
   /**
@@ -526,6 +754,8 @@ export class NoesisCoreEngineImpl implements NoesisCoreEngine {
     this.transferResults = [];
     this.eventLog = [];
     this.learnerSpeeds.clear();
+    this.cognitiveStates.clear();
+    this.stageHistory.clear();
 
     // Replay each event in order
     for (const event of events) {
@@ -705,6 +935,17 @@ export class NoesisCoreEngineImpl implements NoesisCoreEngine {
   getCurrentTime(): number {
     return this.clock();
   }
+
+  /**
+   * Get the pack-supplied EngineConfigOverrides this engine was constructed
+   * with, or `undefined` if none were supplied. MCBKT-aware consumers
+   * (LayeredMasteryModel, BudgetedSessionPlanner, FatigueDetector,
+   * EloDifficultyCalibrator) can read per-channel + pack-specific tuning
+   * from this surface. Added in 0.3.0.
+   */
+  getConfigOverrides(): EngineConfigOverrides | undefined {
+    return this.configOverrides;
+  }
 }
 
 /**
@@ -721,19 +962,29 @@ export interface LearnerProgress {
 }
 
 /**
- * Factory function to create a NoesisCoreEngine
+ * Factory function to create a NoesisCoreEngine.
+ *
+ * Both `clock` and `idGenerator` are **required**. There are no silent defaults — a
+ * consumer who forgets to inject them gets a thrown error, not a silently
+ * non-deterministic engine. See {@link requireClock} for the rationale.
+ *
+ * @see createDeterministicEngine for replay/testing.
+ * @see createSystemEngine for production paths that opt in to `Date.now()` + UUID.
  */
 export function createNoesisCoreEngine(
   skillGraph: SkillGraph,
   config: CoreEngineConfig = {},
-  clock: ClockFn = () => Date.now(),
-  idGenerator?: IdGeneratorFn
+  clock: ClockFn,
+  idGenerator: IdGeneratorFn
 ): NoesisCoreEngineImpl {
   return new NoesisCoreEngineImpl(skillGraph, config, clock, idGenerator);
 }
 
 /**
- * Create a deterministic core engine for testing/replay
+ * Create a deterministic core engine for testing/replay.
+ *
+ * Uses a fixed clock (returns `startTime` always) and a counter-based ID generator
+ * (`evt-000001`, `evt-000002`, ...). Identical inputs produce byte-identical state.
  */
 export function createDeterministicEngine(
   skillGraph: SkillGraph,
@@ -750,4 +1001,38 @@ export function createDeterministicEngine(
   };
 
   return new NoesisCoreEngineImpl(skillGraph, config, deterministicClock, deterministicIdGenerator);
+}
+
+/**
+ * Create a core engine that opts in to system clock + system random IDs.
+ *
+ * **Use this only at production boundaries.** It IS non-replayable: events get
+ * `Date.now()` timestamps and randomly generated UUID-v4 IDs. Two engines created
+ * by this factory will not produce identical state from the same event sequence.
+ *
+ * Prefer {@link createDeterministicEngine} wherever possible. Use
+ * {@link createNoesisCoreEngine} when you have your own clock/idGenerator (e.g.
+ * a server clock, a request-scoped UUID source) so the determinism contract
+ * still holds at your layer.
+ */
+export function createSystemEngine(
+  skillGraph: SkillGraph,
+  config: CoreEngineConfig = {}
+): NoesisCoreEngineImpl {
+  const systemClock: ClockFn = () => Date.now();
+  const systemIdGenerator: IdGeneratorFn = () => {
+    // Use crypto.randomUUID where available; fall back to a UUID-v4-shaped string.
+    const cryptoRef: { randomUUID?: () => string } | undefined = (
+      globalThis as unknown as { crypto?: { randomUUID?: () => string } }
+    ).crypto;
+    if (cryptoRef && typeof cryptoRef.randomUUID === 'function') {
+      return cryptoRef.randomUUID();
+    }
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+      const r = (Math.random() * 16) | 0;
+      const v = c === 'x' ? r : (r & 0x3) | 0x8;
+      return v.toString(16);
+    });
+  };
+  return new NoesisCoreEngineImpl(skillGraph, config, systemClock, systemIdGenerator);
 }

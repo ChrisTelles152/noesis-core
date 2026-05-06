@@ -4,9 +4,22 @@
  * Tests for CoreEngineAdapter edge cases and branch coverage
  */
 
-import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { CoreEngineAdapter, createCoreEngineAdapter } from '../core/CoreEngineAdapter';
+import { describe, it, expect, beforeEach, beforeAll, afterAll, vi } from 'vitest';
+import {
+  CoreEngineAdapter,
+  createCoreEngineAdapter,
+  _resetNonDeterminismWarning,
+} from '../core/CoreEngineAdapter';
 import type { Skill } from '@noesis-edu/core';
+
+// Existing tests sometimes construct adapters without clock/idGenerator. After A2,
+// that path emits a one-time console.warn. Silence it so test output stays clean.
+beforeAll(() => {
+  vi.spyOn(console, 'warn').mockImplementation(() => {});
+});
+afterAll(() => {
+  vi.mocked(console.warn).mockRestore?.();
+});
 
 const testSkills: Skill[] = [
   { id: 'skill-a', name: 'Skill A', prerequisites: [] },
@@ -286,5 +299,122 @@ describe('CoreEngineAdapter', () => {
       expect(adapterLogs.length).toBe(0);
       consoleSpy.mockRestore();
     });
+  });
+});
+
+/**
+ * Phase A2 — verification tests for the determinism contract at the SDK boundary.
+ *
+ * Why these matter: in Phase A1 we made Core throw if no clock/idGenerator is
+ * injected. The SDK boundary is the only place a default is allowed, but it must
+ * be loud (one-time warning) and a caller that DOES inject must get a fully
+ * deterministic adapter — including event IDs, which were the silent leak in
+ * the pre-A2 code path.
+ */
+describe('Phase A2: CoreEngineAdapter determinism contract', () => {
+  beforeEach(() => {
+    _resetNonDeterminismWarning();
+  });
+
+  it('uses the injected idGenerator for every event it produces', () => {
+    let counter = 0;
+    const idGenerator = () => `evt-${++counter}`;
+    const a = createCoreEngineAdapter({
+      learnerId: 'l1',
+      skills: testSkills,
+      clock: () => 1000,
+      idGenerator,
+    });
+
+    a.recordPractice('skill-a', 'item-1', true, 100);
+    a.recordPractice('skill-a', 'item-2', true, 100);
+    a.recordPractice('skill-a', 'item-3', false, 100);
+    a.recordPractice('skill-a', 'item-4', true, 100);
+    a.recordPractice('skill-a', 'item-5', true, 100);
+
+    const ids = a.getEventLog().map((e) => e.id);
+    // The first id was used for the sessionId during construction (evt-1),
+    // so the 5 practice events get evt-2..evt-6.
+    expect(ids).toEqual(['evt-2', 'evt-3', 'evt-4', 'evt-5', 'evt-6']);
+  });
+
+  it('produces an identical event log under the same clock + idGenerator seed', () => {
+    // Two adapters wired to the same deterministic seed should be byte-identical
+    // under the same event sequence. This is the strongest determinism check at
+    // the SDK boundary.
+    const buildAdapter = () => {
+      let counter = 0;
+      let time = 1000;
+      return createCoreEngineAdapter({
+        learnerId: 'l1',
+        skills: testSkills,
+        clock: () => {
+          time += 1; // monotonic
+          return time;
+        },
+        idGenerator: () => `evt-${++counter}`,
+      });
+    };
+
+    const a = buildAdapter();
+    const b = buildAdapter();
+
+    const sequence = [
+      { skillId: 'skill-a', itemId: 'q1', correct: true, rt: 100 },
+      { skillId: 'skill-a', itemId: 'q2', correct: false, rt: 200 },
+      { skillId: 'skill-b', itemId: 'q3', correct: true, rt: 150 },
+      { skillId: 'skill-a', itemId: 'q4', correct: true, rt: 80 },
+    ];
+
+    for (const e of sequence) {
+      a.recordPractice(e.skillId, e.itemId, e.correct, e.rt);
+      b.recordPractice(e.skillId, e.itemId, e.correct, e.rt);
+    }
+
+    expect(JSON.stringify(a.getEventLog())).toBe(JSON.stringify(b.getEventLog()));
+  });
+
+  it('emits a one-time non-determinism warning when constructed without clock/idGenerator', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    _resetNonDeterminismWarning();
+
+    createCoreEngineAdapter({ learnerId: 'l1', skills: testSkills });
+    expect(warn).toHaveBeenCalledTimes(1);
+    expect(warn.mock.calls[0]?.[0]).toMatch(/Replay determinism is NOT guaranteed/);
+
+    // Subsequent constructions in the same process do NOT warn again.
+    createCoreEngineAdapter({ learnerId: 'l2', skills: testSkills });
+    expect(warn).toHaveBeenCalledTimes(1);
+
+    warn.mockRestore();
+  });
+
+  it('does not warn when both clock and idGenerator are injected', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    _resetNonDeterminismWarning();
+
+    createCoreEngineAdapter({
+      learnerId: 'l1',
+      skills: testSkills,
+      clock: () => 1000,
+      idGenerator: () => 'evt-1',
+    });
+
+    expect(warn).not.toHaveBeenCalled();
+    warn.mockRestore();
+  });
+
+  it('suppresses the warning when suppressNonDeterminismWarning is true', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    _resetNonDeterminismWarning();
+
+    createCoreEngineAdapter({
+      learnerId: 'l1',
+      skills: testSkills,
+      suppressNonDeterminismWarning: true,
+    });
+
+    expect(warn).not.toHaveBeenCalled();
+    warn.mockRestore();
   });
 });

@@ -181,25 +181,45 @@ Destroys session and clears `connect.sid` cookie.
 
 | Method | Path | Auth | Rate Limit | Description |
 |--------|------|------|------------|-------------|
-| GET | `/api/analytics/attention` | Session | 100/15min | Get attention tracking events |
-| GET | `/api/analytics/mastery` | Session | 100/15min | Get mastery tracking events |
-| GET | `/api/analytics/summary` | Session | 100/15min | Get aggregated analytics summary |
+| GET | `/api/analytics/attention` | Session | 100/15min | Paginated attention events |
+| GET | `/api/analytics/mastery` | Session | 100/15min | Paginated mastery events |
+| GET | `/api/analytics/summary` | Session | 100/15min | Aggregated summary (date-windowed) |
+
+All three endpoints accept `?startDate=&endDate=` (ISO 8601 datetime strings)
+to limit which events feed into the response. The two list endpoints also
+accept `?page=&limit=` (default 1 / 20; max limit 100).
 
 #### GET /api/analytics/attention
 
-**Response (200):** `LearningEvent[]` — filtered to authenticated user's attention events
+**Query:** `?page=1&limit=20&startDate=…&endDate=…` (all optional)
+
+**Response (200):**
+```typescript
+{
+  items: LearningEvent[];   // current page slice
+  page: number;
+  limit: number;
+  total: number;            // total events matching the date window
+  totalPages: number;
+  hasNextPage: boolean;
+}
+```
+
+**Errors:** 400 (Zod) — `limit > 100`, `limit < 1`, malformed datetime.
 
 #### GET /api/analytics/mastery
 
-**Response (200):** `LearningEvent[]` — filtered to authenticated user's mastery events
+Same shape as `/api/analytics/attention` above.
 
 #### GET /api/analytics/summary
+
+**Query:** `?startDate=…&endDate=…` (no pagination — this endpoint aggregates).
 
 **Response (200):**
 ```typescript
 {
   userId: number;
-  totalEvents: number;
+  totalEvents: number;                // events in window
   eventCounts: {
     attention: number;
     mastery: number;
@@ -207,12 +227,13 @@ Destroys session and clears `connect.sid` cookie.
     engagements: number;
   };
   averageAttention: number;           // 0-1
-  recentEvents: LearningEvent[];      // last 10, newest first
+  recentEvents: LearningEvent[];      // last 10 IN WINDOW, newest first
   llmProvider: string;
+  window: { startDate?: string; endDate?: string };  // echoes back what was applied
 }
 ```
 
-**Storage:** `storage.getLearningEventsByUserId()`, `storage.getLearningEventsByType()`
+**Storage:** `storage.getLearningEventsByUserId()`, `storage.getLearningEventsByType()`. The date filter applies to every aggregation in the response.
 
 ---
 
@@ -296,11 +317,25 @@ Stores 1-100 `NoesisEvent` objects. Each event is validated individually; valid 
 
 #### GET /api/core/events
 
-Retrieves all stored core events for the authenticated user, extracted from `learning_events` rows and sorted by timestamp.
+Retrieves stored core events for the authenticated user, extracted from
+`learning_events` rows and sorted by timestamp. Paginated + date-windowed
+identically to the analytics list endpoints (Phase E6).
+
+**Query:** `?page=1&limit=20&startDate=…&endDate=…` (all optional)
 
 **Response (200):**
 ```typescript
-{ count: number; events: NoesisEvent[] }
+{
+  // Phase E6 pagination metadata
+  page: number;
+  limit: number;
+  total: number;          // events matching the date window
+  totalPages: number;
+  hasNextPage: boolean;
+  // Legacy fields, preserved for back-compat with pre-E6 clients
+  count: number;          // === total
+  events: NoesisEvent[];  // current page slice (=== items in the analytics shape)
+}
 ```
 
 **Storage:** `storage.getLearningEventsByUserId()` → `extractCoreEvents()`
@@ -345,6 +380,159 @@ Loads the previously saved engine state snapshot for the authenticated user.
 ```
 
 **Storage:** `storage.loadEngineState()`
+
+---
+
+### Curriculum
+
+| Method | Path | Auth | Rate Limit | Description |
+|--------|------|------|------------|-------------|
+| POST | `/api/curriculum/skills` | Session | 100/15min | Upload (or replace) the user's skill graph |
+| GET | `/api/curriculum/skills` | Session | 100/15min | Retrieve the saved skill graph |
+
+#### POST /api/curriculum/skills
+
+Stores a per-user skill graph + optional item mappings + optional transfer
+tests. The payload is validated through `createSkillGraph().validate()`
+before being persisted, so cycles and dangling prerequisites surface as 400
+with structured `errors[]` instead of being persisted and crashing later
+when the engine hydrates.
+
+**Request:**
+```typescript
+{
+  skills: Array<{
+    id: string;
+    name: string;
+    description?: string;
+    prerequisites: string[];
+    encompassedSkills?: string[];
+    category?: string;
+    difficulty?: number;  // 0-1
+  }>;
+  itemMappings?: Array<{
+    itemId: string;
+    primarySkillId: string;
+    secondarySkillIds: string[];
+    difficulty: number;  // 0-1
+  }>;
+  transferTests?: Array<{
+    id: string;
+    skillId: string;
+    transferType: 'near' | 'far';
+    context: string;
+    passingScore: number;  // 0-1
+  }>;
+}
+```
+
+**Response (201):**
+```typescript
+{
+  saved: true;
+  skillCount: number;
+  itemCount: number;
+  transferTestCount: number;
+}
+```
+
+**Errors:**
+- `400 Validation failed` — Zod validation rejected the payload shape.
+- `400 Invalid skill graph` with structured `errors[]` — graph has cycles
+  (`CYCLE_DETECTED`), missing prerequisites (`MISSING_PREREQUISITE`), etc.
+
+**Storage:** `storage.saveCurriculum()` (upsert into `skill_graphs`).
+
+#### GET /api/curriculum/skills
+
+Returns the previously stored curriculum for the authenticated user.
+
+**Response (200):** the same payload shape as the POST request body.
+
+**Response (404):** `{ error: "No curriculum saved" }`.
+
+---
+
+### Core Engine (Server-Side)
+
+| Method | Path | Auth | Rate Limit | Description |
+|--------|------|------|------------|-------------|
+| GET | `/api/core/next-action` | Session | 100/15min | Server-side planner recommendation for the user |
+| POST | `/api/core/practice` | Session | 100/15min | Process a practice attempt server-side; returns updated progress + next action |
+| GET | `/api/core/progress` | Session | 100/15min | LearnerProgress for the user |
+
+These endpoints are the thin-client surface — the server owns the engine
+state per user, and the client just submits practice events and asks for the
+next action. Each request goes through the per-user `EngineManager` (LRU
+cache, hydrated from the saved snapshot or replayed from the event log).
+
+#### GET /api/core/next-action
+
+Returns the planner's next recommended action for the authenticated user.
+Uses `DEFAULT_SERVER_SESSION_CONFIG` (mastery threshold 0.85, target 20
+items, transfer tests not required by default — pilots can override later
+via a query-param config).
+
+**Response (200):** `SessionAction`
+```typescript
+{
+  type: 'practice' | 'review' | 'diagnostic' | 'transfer_test' |
+        'prerequisite_probe' | 'rest' |
+        'concept_introduction' | 'application' | 'reflection';
+  skillId?: string;
+  itemId?: string;
+  reason: string;
+  priority: number;
+}
+```
+
+#### POST /api/core/practice
+
+Submits a practice attempt. The server builds a canonical `PracticeEvent`
+through the engine's own clock + idGenerator (preserves the Phase A
+determinism contract), processes it through `engine.processEvent`, persists
+the canonical event into `learning_events` with the full event in
+`data._coreEvent`, snapshots engine state via `engineManager.flush(userId)`,
+and broadcasts a `learning-event` over the WebSocket to other tabs /
+dashboards subscribed to the user.
+
+**Request:**
+```typescript
+{
+  skillId: string;
+  itemId: string;
+  correct: boolean;
+  responseTimeMs: number;        // non-negative integer
+  confidence?: number;           // 0-1
+  errorCategory?: string;
+  sessionId?: string;            // override server-managed session id
+  stage?: 'practice' | 'application';  // canonical-loop stage; default 'practice'
+}
+```
+
+**Response (201):**
+```typescript
+{
+  event: PracticeEvent;          // the canonical event the server processed
+  progress: LearnerProgress;     // updated progress AFTER the event
+  nextAction: SessionAction;     // planner's next recommendation
+}
+```
+
+#### GET /api/core/progress
+
+**Response (200):** `LearnerProgress`
+```typescript
+{
+  learnerId: string;
+  totalSkills: number;
+  masteredSkills: number;
+  learningSkills: number;
+  notStartedSkills: number;
+  averageMastery: number;
+  totalEvents: number;
+}
+```
 
 ---
 
@@ -481,6 +669,20 @@ New connections auto-subscribe to: `attention`, `learning-events`
 | `learning-events` | `learning-event` | All subscribed (excludes event owner) |
 | `recommendations` | `recommendation` | Specific user only |
 
+### When the server emits `learning-event`
+
+After Phase E5 every server-side mutation that persists a core event also
+broadcasts a `learning-event` with `eventType` set to the canonical event
+type and `data` carrying enough context for a dashboard to refresh:
+
+| Origin route | `eventType` | `data` keys |
+|---|---|---|
+| `POST /api/core/events` | event's `type` (`practice`/`diagnostic`/...) | `{ coreEventId }` |
+| `POST /api/core/events/batch` | per-event `type` (one broadcast per stored event) | `{ coreEventId }` |
+| `POST /api/core/practice` | `'practice'` | `{ coreEventId, skillId, correct }` |
+
+Validation failures (e.g., a malformed event in a batch) do not broadcast.
+
 ---
 
 ## Core Engine Public API
@@ -489,27 +691,49 @@ New connections auto-subscribe to: `attention`, `learning-events`
 
 ### Factory Functions
 
+After Phase A every public engine factory **requires** an explicit clock
+and idGenerator. Forgetting them throws at construction (or earlier, at the
+TypeScript type-checker). Two convenience factories are provided so most
+consumers never need to wire the injection by hand:
+
 ```typescript
-// Create engine with skill graph
-createNoesisCoreEngine(
+// Production path: opts in to system clock + crypto.randomUUID().
+// Non-replayable by design — see createDeterministicEngine when you want replay.
+createSystemEngine(
   skillGraph: SkillGraph,
   config?: CoreEngineConfig,
-  clock?: ClockFn,
-  idGenerator?: IdGeneratorFn
 ): NoesisCoreEngineImpl
 
-// Create deterministic engine for testing/replay
+// Replay/test path: fixed clock at startTime, counter-based ids (evt-000001, ...).
+// Identical inputs produce byte-identical exportState() output.
 createDeterministicEngine(
   skillGraph: SkillGraph,
   config?: CoreEngineConfig,
-  startTime?: number
+  startTime?: number,
+): NoesisCoreEngineImpl
+
+// Lower-level: use this when you have your own clock + idGenerator
+// (e.g., a server clock + a request-scoped UUID source).
+createNoesisCoreEngine(
+  skillGraph: SkillGraph,
+  config: CoreEngineConfig,
+  clock: ClockFn,        // required
+  idGenerator: IdGeneratorFn,  // required
 ): NoesisCoreEngineImpl
 
 // Create skill graph from skill definitions
 createSkillGraph(skills: Skill[]): SkillGraph
 
-// Create event factory context
-createEventFactoryContext(clock?: ClockFn, idGenerator?: IdGeneratorFn): EventFactoryContext
+// Create event factory context. clock + idGenerator are required.
+createEventFactoryContext(
+  clock: ClockFn,
+  idGenerator: IdGeneratorFn,
+): EventFactoryContext
+
+// Runtime guards — throw if the argument is not a function. Useful for
+// JS callers bypassing TypeScript's required-parameter check.
+requireClock(clock: ClockFn | undefined): ClockFn
+requireIdGenerator(idGenerator: IdGeneratorFn | undefined): IdGeneratorFn
 ```
 
 ### NoesisCoreEngineImpl Methods
@@ -525,8 +749,8 @@ createEventFactoryContext(clock?: ClockFn, idGenerator?: IdGeneratorFn): EventFa
 | `registerTransferTests(tests)` | `void` | Register transfer test definitions |
 | `registerItemMappings(mappings)` | `void` | Register item-skill mappings for diagnostics |
 | `generateDiagnostic(maxItems)` | `string[]` | Generate diagnostic item IDs |
-| `exportState()` | `string` | Serialize all state to JSON |
-| `importState(data)` | `void` | Restore state from JSON |
+| `exportState()` | `string` | Serialize all state to JSON (snapshot v1.3 includes NALS + stage history) |
+| `importState(data)` | `void` | Restore state from JSON; tolerates pre-1.2/1.3 snapshots |
 | `replayEvents(events)` | `void` | Clear state and replay event log |
 | `getEventLog()` | `NoesisEvent[]` | Get recorded event log |
 | `getTransferResults()` | `TransferTestResult[]` | Get transfer test results |
@@ -535,6 +759,13 @@ createEventFactoryContext(clock?: ClockFn, idGenerator?: IdGeneratorFn): EventFa
 | `getLearnerProgress(learnerId)` | `LearnerProgress` | Get progress summary |
 | `generateEventId()` | `string` | Generate new event ID |
 | `getCurrentTime()` | `number` | Get time from injected clock |
+| `getCognitiveState(learnerId)` | `CognitiveStateVector \| undefined` | Most recent NALS vector for the learner (Phase C2) |
+| `getCognitiveStateHistory(learnerId)` | `CognitiveStateVector[]` | Full per-learner timeline (Phase C2) |
+| `getStageHistory(learnerId, skillId)` | `Set<CanonicalStage>` | Canonical-loop stages recorded for the skill (Phase C3) |
+| `setLearningSpeed(learnerId, skillId, speed)` | `void` | Per-user-per-skill FSRS interval multiplier (clamped 0.5–2.0) |
+| `getLearningSpeed(learnerId, skillId)` | `number` | Read the multiplier (default 1.0) |
+| `calibrateLearningSpeed(learnerId, skillId, minEvents?)` | `number` | Suggest a multiplier from practice history |
+| `getEffectiveMastery(learnerId, skillId)` | `number` | min(ownMastery, min over transitive prerequisites) |
 
 ### Readonly Properties
 
@@ -551,10 +782,26 @@ createEventFactoryContext(clock?: ClockFn, idGenerator?: IdGeneratorFn): EventFa
 
 ```typescript
 createPracticeEvent(ctx, learnerId, sessionId, skillId, itemId, correct, responseTimeMs, options?)
+//   options.stage: 'practice' | 'application' (canonical-loop stage; default 'practice')
+//   options.confidence?: number; options.errorCategory?: string
+
 createDiagnosticEvent(ctx, learnerId, sessionId, skillsAssessed, results)
 createTransferTestEvent(ctx, learnerId, sessionId, testId, skillId, transferType, score, passed)
 createSessionStartEvent(ctx, learnerId, sessionId, config)
 createSessionEndEvent(ctx, learnerId, sessionId, summary)
+
+// Phase C — NALS Cognitive-State Vector
+createCognitiveStateEvent(ctx, learnerId, sessionId, vector: CognitiveStateVector)
+
+// Phase C — canonical-loop stages without a practice attempt
+createStageCompletedEvent(
+  ctx, learnerId, sessionId, skillId,
+  stage: 'concept_introduction' | 'reflection',
+  options?: { notes?: string }
+)
+
+// Implicit credit (FIRe-style); usually generated by the engine, not the consumer
+createImplicitCreditEvent(ctx, learnerId, sessionId, sourceSkillId, targetSkillId, creditFraction, nextReviewShiftMs)
 ```
 
 ### Key Types
@@ -562,17 +809,28 @@ createSessionEndEvent(ctx, learnerId, sessionId, summary)
 ```typescript
 interface Skill {
   id: string; name: string; description?: string;
-  prerequisites: string[]; category?: string; difficulty?: number;
+  prerequisites: string[];
+  encompassedSkills?: string[];   // FIRe-style — practicing this skill gives
+                                  // implicit review credit to encompassed skills
+  category?: string; difficulty?: number;
 }
 
 interface SessionConfig {
   maxDurationMinutes: number; targetItems: number;
   masteryThreshold: number; enforceSpacedRetrieval: boolean;
   requireTransferTests: boolean;
+  enableKnockOutReviews?: boolean;             // Phase 3 — greedy set-cover review selection
+  prerequisiteRevalidationEnabled?: boolean;   // Phase 4 — probe decayed prerequisites
+  prerequisiteRevalidationThreshold?: number;  // default 0.7
+  enforceCanonicalLoop?: boolean;              // Phase C3 — gate on the 5-stage loop
 }
 
 interface SessionAction {
-  type: 'practice' | 'review' | 'diagnostic' | 'transfer_test' | 'rest';
+  type:
+    | 'practice' | 'review' | 'diagnostic' | 'transfer_test'
+    | 'prerequisite_probe' | 'rest'
+    // Phase C3 — canonical 5-stage loop
+    | 'concept_introduction' | 'application' | 'reflection';
   skillId?: string; itemId?: string; reason: string; priority: number;
 }
 
@@ -580,6 +838,44 @@ interface LearnerProgress {
   learnerId: string; totalSkills: number; masteredSkills: number;
   learningSkills: number; notStartedSkills: number;
   averageMastery: number; totalEvents: number;
+}
+
+// Phase C1 — NALS Cognitive-State Vector
+interface CognitiveStateMeasurement {
+  value: number;          // 0-1
+  confidence: number;     // 0-1
+  timestamp: number;      // Unix ms
+}
+interface CognitiveStateVector {
+  attention: CognitiveStateMeasurement;       // A
+  recallStrength: CognitiveStateMeasurement;  // R
+  affect: CognitiveStateMeasurement;          // F
+}
+
+// Phase C3 — canonical-loop stage taxonomy
+type CanonicalStage =
+  | 'concept_introduction' | 'practice' | 'application' | 'reflection';
+
+// Phase C — extended PracticeEvent (back-compat: stage defaults to 'practice')
+interface PracticeEvent extends BaseEvent {
+  type: 'practice';
+  skillId: string; itemId: string;
+  correct: boolean; responseTimeMs: number;
+  confidence?: number; errorCategory?: string;
+  stage?: 'practice' | 'application';
+}
+
+// Phase C — non-practice canonical-loop stages
+interface StageCompletedEvent extends BaseEvent {
+  type: 'stage_completed';
+  skillId: string;
+  stage: 'concept_introduction' | 'reflection';
+  notes?: string;
+}
+
+interface CognitiveStateEvent extends BaseEvent {
+  type: 'cognitive_state';
+  vector: CognitiveStateVector;
 }
 ```
 
@@ -640,6 +936,26 @@ interface NoesisSDKOptions {
 const adapter = new CoreEngineAdapter(config: CoreAdapterConfig);
 ```
 
+`CoreAdapterConfig` accepts an optional `clock` and `idGenerator`. Both
+default to `Date.now()` / `Math.random()`-style at the SDK boundary, but
+when at least one is omitted the adapter emits a one-time
+`console.warn` so the consumer is aware that replay determinism is no
+longer guaranteed for events produced via this adapter. Set
+`suppressNonDeterminismWarning: true` to silence the warning, or inject
+both for full determinism.
+
+```typescript
+interface CoreAdapterConfig {
+  learnerId: string;
+  debug?: boolean;
+  clock?: ClockFn;          // recommended — see warning above
+  idGenerator?: IdGeneratorFn;
+  skills?: Skill[];
+  sessionConfig?: Partial<SessionConfig>;
+  suppressNonDeterminismWarning?: boolean;
+}
+```
+
 | Method | Returns | Description |
 |--------|---------|-------------|
 | `startSession()` | `SessionEvent` | Start a learning session |
@@ -658,6 +974,101 @@ const adapter = new CoreEngineAdapter(config: CoreAdapterConfig);
 | `getSkillGraph()` | `SkillGraph` | Get skill graph |
 | `updateSkillGraph(skills)` | `void` | Replace skill graph (re-creates engine, preserves state) |
 | `getSessionId()` | `string` | Get current session ID |
+| `persistTo(transport, options?)` | `void` | **Phase B** — install autosave through a `PersistenceTransport` (debounced; default 1000 ms) |
+| `hydrate(transport)` | `Promise<boolean>` | **Phase B** — load prior state via `transport.load()`; returns `false` if nothing was stored |
+| `flush()` | `Promise<void>` | **Phase B** — force an immediate save (use on `beforeunload`) |
+| `stopPersistence()` | `void` | **Phase B** — cancel pending debounce + uninstall transport |
+
+#### Persistence transports (Phase B)
+
+```typescript
+interface PersistenceTransport {
+  save(state: string): Promise<void>;
+  load(): Promise<string | null>;
+}
+
+interface PersistOptions {
+  autosaveDebounceMs?: number;   // default 1000; 0 = no coalescing
+  onError?: (error: unknown) => void;
+}
+
+// Backed by window.localStorage. Single-device only.
+localStorageTransport(key: string): PersistenceTransport
+
+// Backed by HTTP. Wire format matches apps/server's PUT/GET /api/engine/state:
+//   PUT body { state }, GET returns { state } or 404.
+httpTransport(
+  url: string,
+  options?: { csrfToken?: string; fetchImpl?: typeof fetch }
+): PersistenceTransport
+```
+
+---
+
+## Attention Adapters (Phase D)
+
+**Package:** `@noesis/adapters-attention-web`
+
+After Phase D, the package's default `AttentionTracker` symbol resolves to
+`SimulatedAttentionTracker` — the explicit-user-signal adapter that emits
+canonical `CognitiveStateEvent`s. The legacy webcam-driven tracker is
+re-exported as `WebGazerAttentionTracker` and is opt-in only.
+
+```typescript
+import {
+  AttentionTracker,                // === SimulatedAttentionTracker
+  SimulatedAttentionTracker,
+  WebGazerAttentionTracker,        // legacy webcam path; opt-in only
+} from '@noesis/adapters-attention-web';
+```
+
+### SimulatedAttentionTracker
+
+```typescript
+interface SimulatedAttentionOptions extends AttentionTrackingOptions {
+  eventContext?: EventFactoryContext;
+  onCognitiveStateEvent?: (event: CognitiveStateEvent) => void;
+  learnerId?: string;
+  sessionId?: string;
+  // Override the default state → vector mappings (focused/drifting/break).
+  mappings?: Partial<{
+    focused: { attention: {value, confidence}; recallStrength: {value, confidence}; affect: {value, confidence} };
+    drifting: { ...same shape };
+    break: { ...same shape };
+  }>;
+}
+
+type SimulatedAttentionState = 'focused' | 'drifting' | 'break';
+```
+
+The tracker mirrors the legacy `AttentionTracker` surface
+(`startTracking` / `stopTracking` / `onAttentionChange` /
+`offAttentionChange` / `getCurrentData` / `isUsingRealGazeTracking` /
+`getCalibrationProgress`) so it slots into `NoesisSDK` without code
+changes upstream. The single new method is:
+
+| Method | Description |
+|---|---|
+| `recordState(state: SimulatedAttentionState)` | Record a user signal. Updates internal `AttentionData`, fires `onAttentionChange` callbacks, and (when both `eventContext` + `onCognitiveStateEvent` are provided) emits a canonical `CognitiveStateEvent` through the sink. |
+
+Default vector mappings:
+
+| Signal | attention.value | attention.confidence | recallStrength.value | affect.value |
+|---|---|---|---|---|
+| `focused` | 1.0 | 1.0 | 0.8 | 0.7 |
+| `drifting` | 0.3 | 1.0 | 0.5 | 0.4 |
+| `break` | 0.0 | 1.0 | 0.5 | 0.6 |
+
+### WebGazer opt-in
+
+The web-demo's `useAttentionTracking` hook reads `import.meta.env.VITE_ENABLE_REAL_GAZE_TRACKING`
+and only constructs `WebGazerAttentionTracker` when the value is exactly the string `'true'`.
+Anything else — unset, `'false'`, `'TRUE'`, `'yes'`, `'1'` — keeps the simulated default.
+
+The server side mirrors the rule: `apps/server/security-headers.ts`
+checks `process.env.ENABLE_REAL_GAZE_TRACKING === 'true'` before relaxing
+helmet's `Cross-Origin-Embedder-Policy` (otherwise the standard
+`require-corp` header is emitted).
 
 ---
 
@@ -694,14 +1105,19 @@ const adapter = new CoreEngineAdapter(config: CoreAdapterConfig);
 | SDK Action | HTTP Request | Server Handler |
 |------------|--------------|----------------|
 | Record learning event | `POST /api/learning/events` | `storage.createLearningEvent()` |
-| Store core event | `POST /api/core/events` | Event bridge → `storage.createLearningEvent()` |
-| Store core events batch | `POST /api/core/events/batch` | Event bridge → batch insert |
-| Retrieve core events | `GET /api/core/events` | `extractCoreEvents()` from learning events |
+| Store core event | `POST /api/core/events` | Event bridge → `storage.createLearningEvent()` + WS broadcast |
+| Store core events batch | `POST /api/core/events/batch` | Event bridge → batch insert + WS broadcast per event |
+| Retrieve core events | `GET /api/core/events` | `extractCoreEvents()` (paginated + date-windowed) |
 | Save engine state | `PUT /api/engine/state` | `storage.saveEngineState()` |
 | Load engine state | `GET /api/engine/state` | `storage.loadEngineState()` |
+| Upload curriculum (Phase E2) | `POST /api/curriculum/skills` | `storage.saveCurriculum()` |
+| Load curriculum (Phase E2) | `GET /api/curriculum/skills` | `storage.loadCurriculum()` |
+| Get next action (Phase E3) | `GET /api/core/next-action` | `engineManager.getEngineForUser()` → planner |
+| Submit practice (Phase E4) | `POST /api/core/practice` | engine → `processEvent` → flush → broadcast |
+| Get progress (Phase E5) | `GET /api/core/progress` | `engine.getLearnerProgress()` |
 | Get recommendation | `POST /api/orchestration/next-step` | `llm.getRecommendation()` |
 | Get engagement tip | `POST /api/orchestration/engagement` | `llm.getEngagementSuggestion()` |
-| Get analytics | `GET /api/analytics/summary` | `storage.getLearningEventsByUserId()` |
+| Get analytics | `GET /api/analytics/summary` | `storage.getLearningEventsByUserId()` (date-windowed) |
 
 ### SDK → Server (WebSocket)
 
@@ -717,11 +1133,14 @@ The core engine processes these canonical event types:
 
 | Event Type | Key Fields | Effect |
 |------------|------------|--------|
-| `practice` | skillId, correct, responseTimeMs | Updates BKT model + FSRS state |
+| `practice` | skillId, correct, responseTimeMs, optional `stage` | Updates BKT model + FSRS state; records stage in `stageHistory` (Phase C3) |
 | `diagnostic` | results[{skillId, score}] | Initializes BKT from diagnostic scores |
 | `transfer_test` | testId, skillId, score, passed | Records transfer test result |
 | `session_start` | config | Logged (no state change) |
 | `session_end` | summary | Logged (no state change) |
+| `cognitive_state` | vector: { attention, recallStrength, affect } | Appends to per-learner NALS timeline (Phase C2) |
+| `stage_completed` | skillId, stage: 'concept_introduction' \| 'reflection' | Records canonical-loop stage (Phase C3) |
+| `implicit_credit` | sourceSkillId, targetSkillId, creditFraction, nextReviewShiftMs | Generated by the engine when an encompassing skill is practiced |
 
 ### Content Pack Requirements
 
@@ -870,3 +1289,44 @@ Schema matches PostgreSQL with these SQLite-specific differences:
 | `NOT_FOUND` | 404 | Resource not found |
 | `FORBIDDEN` | 403 | Access denied |
 | `INTERNAL_ERROR` | 500 | Internal server error |
+
+---
+
+## Common Validation Schemas
+
+The server exports reusable Zod schemas from
+`apps/server/middleware/validation.ts` so route handlers and tests share a
+single source of truth for pagination, IDs, and date ranges.
+
+### Pagination
+
+Used by `/api/analytics/{attention,mastery}` and `/api/core/events`.
+
+```typescript
+{
+  page: number;    // positive integer; default 1
+  limit: number;   // positive integer; max 100; default 20
+}
+```
+
+### ID parameter
+
+```typescript
+{
+  id: number;      // positive integer
+}
+```
+
+### Date range
+
+Used by every paginated list endpoint (above) and by `/api/analytics/summary`.
+
+```typescript
+{
+  startDate?: string;   // ISO 8601 datetime (inclusive)
+  endDate?: string;     // ISO 8601 datetime (inclusive)
+}
+```
+
+The combined query schema for paginated + date-windowed endpoints is
+`commonSchemas.pagination.merge(commonSchemas.dateRange)`.

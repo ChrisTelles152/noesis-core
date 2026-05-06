@@ -7,7 +7,11 @@
 export {
   CoreEngineAdapter,
   createCoreEngineAdapter,
+  localStorageTransport,
+  httpTransport,
   type CoreAdapterConfig,
+  type PersistenceTransport,
+  type PersistOptions,
 } from './CoreEngineAdapter';
 
 // Re-export commonly used types from core

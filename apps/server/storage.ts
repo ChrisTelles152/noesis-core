@@ -15,6 +15,8 @@ import {
   users,
   learningEvents,
   engineStates,
+  skillGraphs,
+  systemCurriculum,
   type User,
   type InsertUser,
   type LearningEvent,
@@ -23,6 +25,7 @@ import {
 import { db, isDatabaseConfigured } from './db';
 import { getLogger, type Logger } from './logger';
 import { SqliteStorage } from './sqlite-storage';
+import type { Skill, ItemSkillMapping, TransferTest } from '@noesis-edu/core';
 
 const SALT_ROUNDS = 12;
 
@@ -31,6 +34,19 @@ export interface GoogleUserProfile {
   email: string;
   displayName: string;
   avatarUrl?: string;
+}
+
+/**
+ * Per-user curriculum payload — stored as JSON in skill_graphs.
+ *
+ * Same shape as `Curriculum` from engine-manager.ts. Duplicated here to
+ * avoid pulling the engine-manager module into the storage layer (keeps
+ * the dependency direction one-way: engine-manager → storage).
+ */
+export interface StoredCurriculum {
+  skills: Skill[];
+  itemMappings?: ItemSkillMapping[];
+  transferTests?: TransferTest[];
 }
 
 export interface IStorage {
@@ -52,6 +68,24 @@ export interface IStorage {
   // Core engine state persistence
   saveEngineState(userId: number, state: string): Promise<void>;
   loadEngineState(userId: number): Promise<string | null>;
+
+  // Per-user curriculum (Phase E2). Used by the EngineManager to hydrate
+  // an engine on first access for a user.
+  saveCurriculum(userId: number, curriculum: StoredCurriculum): Promise<void>;
+  loadCurriculum(userId: number): Promise<StoredCurriculum | null>;
+
+  // Admin / mentor methods (Phase H6). listUsers powers the mentor dashboard
+  // and CSV export. setUserAdmin is the single seam for promoting a learner
+  // to admin — kept narrow so admin-grant can be audited if the seam is
+  // touched in code review.
+  listUsers(): Promise<User[]>;
+  setUserAdmin(userId: number, isAdmin: boolean): Promise<void>;
+
+  // System curriculum (Phase H7). Admin-authored skill graph kept separate
+  // from per-user skill_graphs so editing the template doesn't trample an
+  // active learner's working state.
+  getSystemCurriculum(): Promise<StoredCurriculum | null>;
+  setSystemCurriculum(curriculum: StoredCurriculum): Promise<void>;
 }
 
 // In-memory storage implementation (used when DATABASE_URL is not set)
@@ -59,6 +93,7 @@ export class MemStorage implements IStorage {
   private users: Map<number, User>;
   private learningEvents: Map<number, LearningEvent>;
   private engineStates: Map<number, string>;
+  private curricula: Map<number, StoredCurriculum>;
   currentUserId: number;
   currentEventId: number;
   private initialized: Promise<void>;
@@ -67,6 +102,7 @@ export class MemStorage implements IStorage {
     this.users = new Map();
     this.learningEvents = new Map();
     this.engineStates = new Map();
+    this.curricula = new Map();
     this.currentUserId = 1;
     this.currentEventId = 1;
 
@@ -102,6 +138,7 @@ export class MemStorage implements IStorage {
       googleId: null,
       displayName: null,
       avatarUrl: null,
+      isAdmin: false,
     };
     this.users.set(id, user);
     return user;
@@ -133,6 +170,7 @@ export class MemStorage implements IStorage {
       googleId: profile.googleId,
       displayName: profile.displayName,
       avatarUrl: profile.avatarUrl || null,
+      isAdmin: false,
     };
     this.users.set(id, user);
     return user;
@@ -169,6 +207,42 @@ export class MemStorage implements IStorage {
 
   async loadEngineState(userId: number): Promise<string | null> {
     return this.engineStates.get(userId) ?? null;
+  }
+
+  // Curriculum (Phase E2)
+  async saveCurriculum(userId: number, curriculum: StoredCurriculum): Promise<void> {
+    // Defensive deep clone — callers retain their original objects.
+    this.curricula.set(userId, JSON.parse(JSON.stringify(curriculum)) as StoredCurriculum);
+  }
+
+  async loadCurriculum(userId: number): Promise<StoredCurriculum | null> {
+    const stored = this.curricula.get(userId);
+    if (!stored) return null;
+    return JSON.parse(JSON.stringify(stored)) as StoredCurriculum;
+  }
+
+  // Admin / mentor methods (Phase H6)
+  async listUsers(): Promise<User[]> {
+    return Array.from(this.users.values());
+  }
+
+  async setUserAdmin(userId: number, isAdmin: boolean): Promise<void> {
+    const user = this.users.get(userId);
+    if (!user) return;
+    this.users.set(userId, { ...user, isAdmin });
+  }
+
+  // System curriculum (Phase H7). In-memory singleton — clones on read/write
+  // so callers can't mutate our stored copy by retaining their reference.
+  private systemCurriculum: StoredCurriculum | null = null;
+
+  async getSystemCurriculum(): Promise<StoredCurriculum | null> {
+    if (!this.systemCurriculum) return null;
+    return JSON.parse(JSON.stringify(this.systemCurriculum)) as StoredCurriculum;
+  }
+
+  async setSystemCurriculum(curriculum: StoredCurriculum): Promise<void> {
+    this.systemCurriculum = JSON.parse(JSON.stringify(curriculum)) as StoredCurriculum;
   }
 }
 
@@ -280,6 +354,85 @@ export class DatabaseStorage implements IStorage {
     if (!db) throw new Error('Database not configured');
     const [row] = await db.select().from(engineStates).where(eq(engineStates.userId, userId));
     return row?.state ?? null;
+  }
+
+  // Curriculum (Phase E2)
+  async saveCurriculum(userId: number, curriculum: StoredCurriculum): Promise<void> {
+    if (!db) throw new Error('Database not configured');
+    await db
+      .insert(skillGraphs)
+      .values({
+        userId,
+        skills: curriculum.skills,
+        itemMappings: curriculum.itemMappings ?? null,
+        transferTests: curriculum.transferTests ?? null,
+        updatedAt: new Date(),
+      })
+      .onConflictDoUpdate({
+        target: skillGraphs.userId,
+        set: {
+          skills: curriculum.skills,
+          itemMappings: curriculum.itemMappings ?? null,
+          transferTests: curriculum.transferTests ?? null,
+          updatedAt: new Date(),
+        },
+      });
+  }
+
+  async loadCurriculum(userId: number): Promise<StoredCurriculum | null> {
+    if (!db) throw new Error('Database not configured');
+    const [row] = await db.select().from(skillGraphs).where(eq(skillGraphs.userId, userId));
+    if (!row) return null;
+    return {
+      skills: row.skills as Skill[],
+      itemMappings: (row.itemMappings as ItemSkillMapping[] | null) ?? undefined,
+      transferTests: (row.transferTests as TransferTest[] | null) ?? undefined,
+    };
+  }
+
+  // Admin / mentor methods (Phase H6)
+  async listUsers(): Promise<User[]> {
+    if (!db) throw new Error('Database not configured');
+    return db.select().from(users);
+  }
+
+  async setUserAdmin(userId: number, isAdmin: boolean): Promise<void> {
+    if (!db) throw new Error('Database not configured');
+    await db.update(users).set({ isAdmin }).where(eq(users.id, userId));
+  }
+
+  // System curriculum (Phase H7) — single-row table keyed by id=1.
+  async getSystemCurriculum(): Promise<StoredCurriculum | null> {
+    if (!db) throw new Error('Database not configured');
+    const [row] = await db.select().from(systemCurriculum).where(eq(systemCurriculum.id, 1));
+    if (!row) return null;
+    return {
+      skills: row.skills as Skill[],
+      itemMappings: (row.itemMappings as ItemSkillMapping[] | null) ?? undefined,
+      transferTests: (row.transferTests as TransferTest[] | null) ?? undefined,
+    };
+  }
+
+  async setSystemCurriculum(curriculum: StoredCurriculum): Promise<void> {
+    if (!db) throw new Error('Database not configured');
+    await db
+      .insert(systemCurriculum)
+      .values({
+        id: 1,
+        skills: curriculum.skills,
+        itemMappings: curriculum.itemMappings ?? null,
+        transferTests: curriculum.transferTests ?? null,
+        updatedAt: new Date(),
+      })
+      .onConflictDoUpdate({
+        target: systemCurriculum.id,
+        set: {
+          skills: curriculum.skills,
+          itemMappings: curriculum.itemMappings ?? null,
+          transferTests: curriculum.transferTests ?? null,
+          updatedAt: new Date(),
+        },
+      });
   }
 }
 

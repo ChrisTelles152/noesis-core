@@ -12,6 +12,11 @@ import Dashboard from '@/pages/Dashboard';
 import Login from '@/pages/Login';
 import Register from '@/pages/Register';
 import CoreSmoke from '@/pages/CoreSmoke';
+import Diagnostic from '@/pages/Diagnostic';
+import Path from '@/pages/Path';
+import SkillNode from '@/pages/SkillNode';
+import Mentor from '@/pages/Mentor';
+import Authoring from '@/pages/Authoring';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 
@@ -31,6 +36,11 @@ function Router() {
         <Route path="/login" component={Login} />
         <Route path="/register" component={Register} />
         <Route path="/core-smoke" component={CoreSmoke} />
+        <Route path="/diagnostic" component={Diagnostic} />
+        <Route path="/path" component={Path} />
+        <Route path="/skill/:id" component={SkillNode} />
+        <Route path="/mentor" component={Mentor} />
+        <Route path="/authoring" component={Authoring} />
         <Route component={NotFound} />
       </Switch>
       {!isAuthPage && !isSmokePage && <Footer />}

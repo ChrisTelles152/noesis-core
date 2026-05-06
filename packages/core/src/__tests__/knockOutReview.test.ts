@@ -29,7 +29,12 @@ function setupAllDueEngine(now: number) {
   const graph = createSkillGraph(createEncompassingSkills());
   // Use pastTime as clock for initial practice
   let time = pastTime;
-  const engine = createNoesisCoreEngine(graph, {}, () => time);
+  const engine = createNoesisCoreEngine(
+    graph,
+    {},
+    () => time,
+    createDeterministicIdGenerator('engine')
+  );
   const idGen = createDeterministicIdGenerator('evt');
   const ctx = createEventFactoryContext(() => time, idGen);
 
@@ -132,7 +137,12 @@ describe('Knock-Out Review Selection (Phase 3)', () => {
     const graph = createSkillGraph(skills);
     const pastTime = now - 365 * MS_PER_DAY;
     let time = pastTime;
-    const engine = createNoesisCoreEngine(graph, {}, () => time);
+    const engine = createNoesisCoreEngine(
+      graph,
+      {},
+      () => time,
+      createDeterministicIdGenerator('engine')
+    );
     const idGen = createDeterministicIdGenerator('evt');
     const ctx = createEventFactoryContext(() => time, idGen);
 

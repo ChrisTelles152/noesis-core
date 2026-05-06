@@ -48,6 +48,7 @@ export default defineConfig({
       ),
       '@noesis/adapters-llm': path.resolve(__dirname, './packages/adapters-llm/src'),
       '@noesis/sdk-web': path.resolve(__dirname, './packages/sdk-web/src'),
+      '@noesis/content-pt-br-math': path.resolve(__dirname, './packages/content-pt-br-math/src'),
     },
   },
 });

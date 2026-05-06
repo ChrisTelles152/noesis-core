@@ -1,0 +1,10 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "buildCommand": "cd docs/site && npm install && npm run build",
+  "outputDirectory": "docs/site/dist",
+  "installCommand": "echo 'install handled inside buildCommand to scope it to docs/site'",
+  "framework": "astro",
+  "github": {
+    "silent": false
+  }
+}

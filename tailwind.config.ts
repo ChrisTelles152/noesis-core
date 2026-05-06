@@ -10,7 +10,44 @@ export default {
         md: 'calc(var(--radius) - 2px)',
         sm: 'calc(var(--radius) - 4px)',
       },
+      // ────────────────────────────────────────────────────────────────────
+      // Brand typography (INTENTION.md): geometric sans for UI, soft serif
+      // for long-form / philosophical text. Inter + Source Serif 4 are loaded
+      // from Google Fonts in apps/web-demo/index.html. Stack order: branded
+      // family first, then a system fallback so unstyled / pre-load renders
+      // still look intentional.
+      // ────────────────────────────────────────────────────────────────────
+      fontFamily: {
+        sans: ['Inter', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
+        serif: ['"Source Serif 4"', '"Source Serif Pro"', 'Georgia', 'serif'],
+      },
       colors: {
+        // ──────────────────────────────────────────────────────────────────
+        // Brand palette (INTENTION.md "sacred-tech" — cognitive minimalism,
+        // calm, timeless, non-exploitative).
+        //
+        // The five locked names from INTENTION.md are exposed as named
+        // Tailwind tokens so application code references the brand by name
+        // (e.g. `bg-neural-copper`) rather than by hex. Hex values below are
+        // initial interpretations — they are the single source of truth and
+        // are easy to update when the final brand-spec hex values are
+        // delivered. The shadcn CSS variables further down route to these
+        // tokens via `index.css`, so updating the hex here flows through to
+        // every shadcn primitive too.
+        //
+        // Palette intent:
+        //   cloudbone-white — base canvas; like aged ivory (light + warmth)
+        //   slate-grey      — text + UI chrome (cool charcoal)
+        //   neural-copper   — primary accent (burnished, earthy, focused)
+        //   iris-bloom      — secondary accent (soft lavender, contemplative)
+        //   glacial-cyan    — tertiary accent (icy, sparing, "cool moments")
+        // ──────────────────────────────────────────────────────────────────
+        'cloudbone-white': '#F4EFE6',
+        'slate-grey': '#475569',
+        'neural-copper': '#B87333',
+        'iris-bloom': '#9F86C0',
+        'glacial-cyan': '#B8DCDD',
+
         background: 'hsl(var(--background))',
         foreground: 'hsl(var(--foreground))',
         card: {

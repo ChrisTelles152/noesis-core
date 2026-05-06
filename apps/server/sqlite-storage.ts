@@ -15,7 +15,8 @@ import type {
   InsertLearningEvent,
   LearningEventData,
 } from '@shared/schema';
-import type { IStorage } from './storage';
+import type { IStorage, StoredCurriculum } from './storage';
+import type { Skill, ItemSkillMapping, TransferTest } from '@noesis-edu/core';
 
 const SALT_ROUNDS = 12;
 
@@ -59,7 +60,8 @@ export class SqliteStorage implements IStorage {
         email TEXT,
         google_id TEXT UNIQUE,
         display_name TEXT,
-        avatar_url TEXT
+        avatar_url TEXT,
+        is_admin INTEGER NOT NULL DEFAULT 0
       );
 
       CREATE TABLE IF NOT EXISTS learning_events (
@@ -103,20 +105,73 @@ export class SqliteStorage implements IStorage {
       );
 
       CREATE INDEX IF NOT EXISTS idx_engine_states_user_id ON engine_states(user_id);
+
+      CREATE TABLE IF NOT EXISTS skill_graphs (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE,
+        skills TEXT NOT NULL,
+        item_mappings TEXT,
+        transfer_tests TEXT,
+        updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_skill_graphs_user_id ON skill_graphs(user_id);
+
+      -- System curriculum (Phase H7) — single-row table keyed by id = 1
+      CREATE TABLE IF NOT EXISTS system_curriculum (
+        id INTEGER PRIMARY KEY,
+        skills TEXT NOT NULL,
+        item_mappings TEXT,
+        transfer_tests TEXT,
+        updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+      );
     `);
+
+    // Idempotent migration for `is_admin` (Phase H6). Older databases
+    // created before this column existed need it added without losing data.
+    // SQLite's ALTER TABLE ADD COLUMN throws if the column already exists,
+    // so we probe via PRAGMA first.
+    const userColumns = this.db.prepare('PRAGMA table_info(users)').all() as Array<{
+      name: string;
+    }>;
+    if (!userColumns.some((c) => c.name === 'is_admin')) {
+      this.db.exec('ALTER TABLE users ADD COLUMN is_admin INTEGER NOT NULL DEFAULT 0');
+    }
+  }
+
+  /**
+   * Map a raw SQLite row (snake_case columns) into the camelCase User type.
+   * Older read paths in this file return rows without remapping — callers of
+   * those methods only touch fields whose names happen to be snake_case-safe
+   * (id, username, password). New methods + any path that needs is_admin
+   * MUST go through this helper.
+   */
+  private mapUserRow(row: Record<string, unknown>): User {
+    return {
+      id: row.id as number,
+      username: row.username as string,
+      password: (row.password as string | null) ?? null,
+      email: (row.email as string | null) ?? null,
+      googleId: (row.google_id as string | null) ?? null,
+      displayName: (row.display_name as string | null) ?? null,
+      avatarUrl: (row.avatar_url as string | null) ?? null,
+      isAdmin: row.is_admin === 1 || row.is_admin === true,
+    };
   }
 
   // User methods
   async getUser(id: number): Promise<User | undefined> {
-    const row = this.db.prepare('SELECT * FROM users WHERE id = ?').get(id) as User | undefined;
-    return row;
+    const row = this.db.prepare('SELECT * FROM users WHERE id = ?').get(id) as
+      | Record<string, unknown>
+      | undefined;
+    return row ? this.mapUserRow(row) : undefined;
   }
 
   async getUserByUsername(username: string): Promise<User | undefined> {
     const row = this.db.prepare('SELECT * FROM users WHERE username = ?').get(username) as
-      | User
+      | Record<string, unknown>
       | undefined;
-    return row;
+    return row ? this.mapUserRow(row) : undefined;
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
@@ -135,14 +190,15 @@ export class SqliteStorage implements IStorage {
       googleId: null,
       displayName: null,
       avatarUrl: null,
+      isAdmin: false,
     };
   }
 
   async getUserByGoogleId(googleId: string): Promise<User | undefined> {
     const row = this.db.prepare('SELECT * FROM users WHERE google_id = ?').get(googleId) as
-      | User
+      | Record<string, unknown>
       | undefined;
-    return row;
+    return row ? this.mapUserRow(row) : undefined;
   }
 
   async createGoogleUser(profile: {
@@ -173,13 +229,8 @@ export class SqliteStorage implements IStorage {
       googleId: profile.googleId,
       displayName: profile.displayName,
       avatarUrl: profile.avatarUrl || null,
+      isAdmin: false,
     };
-  }
-
-  async linkGoogleAccount(userId: number, googleId: string, email: string): Promise<void> {
-    this.db
-      .prepare('UPDATE users SET google_id = ?, email = ? WHERE id = ?')
-      .run(googleId, email, userId);
   }
 
   async verifyPassword(username: string, password: string): Promise<User | null> {
@@ -255,6 +306,93 @@ export class SqliteStorage implements IStorage {
       | { state: string }
       | undefined;
     return row?.state ?? null;
+  }
+
+  // Curriculum (Phase E2)
+  async saveCurriculum(userId: number, curriculum: StoredCurriculum): Promise<void> {
+    this.db
+      .prepare(
+        `INSERT INTO skill_graphs (user_id, skills, item_mappings, transfer_tests, updated_at)
+         VALUES (?, ?, ?, ?, datetime('now'))
+         ON CONFLICT(user_id) DO UPDATE SET
+           skills = excluded.skills,
+           item_mappings = excluded.item_mappings,
+           transfer_tests = excluded.transfer_tests,
+           updated_at = datetime('now')`
+      )
+      .run(
+        userId,
+        JSON.stringify(curriculum.skills),
+        curriculum.itemMappings ? JSON.stringify(curriculum.itemMappings) : null,
+        curriculum.transferTests ? JSON.stringify(curriculum.transferTests) : null
+      );
+  }
+
+  async loadCurriculum(userId: number): Promise<StoredCurriculum | null> {
+    const row = this.db
+      .prepare('SELECT skills, item_mappings, transfer_tests FROM skill_graphs WHERE user_id = ?')
+      .get(userId) as
+      | { skills: string; item_mappings: string | null; transfer_tests: string | null }
+      | undefined;
+    if (!row) return null;
+    return {
+      skills: JSON.parse(row.skills) as Skill[],
+      itemMappings: row.item_mappings
+        ? (JSON.parse(row.item_mappings) as ItemSkillMapping[])
+        : undefined,
+      transferTests: row.transfer_tests
+        ? (JSON.parse(row.transfer_tests) as TransferTest[])
+        : undefined,
+    };
+  }
+
+  // Admin / mentor methods (Phase H6)
+  async listUsers(): Promise<User[]> {
+    const rows = this.db.prepare('SELECT * FROM users ORDER BY id').all() as Array<
+      Record<string, unknown>
+    >;
+    return rows.map((r) => this.mapUserRow(r));
+  }
+
+  async setUserAdmin(userId: number, isAdmin: boolean): Promise<void> {
+    this.db.prepare('UPDATE users SET is_admin = ? WHERE id = ?').run(isAdmin ? 1 : 0, userId);
+  }
+
+  // System curriculum (Phase H7)
+  async getSystemCurriculum(): Promise<StoredCurriculum | null> {
+    const row = this.db
+      .prepare('SELECT skills, item_mappings, transfer_tests FROM system_curriculum WHERE id = 1')
+      .get() as
+      | { skills: string; item_mappings: string | null; transfer_tests: string | null }
+      | undefined;
+    if (!row) return null;
+    return {
+      skills: JSON.parse(row.skills) as Skill[],
+      itemMappings: row.item_mappings
+        ? (JSON.parse(row.item_mappings) as ItemSkillMapping[])
+        : undefined,
+      transferTests: row.transfer_tests
+        ? (JSON.parse(row.transfer_tests) as TransferTest[])
+        : undefined,
+    };
+  }
+
+  async setSystemCurriculum(curriculum: StoredCurriculum): Promise<void> {
+    this.db
+      .prepare(
+        `INSERT INTO system_curriculum (id, skills, item_mappings, transfer_tests, updated_at)
+         VALUES (1, ?, ?, ?, datetime('now'))
+         ON CONFLICT(id) DO UPDATE SET
+           skills = excluded.skills,
+           item_mappings = excluded.item_mappings,
+           transfer_tests = excluded.transfer_tests,
+           updated_at = datetime('now')`
+      )
+      .run(
+        JSON.stringify(curriculum.skills),
+        curriculum.itemMappings ? JSON.stringify(curriculum.itemMappings) : null,
+        curriculum.transferTests ? JSON.stringify(curriculum.transferTests) : null
+      );
   }
 
   close(): void {

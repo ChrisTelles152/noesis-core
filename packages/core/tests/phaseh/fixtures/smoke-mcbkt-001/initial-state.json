@@ -1,0 +1,37 @@
+{
+  "config": {
+    "channels": {
+      "recog_mc": {
+        "pInit": 0.3,
+        "pLearn": 0.15,
+        "pSlip": 0.1,
+        "pGuess": 0.25
+      },
+      "cloze": {
+        "pInit": 0.2,
+        "pLearn": 0.12,
+        "pSlip": 0.12,
+        "pGuess": 0.15
+      },
+      "prod_typed": {
+        "pInit": 0.15,
+        "pLearn": 0.1,
+        "pSlip": 0.15,
+        "pGuess": 0.05
+      }
+    },
+    "skillCategoryModifiers": {
+      "grammar": {
+        "pLearnMultiplier": 0.85,
+        "pSlipAdd": 0.03
+      }
+    },
+    "drillingDiscount": {
+      "attemptsBeforeDiscount": 2,
+      "multiplier": 0.3
+    }
+  },
+  "skillCategories": {
+    "grammar.simple_present": "grammar"
+  }
+}

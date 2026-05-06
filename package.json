@@ -12,7 +12,7 @@
     "dev": "NODE_ENV=development tsx apps/server/index.ts",
     "dev:web": "cd apps/web-demo && npm run dev",
     "build": "npm run build:packages && npm run build:apps",
-    "build:packages": "npm run build --workspaces --if-present",
+    "build:packages": "npm run build -w @noesis-edu/core && npm run build --workspaces --if-present",
     "build:apps": "vite build && esbuild apps/server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist",
     "start": "NODE_ENV=production node dist/index.js",
     "check": "tsc",
@@ -28,7 +28,11 @@
     "build:core": "npm run build -w @noesis-edu/core",
     "test:core": "vitest run packages/core",
     "smoke:core": "npm run smoke -w @noesis-edu/core",
-    "release:core": "echo 'To release @noesis-edu/core: 1) npm run build:core 2) npm run test:core 3) npm run smoke:core 4) cd packages/core && npm publish'"
+    "release:core": "npm run build:core && npm run test:core && npm run smoke:core && cd packages/core && npm publish --access public",
+    "release:core:rc": "npm run build:core && npm run test:core && npm run smoke:core && cd packages/core && npm publish --access public --tag rc",
+    "release:core:dry-run": "npm run build:core && npm run test:core && npm run smoke:core && cd packages/core && npm publish --access public --dry-run",
+    "release:core:rc:dry-run": "npm run build:core && npm run test:core && npm run smoke:core && cd packages/core && npm publish --access public --tag rc --dry-run",
+    "verify:core:pack": "cd packages/core && npm pack --dry-run"
   },
   "dependencies": {
     "@fortawesome/fontawesome-svg-core": "^6.7.2",
@@ -61,6 +65,8 @@
     "express-session": "^1.18.1",
     "framer-motion": "^11.13.1",
     "helmet": "^8.0.0",
+    "i18next": "^23.16.8",
+    "i18next-browser-languagedetector": "^8.2.1",
     "input-otp": "^1.4.2",
     "lucide-react": "^0.453.0",
     "memorystore": "^1.6.7",
@@ -73,6 +79,7 @@
     "react-day-picker": "^8.10.1",
     "react-dom": "^18.3.1",
     "react-hook-form": "^7.55.0",
+    "react-i18next": "^14.1.3",
     "react-icons": "^5.4.0",
     "react-resizable-panels": "^2.1.7",
     "recharts": "^2.15.2",

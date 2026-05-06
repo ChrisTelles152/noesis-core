@@ -1,0 +1,41 @@
+/**
+ * Brand palette overrides for Starlight.
+ *
+ * Routes Starlight's `--sl-color-accent-*` variables through the locked
+ * Noesis palette so the docs site reads as the same product as the web
+ * app (apps/web-demo, Phase G). Kept here in plain CSS rather than
+ * Tailwind so the docs site doesn't need to share the app's build chain.
+ */
+
+:root {
+  /* Brand source palette */
+  --noesis-cloudbone-white: #f4efe6;
+  --noesis-slate-grey: #475569;
+  --noesis-neural-copper: #b87333;
+  --noesis-iris-bloom: #9f86c0;
+  --noesis-glacial-cyan: #b8dcdd;
+}
+
+/* Light theme — Cloudbone background, Copper accent. */
+:root[data-theme='light'] {
+  --sl-color-bg: var(--noesis-cloudbone-white);
+  --sl-color-bg-nav: var(--noesis-cloudbone-white);
+  --sl-color-bg-sidebar: #ede5d6;
+  --sl-color-text: #1f2937;
+  --sl-color-text-accent: var(--noesis-neural-copper);
+  --sl-color-accent: var(--noesis-neural-copper);
+  --sl-color-accent-low: rgba(184, 115, 51, 0.12);
+  --sl-color-accent-high: var(--noesis-iris-bloom);
+}
+
+/* Dark theme — Slate background, Cyan accent so links pop on dark. */
+:root[data-theme='dark'] {
+  --sl-color-bg: #0f172a;
+  --sl-color-bg-nav: #0b1224;
+  --sl-color-bg-sidebar: #111c33;
+  --sl-color-text: #e2e8f0;
+  --sl-color-text-accent: var(--noesis-glacial-cyan);
+  --sl-color-accent: var(--noesis-glacial-cyan);
+  --sl-color-accent-low: rgba(184, 220, 221, 0.18);
+  --sl-color-accent-high: var(--noesis-iris-bloom);
+}

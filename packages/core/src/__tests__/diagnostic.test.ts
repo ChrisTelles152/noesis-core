@@ -529,4 +529,59 @@ describe('DiagnosticEngineImpl', () => {
       expect(result1).toEqual(result2);
     });
   });
+
+  // ===========================================================================
+  // PHASE J / Tier-3 — analyzeResults edge cases
+  //
+  // Pins behaviour at the boundary: empty responses, responses for items not
+  // in the mappings table, and a graph with skills the responses never touch.
+  // ===========================================================================
+  describe('analyzeResults: edge cases', () => {
+    it('returns the default prior for every skill when responses is empty', () => {
+      const skillGraph = createMockSkillGraph(['A', 'B', 'C']);
+      const itemMappings = createItemMappings([{ id: 'item-a', skill: 'A', difficulty: 0.5 }]);
+
+      const estimates = engine.analyzeResults(skillGraph, itemMappings, []);
+
+      expect(estimates.size).toBe(3);
+      // Every skill seeds at the 0.3 prior — same value the engine uses
+      // when there's no data on a skill.
+      for (const skillId of ['A', 'B', 'C']) {
+        expect(estimates.get(skillId)).toBe(0.3);
+      }
+    });
+
+    it('silently ignores responses for items absent from the mappings (does not throw)', () => {
+      const skillGraph = createMockSkillGraph(['A']);
+      const itemMappings = createItemMappings([{ id: 'real', skill: 'A', difficulty: 0.5 }]);
+
+      // 'phantom' is not in mappings — responses for it should be dropped.
+      expect(() =>
+        engine.analyzeResults(skillGraph, itemMappings, [
+          { itemId: 'phantom', correct: true },
+          { itemId: 'phantom-2', correct: false },
+        ])
+      ).not.toThrow();
+
+      // No real responses landed on A → A stays at the prior.
+      const estimates = engine.analyzeResults(skillGraph, itemMappings, [
+        { itemId: 'phantom', correct: true },
+      ]);
+      expect(estimates.get('A')).toBe(0.3);
+    });
+
+    it('still seeds skills with no associated items at the default prior', () => {
+      const skillGraph = createMockSkillGraph(['A', 'B']);
+      // Only A has an item; B has no items at all.
+      const itemMappings = createItemMappings([{ id: 'item-a', skill: 'A', difficulty: 0.5 }]);
+
+      const estimates = engine.analyzeResults(skillGraph, itemMappings, [
+        { itemId: 'item-a', correct: true },
+      ]);
+
+      // A moved (correct attempt). B was never tested — sits at 0.3 prior.
+      expect(estimates.get('A')).toBeGreaterThan(0.3);
+      expect(estimates.get('B')).toBe(0.3);
+    });
+  });
 });
