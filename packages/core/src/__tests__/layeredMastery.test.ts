@@ -13,7 +13,6 @@ const T0 = Date.UTC(2026, 0, 15, 12, 0, 0); // 2026-01-15 12:00 UTC
 const NOW_24H_LATER = T0 + 24 * 60 * 60 * 1000;
 const NOW_25H_LATER = T0 + 25 * 60 * 60 * 1000;
 const NOW_23H_LATER = T0 + 23 * 60 * 60 * 1000;
-const NEXT_DAY = T0 + 86_400_000;
 
 function mkState(overrides: Partial<ChannelSkillProbability> = {}): ChannelSkillProbability {
   return {

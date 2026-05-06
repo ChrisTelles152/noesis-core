@@ -213,9 +213,9 @@ export class LayeredMasteryModel {
         ? channelsWithData.reduce((sum, c) => sum + c.pMastery, 0) / channelsWithData.length
         : 0;
 
-    const primaryStatus = primary != null ? channels.find((c) => c.channel === primary) : undefined;
+    const primaryStatus = primary !== null ? channels.find((c) => c.channel === primary) : undefined;
     const secondaryStatus =
-      secondary != null ? channels.find((c) => c.channel === secondary) : undefined;
+      secondary !== null ? channels.find((c) => c.channel === secondary) : undefined;
 
     const masteredChannels = channels.filter((c) => c.layer === 'mastered');
     const isLearned = channels.some((c) => c.layer === 'learned' || c.layer === 'mastered');
