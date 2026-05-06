@@ -101,14 +101,15 @@ interface MCBKTSnapshot {
 
 function snapshotEngine(engine: MultiChannelBKTEngine): MCBKTSnapshot {
   const all = engine.getAllStates();
-  const skillIds = [...all.keys()].sort();
+  const skillEntries = [...all.entries()].sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0));
   const skills: Record<string, Record<string, ChannelSkillProbability>> = {};
-  for (const skillId of skillIds) {
-    const byChannel = all.get(skillId)!;
-    const channelIds = [...byChannel.keys()].sort();
+  for (const [skillId, byChannel] of skillEntries) {
+    const channelEntries = [...byChannel.entries()].sort(([a], [b]) =>
+      a < b ? -1 : a > b ? 1 : 0
+    );
     const inner: Record<string, ChannelSkillProbability> = {};
-    for (const channelId of channelIds) {
-      inner[channelId] = byChannel.get(channelId)!;
+    for (const [channelId, state] of channelEntries) {
+      inner[channelId] = state;
     }
     skills[skillId] = inner;
   }
