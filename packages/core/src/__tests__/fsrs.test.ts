@@ -454,8 +454,7 @@ describe('FSRSScheduler', () => {
       const hard = scheduler.scheduleReview(fresh1, true, 2);
       const easy = scheduler.scheduleReview(fresh2, true, 4);
 
-      const ratio =
-        (easy.nextReview - currentTime) / (hard.nextReview - currentTime);
+      const ratio = (easy.nextReview - currentTime) / (hard.nextReview - currentTime);
       // 5.7 / 0.9 ≈ 6.33 — the magnitude of the Easy bump relative to Hard.
       // Anchored loosely so a small param tweak doesn't fail on noise.
       expect(ratio).toBeGreaterThan(5);

@@ -21,10 +21,7 @@
 
 // Default attention adapter.
 export { SimulatedAttentionTracker } from './simulated-adapter';
-export type {
-  SimulatedAttentionOptions,
-  SimulatedAttentionState,
-} from './simulated-adapter';
+export type { SimulatedAttentionOptions, SimulatedAttentionState } from './simulated-adapter';
 
 // `AttentionTracker` is the default symbol — a re-export of the simulated
 // tracker. INTENTION.md mandates simulated-by-default. Consumers who used

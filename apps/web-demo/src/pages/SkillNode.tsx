@@ -25,11 +25,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import {
-  CANONICAL_LOOP_STAGES,
-  gradeAnswer,
-  pickItemForStage,
-} from '@/lib/canonicalLoop';
+import { CANONICAL_LOOP_STAGES, gradeAnswer, pickItemForStage } from '@/lib/canonicalLoop';
 
 export default function SkillNode() {
   const { t } = useTranslation();
@@ -43,9 +39,7 @@ export default function SkillNode() {
   const [stageIndex, setStageIndex] = useState(0);
   const [answer, setAnswer] = useState('');
   const [reflection, setReflection] = useState('');
-  const [feedback, setFeedback] = useState<{ correct: boolean; item: ContentItem } | null>(
-    null,
-  );
+  const [feedback, setFeedback] = useState<{ correct: boolean; item: ContentItem } | null>(null);
 
   if (!skill) {
     return (
@@ -123,8 +117,7 @@ export default function SkillNode() {
           </CardHeader>
           <CardContent>
             <p className="text-base leading-relaxed">
-              {item?.workedSolution ??
-                t('skillNode.introductionFallback', { name: skill.name })}
+              {item?.workedSolution ?? t('skillNode.introductionFallback', { name: skill.name })}
             </p>
           </CardContent>
           <CardFooter>

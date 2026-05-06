@@ -129,7 +129,9 @@ export interface PersistOptions {
  */
 export function localStorageTransport(key: string): PersistenceTransport {
   const ls: Storage | undefined =
-    typeof globalThis !== 'undefined' ? (globalThis as { localStorage?: Storage }).localStorage : undefined;
+    typeof globalThis !== 'undefined'
+      ? (globalThis as { localStorage?: Storage }).localStorage
+      : undefined;
   if (!ls) {
     throw new Error(
       'localStorageTransport: window.localStorage is not available in this environment'
@@ -249,10 +251,7 @@ export class CoreEngineAdapter {
       !nonDeterminismWarningEmitted
     ) {
       nonDeterminismWarningEmitted = true;
-      const missing = [
-        !clockProvided ? 'clock' : null,
-        !idGeneratorProvided ? 'idGenerator' : null,
-      ]
+      const missing = [!clockProvided ? 'clock' : null, !idGeneratorProvided ? 'idGenerator' : null]
         .filter(Boolean)
         .join(' and ');
       console.warn(

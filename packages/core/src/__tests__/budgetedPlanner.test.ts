@@ -15,12 +15,7 @@ const ONE_DAY = 86_400_000;
 function review(itemId: string, skillId: string): ReviewCandidate {
   return { itemId, skillId, dueAt: NOW - 1000 };
 }
-function err(
-  itemId: string,
-  skillId: string,
-  accuracy: number,
-  daysAgo = 1
-): ErrorCandidate {
+function err(itemId: string, skillId: string, accuracy: number, daysAgo = 1): ErrorCandidate {
   return { itemId, skillId, accuracy, lastErrorAt: NOW - daysAgo * ONE_DAY };
 }
 function newItem(itemId: string, skillId: string, isNewSkill = false): NewItemCandidate {
@@ -205,9 +200,7 @@ describe('BudgetedSessionPlanner — new item caps', () => {
 
   it('honors emptyQueueCap=8 when due queue is empty', () => {
     const items = Array.from({ length: 20 }, (_, i) => newItem(`n${i}`, `s${i}`));
-    const plan = planner.planSession(
-      input({ sessionNumber: 5, newItems: items })
-    );
+    const plan = planner.planSession(input({ sessionNumber: 5, newItems: items }));
     // No reviews → emptyQueueCap=8 applies; raw slots = 20 - 12 - 5 = 3 → 3 (still binding)
     expect(plan.allocation.newSlots).toBe(3);
   });
@@ -241,9 +234,7 @@ describe('BudgetedSessionPlanner — new-skills cap', () => {
       newItem('n3', 'skill_b', true), // would exceed early cap
       newItem('n4', 'skill_a', true),
     ];
-    const plan = planner.planSession(
-      input({ sessionNumber: 5, newItems: items })
-    );
+    const plan = planner.planSession(input({ sessionNumber: 5, newItems: items }));
     expect(plan.newSkillsIntroduced).toEqual(new Set(['skill_a']));
     expect(plan.newItems.map((i) => i.itemId)).toEqual(['n1', 'n2']);
   });
@@ -260,9 +251,7 @@ describe('BudgetedSessionPlanner — new-skills cap', () => {
       newItem('n2', 'skill_b', true),
       newItem('n3', 'skill_c', true), // would exceed later cap
     ];
-    const plan = planner.planSession(
-      input({ sessionNumber: 11, newItems: items })
-    );
+    const plan = planner.planSession(input({ sessionNumber: 11, newItems: items }));
     expect(plan.newSkillsIntroduced).toEqual(new Set(['skill_a', 'skill_b']));
   });
 
@@ -384,10 +373,7 @@ describe('BudgetedSessionPlanner.detectBacklogGrowthSessions', () => {
 
   it('counts equal as non-growth (strict >)', () => {
     expect(
-      BudgetedSessionPlanner.detectBacklogGrowthSessions([
-        { dueAtEnd: 10 },
-        { dueAtEnd: 10 },
-      ])
+      BudgetedSessionPlanner.detectBacklogGrowthSessions([{ dueAtEnd: 10 }, { dueAtEnd: 10 }])
     ).toBe(0);
   });
 });

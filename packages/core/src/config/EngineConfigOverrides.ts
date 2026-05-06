@@ -322,11 +322,7 @@ export function validateEngineConfigOverrides(
 
   if (overrides.calibrator) {
     const c = overrides.calibrator;
-    if (
-      c.minRating !== undefined &&
-      c.maxRating !== undefined &&
-      c.minRating > c.maxRating
-    ) {
+    if (c.minRating !== undefined && c.maxRating !== undefined && c.minRating > c.maxRating) {
       errors.push({
         path: 'calibrator',
         message: `minRating (${c.minRating}) must be <= maxRating (${c.maxRating})`,

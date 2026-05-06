@@ -44,10 +44,7 @@ import { SessionPlannerImpl, type SessionPlannerConfig } from '../planning/index
 import { createTransferGate, type TransferGateConfig } from '../transfer/index.js';
 import { createDiagnosticEngine, type DiagnosticConfig } from '../diagnostic/index.js';
 import type { ClockFn, IdGeneratorFn, EventFactoryContext } from '../events/index.js';
-import {
-  assertValidEngineConfigOverrides,
-  type EngineConfigOverrides,
-} from '../config/index.js';
+import { assertValidEngineConfigOverrides, type EngineConfigOverrides } from '../config/index.js';
 import {
   createEventFactoryContext,
   createImplicitCreditEvent,

@@ -185,11 +185,7 @@ export class ItemHistoryAggregator {
     return a;
   }
 
-  private makeMasteryInfo(
-    itemId: string,
-    attempts: number,
-    correctCount: number
-  ): ItemMasteryInfo {
+  private makeMasteryInfo(itemId: string, attempts: number, correctCount: number): ItemMasteryInfo {
     const accuracy = attempts > 0 ? correctCount / attempts : 0;
     const mastered =
       accuracy >= this.config.masteryAccuracyThreshold &&

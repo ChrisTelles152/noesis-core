@@ -94,10 +94,16 @@ function generateEvents(engine: NoesisCoreEngineImpl, count: number, seed: numbe
     } else if (r < 0.05) {
       // ~3% diagnostic events.
       events.push(
-        createDiagnosticEvent(ctx, 'l1', sessionId, ['a', 'b'], [
-          { skillId: 'a', score: rng(), itemsAttempted: 3, itemsCorrect: Math.floor(rng() * 4) },
-          { skillId: 'b', score: rng(), itemsAttempted: 3, itemsCorrect: Math.floor(rng() * 4) },
-        ])
+        createDiagnosticEvent(
+          ctx,
+          'l1',
+          sessionId,
+          ['a', 'b'],
+          [
+            { skillId: 'a', score: rng(), itemsAttempted: 3, itemsCorrect: Math.floor(rng() * 4) },
+            { skillId: 'b', score: rng(), itemsAttempted: 3, itemsCorrect: Math.floor(rng() * 4) },
+          ]
+        )
       );
     } else if (r < 0.15) {
       // ~10% cognitive_state events (NALS, Phase C). Vectors are seeded from

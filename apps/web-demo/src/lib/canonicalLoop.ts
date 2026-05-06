@@ -14,11 +14,7 @@
  * Pulled out of the page component so it's testable without React.
  */
 
-import type {
-  ContentPack,
-  ContentItem,
-  CanonicalStage,
-} from '@noesis/content-pt-br-math';
+import type { ContentPack, ContentItem, CanonicalStage } from '@noesis/content-pt-br-math';
 
 /**
  * The four canonical stages the engine ships, in the order the UI walks
@@ -36,7 +32,7 @@ export const CANONICAL_LOOP_STAGES: CanonicalStage[] = [
 export function pickItemForStage(
   skillId: string,
   stage: CanonicalStage,
-  pack: ContentPack,
+  pack: ContentPack
 ): ContentItem | undefined {
   const sequence = pack.goldenSequences.find((s) => s.skillId === skillId);
   if (sequence) {

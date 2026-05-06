@@ -19,8 +19,4 @@ export {
 } from './NoesisCoreEngineImpl.js';
 
 // Metrics extraction
-export {
-  getLearnerMetrics,
-  type LearnerMetrics,
-  type LearnerMetricsOptions,
-} from './metrics.js';
+export { getLearnerMetrics, type LearnerMetrics, type LearnerMetricsOptions } from './metrics.js';

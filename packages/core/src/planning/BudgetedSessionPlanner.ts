@@ -283,11 +283,7 @@ export class BudgetedSessionPlanner {
    * Select error-repair items: weakness threshold + lookback filter, then
    * take top N from caller's pre-sorted order.
    */
-  private selectErrors(
-    candidates: ErrorCandidate[],
-    slots: number,
-    now: number
-  ): ErrorCandidate[] {
+  private selectErrors(candidates: ErrorCandidate[], slots: number, now: number): ErrorCandidate[] {
     if (slots <= 0) return [];
     const cutoff = now - this.config.errors.lookbackDays * MS_PER_DAY;
     const filtered = candidates.filter(
@@ -359,9 +355,7 @@ export class BudgetedSessionPlanner {
    * Example: history = [{due: 5}, {due: 8}, {due: 12}, {due: 18}] →
    * growth count = 3 (each session grew the queue).
    */
-  static detectBacklogGrowthSessions(
-    sessionDueHistory: { dueAtEnd: number }[]
-  ): number {
+  static detectBacklogGrowthSessions(sessionDueHistory: { dueAtEnd: number }[]): number {
     if (sessionDueHistory.length < 2) return 0;
     let count = 0;
     for (let i = sessionDueHistory.length - 1; i >= 1; i--) {

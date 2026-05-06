@@ -149,9 +149,7 @@ describe('@noesis/content-pt-br-math', () => {
 
     it('keeps multiple-choice items consistent (correctAnswer is in alternatives)', () => {
       const pack = loadContentPack();
-      const mc = pack.items.filter(
-        (it: ContentItem) => it.answerType === 'multiple-choice',
-      );
+      const mc = pack.items.filter((it: ContentItem) => it.answerType === 'multiple-choice');
       expect(mc.length).toBeGreaterThan(0);
       for (const item of mc) {
         expect(item.alternatives).toBeDefined();
@@ -197,12 +195,7 @@ describe('@noesis/content-pt-br-math', () => {
 
     it('uses only canonical stage names', () => {
       const pack = loadContentPack();
-      const allowed = new Set([
-        'concept_introduction',
-        'practice',
-        'application',
-        'reflection',
-      ]);
+      const allowed = new Set(['concept_introduction', 'practice', 'application', 'reflection']);
       for (const seq of pack.goldenSequences) {
         for (const stage of seq.stages) {
           expect(allowed.has(stage.stage)).toBe(true);

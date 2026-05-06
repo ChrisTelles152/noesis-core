@@ -1065,10 +1065,10 @@ describe('API Routes', () => {
       }
       // Our promoted admin shows isAdmin true; the original test user shows false
       const admin = res.body.learners.find(
-        (l: { username: string }) => l.username === 'mentoradmin',
+        (l: { username: string }) => l.username === 'mentoradmin'
       );
       const nonAdmin = res.body.learners.find(
-        (l: { username: string }) => l.username === 'testuser',
+        (l: { username: string }) => l.username === 'testuser'
       );
       expect(admin?.isAdmin).toBe(true);
       expect(nonAdmin?.isAdmin).toBe(false);
@@ -1088,7 +1088,7 @@ describe('API Routes', () => {
       // Header row is the first line
       const lines = res.text.trim().split('\n');
       expect(lines[0]).toBe(
-        'id,username,displayName,isAdmin,totalSkills,masteredSkills,learningSkills,notStartedSkills,averageMastery,totalEvents',
+        'id,username,displayName,isAdmin,totalSkills,masteredSkills,learningSkills,notStartedSkills,averageMastery,totalEvents'
       );
       // At least one data row
       expect(lines.length).toBeGreaterThanOrEqual(2);
@@ -1205,9 +1205,7 @@ describe('API Routes', () => {
 
     it('deleting a skill scrubs it from other skills’ prerequisites', async () => {
       // Seed two skills where B depends on A.
-      await adminAgent
-        .post('/api/admin/skills')
-        .send({ id: 'sk_a', name: 'A', prerequisites: [] });
+      await adminAgent.post('/api/admin/skills').send({ id: 'sk_a', name: 'A', prerequisites: [] });
       await adminAgent
         .post('/api/admin/skills')
         .send({ id: 'sk_b', name: 'B', prerequisites: ['sk_a'] });
@@ -1219,7 +1217,7 @@ describe('API Routes', () => {
 
       const after = await adminAgent.get('/api/admin/skills');
       const b = (after.body.skills as Array<{ id: string; prerequisites: string[] }>).find(
-        (s) => s.id === 'sk_b',
+        (s) => s.id === 'sk_b'
       );
       expect(b?.prerequisites).toEqual([]);
 

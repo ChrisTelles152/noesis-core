@@ -485,7 +485,13 @@ describe('MultiChannelBKTEngine — serialize / deserialize', () => {
     // Apply in scrambled order:
     e.applyAttempt({ skillId: 'z', channel: 'cloze', correct: true, sessionId: 's', now: T0 });
     e.applyAttempt({ skillId: 'a', channel: 'recog_mc', correct: true, sessionId: 's', now: T0 });
-    e.applyAttempt({ skillId: 'm', channel: 'prod_typed', correct: false, sessionId: 's', now: T0 });
+    e.applyAttempt({
+      skillId: 'm',
+      channel: 'prod_typed',
+      correct: false,
+      sessionId: 's',
+      now: T0,
+    });
 
     const json = e.serialize();
     const parsed = JSON.parse(json) as { state: [string, unknown][] };
@@ -564,13 +570,7 @@ describe('MultiChannelBKTEngine — static computeUpdate (pure)', () => {
     const e = new MultiChannelBKTEngine(ENG_LIKE_CONFIG);
     const initial = e.initialState('s', 'recog_mc', T0);
 
-    const computed = MultiChannelBKTEngine.computeUpdate(
-      initial,
-      true,
-      's1',
-      ENG_LIKE_CONFIG,
-      T0
-    );
+    const computed = MultiChannelBKTEngine.computeUpdate(initial, true, 's1', ENG_LIKE_CONFIG, T0);
     const applied = e.applyAttempt({
       skillId: 's',
       channel: 'recog_mc',
@@ -614,7 +614,7 @@ describe('createMultiChannelBKTEngine factory', () => {
 });
 
 describe('MultiChannelBKTEngine — convergence smoke (5 correct in a row past Mastered floor)', () => {
-  it('reaches pMastery >= 0.85 within the eng audit\'s typical 6-attempt regime', () => {
+  it("reaches pMastery >= 0.85 within the eng audit's typical 6-attempt regime", () => {
     const e = new MultiChannelBKTEngine(ENG_LIKE_CONFIG);
     let last = 0;
     for (let i = 0; i < 6; i++) {

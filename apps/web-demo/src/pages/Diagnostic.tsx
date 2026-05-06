@@ -49,7 +49,7 @@ export default function Diagnostic() {
     const ids = engine.generateDiagnostic(
       pack.skillGraph,
       pack.itemSkillMappings,
-      MAX_DIAGNOSTIC_ITEMS,
+      MAX_DIAGNOSTIC_ITEMS
     );
     const lookup = new Map(pack.items.map((it) => [it.id, it]));
     return ids.map((id) => lookup.get(id)).filter((it): it is ContentItem => it !== undefined);
@@ -75,11 +75,7 @@ export default function Diagnostic() {
   }
 
   const finalize = (allResponses: Response[]): void => {
-    const estimates = engine.analyzeResults(
-      pack.skillGraph,
-      pack.itemSkillMappings,
-      allResponses,
-    );
+    const estimates = engine.analyzeResults(pack.skillGraph, pack.itemSkillMappings, allResponses);
     try {
       const serialised = JSON.stringify(Object.fromEntries(estimates));
       localStorage.setItem(DIAGNOSTIC_ESTIMATES_STORAGE_KEY, serialised);

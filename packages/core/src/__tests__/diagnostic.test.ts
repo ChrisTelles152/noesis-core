@@ -539,9 +539,7 @@ describe('DiagnosticEngineImpl', () => {
   describe('analyzeResults: edge cases', () => {
     it('returns the default prior for every skill when responses is empty', () => {
       const skillGraph = createMockSkillGraph(['A', 'B', 'C']);
-      const itemMappings = createItemMappings([
-        { id: 'item-a', skill: 'A', difficulty: 0.5 },
-      ]);
+      const itemMappings = createItemMappings([{ id: 'item-a', skill: 'A', difficulty: 0.5 }]);
 
       const estimates = engine.analyzeResults(skillGraph, itemMappings, []);
 
@@ -555,16 +553,14 @@ describe('DiagnosticEngineImpl', () => {
 
     it('silently ignores responses for items absent from the mappings (does not throw)', () => {
       const skillGraph = createMockSkillGraph(['A']);
-      const itemMappings = createItemMappings([
-        { id: 'real', skill: 'A', difficulty: 0.5 },
-      ]);
+      const itemMappings = createItemMappings([{ id: 'real', skill: 'A', difficulty: 0.5 }]);
 
       // 'phantom' is not in mappings — responses for it should be dropped.
       expect(() =>
         engine.analyzeResults(skillGraph, itemMappings, [
           { itemId: 'phantom', correct: true },
           { itemId: 'phantom-2', correct: false },
-        ]),
+        ])
       ).not.toThrow();
 
       // No real responses landed on A → A stays at the prior.
@@ -577,9 +573,7 @@ describe('DiagnosticEngineImpl', () => {
     it('still seeds skills with no associated items at the default prior', () => {
       const skillGraph = createMockSkillGraph(['A', 'B']);
       // Only A has an item; B has no items at all.
-      const itemMappings = createItemMappings([
-        { id: 'item-a', skill: 'A', difficulty: 0.5 },
-      ]);
+      const itemMappings = createItemMappings([{ id: 'item-a', skill: 'A', difficulty: 0.5 }]);
 
       const estimates = engine.analyzeResults(skillGraph, itemMappings, [
         { itemId: 'item-a', correct: true },

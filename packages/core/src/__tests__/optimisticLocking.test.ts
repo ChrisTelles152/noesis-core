@@ -109,11 +109,7 @@ describe('InMemoryOptimisticStore — composite keys (object)', () => {
 describe('updateWithRetry — happy path', () => {
   it('reads / mutates / writes on first attempt when no contention', async () => {
     const s = new InMemoryOptimisticStore<string, State>();
-    const result = await updateWithRetry(
-      s,
-      'k',
-      (cur) => ({ count: (cur?.count ?? 0) + 1 })
-    );
+    const result = await updateWithRetry(s, 'k', (cur) => ({ count: (cur?.count ?? 0) + 1 }));
     expect(result.value.count).toBe(1);
     expect(result.version).toBe(1);
   });
@@ -150,10 +146,7 @@ describe('updateWithRetry — conflict handling', () => {
     constructor(
       private readonly inner: OptimisticLockingStore<TKey, TValue>,
       private readonly raceUntilAttempt: number,
-      private readonly racingMutator: (
-        cur: TValue | null,
-        version: number
-      ) => TValue
+      private readonly racingMutator: (cur: TValue | null, version: number) => TValue
     ) {}
     load(key: TKey) {
       return this.inner.load(key);
@@ -191,12 +184,10 @@ describe('updateWithRetry — conflict handling', () => {
     const racy = new RacyStore(inner, 5, () => ({ count: 0 }));
     let thrown: unknown = null;
     try {
-      await updateWithRetry(
-        racy,
-        'k',
-        (cur) => ({ count: (cur?.count ?? 0) + 1 }),
-        { maxRetries: 1, kind: 'bkt' }
-      );
+      await updateWithRetry(racy, 'k', (cur) => ({ count: (cur?.count ?? 0) + 1 }), {
+        maxRetries: 1,
+        kind: 'bkt',
+      });
     } catch (e) {
       thrown = e;
     }
@@ -212,12 +203,9 @@ describe('updateWithRetry — conflict handling', () => {
     const racy = new RacyStore(inner, 3, (cur) => ({
       count: (cur?.count ?? 0) + 100,
     }));
-    const out = await updateWithRetry(
-      racy,
-      'k',
-      (cur) => ({ count: (cur?.count ?? 0) + 1 }),
-      { maxRetries: 5 }
-    );
+    const out = await updateWithRetry(racy, 'k', (cur) => ({ count: (cur?.count ?? 0) + 1 }), {
+      maxRetries: 5,
+    });
     expect(racy.attempts).toBe(4); // 3 races + 1 success
     expect(out.value.count).toBe(301);
   });
@@ -270,7 +258,10 @@ describe('createInMemoryOptimisticStore factory', () => {
 
 describe('Integration: BKT-style update pattern', () => {
   it('simulates the eng/math BKT update: load → compute → optimistic write', async () => {
-    const s = new InMemoryOptimisticStore<{ user: string; skill: string; channel: string }, State>();
+    const s = new InMemoryOptimisticStore<
+      { user: string; skill: string; channel: string },
+      State
+    >();
     const key = { user: 'u1', skill: 'verb_present', channel: 'recog_mc' };
 
     // Initial seed

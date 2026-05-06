@@ -13,7 +13,11 @@ import { memoryLocation } from 'wouter/memory-location';
 import i18n, { i18nReady } from '../lib/i18n';
 import SkillNode from '../pages/SkillNode';
 
-const { hook: memoryHook, navigate, history } = memoryLocation({
+const {
+  hook: memoryHook,
+  navigate,
+  history,
+} = memoryLocation({
   path: '/skill/adicao',
   record: true,
 });
@@ -35,7 +39,7 @@ function renderSkillNode(): ReturnType<typeof render> {
   return render(
     <Router hook={memoryHook}>
       <Route path="/skill/:id" component={SkillNode} />
-    </Router>,
+    </Router>
   );
 }
 

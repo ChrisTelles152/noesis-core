@@ -131,7 +131,7 @@ export class SqliteStorage implements IStorage {
     // created before this column existed need it added without losing data.
     // SQLite's ALTER TABLE ADD COLUMN throws if the column already exists,
     // so we probe via PRAGMA first.
-    const userColumns = this.db.prepare("PRAGMA table_info(users)").all() as Array<{
+    const userColumns = this.db.prepare('PRAGMA table_info(users)').all() as Array<{
       name: string;
     }>;
     if (!userColumns.some((c) => c.name === 'is_admin')) {
@@ -331,27 +331,31 @@ export class SqliteStorage implements IStorage {
   async loadCurriculum(userId: number): Promise<StoredCurriculum | null> {
     const row = this.db
       .prepare('SELECT skills, item_mappings, transfer_tests FROM skill_graphs WHERE user_id = ?')
-      .get(userId) as { skills: string; item_mappings: string | null; transfer_tests: string | null } | undefined;
+      .get(userId) as
+      | { skills: string; item_mappings: string | null; transfer_tests: string | null }
+      | undefined;
     if (!row) return null;
     return {
       skills: JSON.parse(row.skills) as Skill[],
-      itemMappings: row.item_mappings ? (JSON.parse(row.item_mappings) as ItemSkillMapping[]) : undefined,
-      transferTests: row.transfer_tests ? (JSON.parse(row.transfer_tests) as TransferTest[]) : undefined,
+      itemMappings: row.item_mappings
+        ? (JSON.parse(row.item_mappings) as ItemSkillMapping[])
+        : undefined,
+      transferTests: row.transfer_tests
+        ? (JSON.parse(row.transfer_tests) as TransferTest[])
+        : undefined,
     };
   }
 
   // Admin / mentor methods (Phase H6)
   async listUsers(): Promise<User[]> {
-    const rows = this.db
-      .prepare('SELECT * FROM users ORDER BY id')
-      .all() as Array<Record<string, unknown>>;
+    const rows = this.db.prepare('SELECT * FROM users ORDER BY id').all() as Array<
+      Record<string, unknown>
+    >;
     return rows.map((r) => this.mapUserRow(r));
   }
 
   async setUserAdmin(userId: number, isAdmin: boolean): Promise<void> {
-    this.db
-      .prepare('UPDATE users SET is_admin = ? WHERE id = ?')
-      .run(isAdmin ? 1 : 0, userId);
+    this.db.prepare('UPDATE users SET is_admin = ? WHERE id = ?').run(isAdmin ? 1 : 0, userId);
   }
 
   // System curriculum (Phase H7)
@@ -382,12 +386,12 @@ export class SqliteStorage implements IStorage {
            skills = excluded.skills,
            item_mappings = excluded.item_mappings,
            transfer_tests = excluded.transfer_tests,
-           updated_at = datetime('now')`,
+           updated_at = datetime('now')`
       )
       .run(
         JSON.stringify(curriculum.skills),
         curriculum.itemMappings ? JSON.stringify(curriculum.itemMappings) : null,
-        curriculum.transferTests ? JSON.stringify(curriculum.transferTests) : null,
+        curriculum.transferTests ? JSON.stringify(curriculum.transferTests) : null
       );
   }
 

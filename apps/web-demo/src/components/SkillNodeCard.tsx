@@ -19,11 +19,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import {
-  computePathStatus,
-  getMissingPrerequisites,
-  type PathStatus,
-} from '@/lib/pathStatus';
+import { computePathStatus, getMissingPrerequisites, type PathStatus } from '@/lib/pathStatus';
 
 interface Props {
   skill: Skill;
@@ -46,8 +42,7 @@ export default function SkillNodeCard({ skill, estimates, graph }: Props) {
 
   const statusLabel = t(`path.${status}`);
   const isInteractive = status === 'available' || status === 'inProgress' || status === 'mastered';
-  const ctaLabel =
-    status === 'mastered' ? t('path.review') : t('path.practice');
+  const ctaLabel = status === 'mastered' ? t('path.review') : t('path.practice');
 
   return (
     <Card

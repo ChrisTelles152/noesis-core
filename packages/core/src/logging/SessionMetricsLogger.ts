@@ -164,9 +164,7 @@ function emptyMetrics(): SessionMetrics {
   };
 }
 
-function aggregateByChannel(
-  buckets: Map<string, AttemptRecord[]>
-): Record<string, ChannelMetrics> {
+function aggregateByChannel(buckets: Map<string, AttemptRecord[]>): Record<string, ChannelMetrics> {
   const out: Record<string, ChannelMetrics> = {};
   const sortedEntries = Array.from(buckets.entries()).sort(([a], [b]) =>
     a < b ? -1 : a > b ? 1 : 0

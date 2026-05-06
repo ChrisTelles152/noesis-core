@@ -29,7 +29,7 @@ function renderDiagnostic(): ReturnType<typeof render> {
   return render(
     <Router hook={memoryHook}>
       <Diagnostic />
-    </Router>,
+    </Router>
   );
 }
 

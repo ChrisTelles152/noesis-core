@@ -12,8 +12,8 @@
  */
 :root {
   /* Base canvas + foreground text — Cloudbone White on Slate Grey */
-  --background: 36 38% 93%;        /* #F4EFE6 cloudbone-white */
-  --foreground: 215 19% 35%;       /* #475569 slate-grey */
+  --background: 36 38% 93%; /* #F4EFE6 cloudbone-white */
+  --foreground: 215 19% 35%; /* #475569 slate-grey */
 
   /* Muted surfaces (subtle backgrounds) — slightly off-canvas Cloudbone */
   --muted: 36 30% 89%;
@@ -22,7 +22,7 @@
   /* Popover + card — same as canvas */
   --popover: 36 38% 93%;
   --popover-foreground: 215 19% 35%;
-  --card: 0 0% 100%;               /* pure white for raised surfaces */
+  --card: 0 0% 100%; /* pure white for raised surfaces */
   --card-foreground: 215 19% 35%;
 
   /* Borders + form inputs — soft Slate at low opacity */
@@ -30,22 +30,22 @@
   --input: 215 12% 80%;
 
   /* Primary accent — Neural Copper */
-  --primary: 28 56% 46%;           /* #B87333 neural-copper */
+  --primary: 28 56% 46%; /* #B87333 neural-copper */
   --primary-foreground: 36 38% 96%;
 
   /* Secondary accent — Iris Bloom */
-  --secondary: 260 32% 65%;        /* #9F86C0 iris-bloom */
+  --secondary: 260 32% 65%; /* #9F86C0 iris-bloom */
   --secondary-foreground: 0 0% 100%;
 
   /* Tertiary accent — Glacial Cyan (sparing) */
-  --accent: 184 32% 80%;           /* #B8DCDD glacial-cyan */
+  --accent: 184 32% 80%; /* #B8DCDD glacial-cyan */
   --accent-foreground: 215 19% 35%;
 
   /* Destructive — kept warm-red so it reads "danger" against the warm canvas */
   --destructive: 0 70% 50%;
   --destructive-foreground: 36 38% 96%;
 
-  --ring: 28 56% 46%;              /* Neural Copper as focus ring */
+  --ring: 28 56% 46%; /* Neural Copper as focus ring */
   --radius: 0.5rem;
 }
 .dark {

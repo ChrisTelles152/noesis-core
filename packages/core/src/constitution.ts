@@ -226,11 +226,7 @@ export interface MemoryScheduler {
  *   - new skills emit `concept_introduction` first, not `practice`,
  *   - `transfer_test` is gated on all four stages being recorded.
  */
-export type CanonicalStage =
-  | 'concept_introduction'
-  | 'practice'
-  | 'application'
-  | 'reflection';
+export type CanonicalStage = 'concept_introduction' | 'practice' | 'application' | 'reflection';
 
 /**
  * A recommended next action in a learning session

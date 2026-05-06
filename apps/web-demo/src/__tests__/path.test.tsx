@@ -30,7 +30,7 @@ function renderPath(): ReturnType<typeof render> {
   return render(
     <Router hook={memoryHook}>
       <Path />
-    </Router>,
+    </Router>
   );
 }
 
@@ -76,10 +76,7 @@ describe('Phase H4: Path page', () => {
   });
 
   it('mastered diagnostic estimates flip the status to mastered + show review CTA', () => {
-    localStorage.setItem(
-      DIAGNOSTIC_ESTIMATES_STORAGE_KEY,
-      JSON.stringify({ adicao: 0.9 }),
-    );
+    localStorage.setItem(DIAGNOSTIC_ESTIMATES_STORAGE_KEY, JSON.stringify({ adicao: 0.9 }));
     renderPath();
     const card = screen.getByTestId('skill-adicao');
     expect(card.getAttribute('data-status')).toBe('mastered');
@@ -88,7 +85,7 @@ describe('Phase H4: Path page', () => {
     expect(cta.textContent).toMatch(/Revisar/);
   });
 
-  it('mastering all of a node\'s prereqs unlocks it', () => {
+  it("mastering all of a node's prereqs unlocks it", () => {
     // equacoes_quadraticas requires polinomios AND equacoes_lineares. Master
     // both transitively (we also need their prereqs, etc) — easiest path is
     // to mark every skill below it as mastered.

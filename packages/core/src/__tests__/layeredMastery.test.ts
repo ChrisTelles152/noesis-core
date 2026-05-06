@@ -68,18 +68,12 @@ describe('LayeredMasteryModel — classifyChannel layer transitions', () => {
   });
 
   it('returns learning when attempts > 0 but below Learned thresholds', () => {
-    const r = model.classifyChannel(
-      mkState({ pMastery: 0.5, attempts: 2 }),
-      NOW_25H_LATER
-    );
+    const r = model.classifyChannel(mkState({ pMastery: 0.5, attempts: 2 }), NOW_25H_LATER);
     expect(r.layer).toBe<MasteryLayer>('learning');
   });
 
   it('returns learning when below pMastery threshold even with enough attempts', () => {
-    const r = model.classifyChannel(
-      mkState({ pMastery: 0.74, attempts: 5 }),
-      NOW_25H_LATER
-    );
+    const r = model.classifyChannel(mkState({ pMastery: 0.74, attempts: 5 }), NOW_25H_LATER);
     expect(r.layer).toBe<MasteryLayer>('learning');
   });
 
@@ -117,10 +111,7 @@ describe('LayeredMasteryModel — Mastered gate blockers', () => {
   });
 
   it('blocks on minCalendarDays', () => {
-    const r = model.classifyChannel(
-      masteredState({ correctDays: ['2026-01-15'] }),
-      NOW_25H_LATER
-    );
+    const r = model.classifyChannel(masteredState({ correctDays: ['2026-01-15'] }), NOW_25H_LATER);
     expect(r.blockers.some((b) => b.includes('days with correct'))).toBe(true);
   });
 
@@ -158,10 +149,7 @@ describe('LayeredMasteryModel — Mastered gate blockers', () => {
 describe('LayeredMasteryModel — config overrides', () => {
   it('honors a stricter learned threshold', () => {
     const m = new LayeredMasteryModel({ learned: { pMasteryThreshold: 0.9, minAttempts: 3 } });
-    const r = m.classifyChannel(
-      mkState({ pMastery: 0.85, attempts: 5 }),
-      NOW_25H_LATER
-    );
+    const r = m.classifyChannel(mkState({ pMastery: 0.85, attempts: 5 }), NOW_25H_LATER);
     expect(r.layer).toBe('learning');
   });
 
@@ -202,10 +190,7 @@ describe('LayeredMasteryModel — classifySkill aggregation', () => {
   });
 
   it('returns mastered when ≥2 channels are mastered', () => {
-    const states = [
-      masteredState({ channel: 'recog_mc' }),
-      masteredState({ channel: 'cloze' }),
-    ];
+    const states = [masteredState({ channel: 'recog_mc' }), masteredState({ channel: 'cloze' })];
     expect(model.classifySkill('vocab_word', states, NOW_25H_LATER).layer).toBe('mastered');
   });
 
@@ -278,10 +263,7 @@ describe('LayeredMasteryModel — classifyPack', () => {
   it('classifies every skill in the pack', () => {
     const pack = new Map<string, ChannelSkillProbability[]>([
       ['s1', [masteredState({ channel: 'recog_mc' })]],
-      [
-        's2',
-        [mkState({ channel: 'recog_mc', pMastery: 0.78, attempts: 4, correctCount: 2 })],
-      ],
+      ['s2', [mkState({ channel: 'recog_mc', pMastery: 0.78, attempts: 4, correctCount: 2 })]],
       ['s3', [mkState({ channel: 'recog_mc', attempts: 0 })]],
     ]);
     const out = model.classifyPack(pack, NOW_25H_LATER);

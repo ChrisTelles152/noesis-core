@@ -12,11 +12,7 @@
  */
 
 import { describe, it, expect, vi } from 'vitest';
-import {
-  SimulatedAttentionTracker,
-  AttentionTracker,
-  WebGazerAttentionTracker,
-} from '../index';
+import { SimulatedAttentionTracker, AttentionTracker, WebGazerAttentionTracker } from '../index';
 import {
   createDeterministicEngine,
   createEventFactoryContext,
@@ -109,7 +105,10 @@ describe('Phase D1: SimulatedAttentionTracker', () => {
   it('mappings option overrides the default vector for a single signal', () => {
     const events: CognitiveStateEvent[] = [];
     const tracker = new SimulatedAttentionTracker({
-      eventContext: createEventFactoryContext(() => 0, () => 'evt-1'),
+      eventContext: createEventFactoryContext(
+        () => 0,
+        () => 'evt-1'
+      ),
       onCognitiveStateEvent: (e) => events.push(e),
       learnerId: 'l1',
       sessionId: 's1',

@@ -13,9 +13,7 @@
               "correctCount": 1,
               "sessionAttempts": 1,
               "currentSessionId": "smoke-session-mcbkt-001",
-              "correctDays": [
-                "2024-01-01"
-              ],
+              "correctDays": ["2024-01-01"],
               "firstSeenAt": 1704067260000,
               "firstCorrectAt": 1704067260000,
               "lastAttemptAt": 1704067260000,
@@ -39,9 +37,7 @@
               "correctCount": 2,
               "sessionAttempts": 2,
               "currentSessionId": "smoke-session-mcbkt-001",
-              "correctDays": [
-                "2024-01-01"
-              ],
+              "correctDays": ["2024-01-01"],
               "firstSeenAt": 1704067260000,
               "firstCorrectAt": 1704067260000,
               "lastAttemptAt": 1704067320000,
@@ -65,9 +61,7 @@
               "correctCount": 3,
               "sessionAttempts": 3,
               "currentSessionId": "smoke-session-mcbkt-001",
-              "correctDays": [
-                "2024-01-01"
-              ],
+              "correctDays": ["2024-01-01"],
               "firstSeenAt": 1704067260000,
               "firstCorrectAt": 1704067260000,
               "lastAttemptAt": 1704067380000,
@@ -91,9 +85,7 @@
               "correctCount": 1,
               "sessionAttempts": 1,
               "currentSessionId": "smoke-session-mcbkt-001",
-              "correctDays": [
-                "2024-01-01"
-              ],
+              "correctDays": ["2024-01-01"],
               "firstSeenAt": 1704067440000,
               "firstCorrectAt": 1704067440000,
               "lastAttemptAt": 1704067440000,
@@ -108,9 +100,7 @@
               "correctCount": 3,
               "sessionAttempts": 3,
               "currentSessionId": "smoke-session-mcbkt-001",
-              "correctDays": [
-                "2024-01-01"
-              ],
+              "correctDays": ["2024-01-01"],
               "firstSeenAt": 1704067260000,
               "firstCorrectAt": 1704067260000,
               "lastAttemptAt": 1704067380000,
@@ -134,9 +124,7 @@
               "correctCount": 1,
               "sessionAttempts": 1,
               "currentSessionId": "smoke-session-mcbkt-001",
-              "correctDays": [
-                "2024-01-01"
-              ],
+              "correctDays": ["2024-01-01"],
               "firstSeenAt": 1704067440000,
               "firstCorrectAt": 1704067440000,
               "lastAttemptAt": 1704067440000,
@@ -151,9 +139,7 @@
               "correctCount": 3,
               "sessionAttempts": 4,
               "currentSessionId": "smoke-session-mcbkt-001",
-              "correctDays": [
-                "2024-01-01"
-              ],
+              "correctDays": ["2024-01-01"],
               "firstSeenAt": 1704067260000,
               "firstCorrectAt": 1704067260000,
               "lastAttemptAt": 1704067500000,
@@ -177,9 +163,7 @@
               "correctCount": 1,
               "sessionAttempts": 1,
               "currentSessionId": "smoke-session-mcbkt-001",
-              "correctDays": [
-                "2024-01-01"
-              ],
+              "correctDays": ["2024-01-01"],
               "firstSeenAt": 1704067440000,
               "firstCorrectAt": 1704067440000,
               "lastAttemptAt": 1704067440000,
@@ -194,9 +178,7 @@
               "correctCount": 3,
               "sessionAttempts": 4,
               "currentSessionId": "smoke-session-mcbkt-001",
-              "correctDays": [
-                "2024-01-01"
-              ],
+              "correctDays": ["2024-01-01"],
               "firstSeenAt": 1704067260000,
               "firstCorrectAt": 1704067260000,
               "lastAttemptAt": 1704067500000,
@@ -213,9 +195,7 @@
               "correctCount": 1,
               "sessionAttempts": 1,
               "currentSessionId": "smoke-session-mcbkt-001",
-              "correctDays": [
-                "2024-01-01"
-              ],
+              "correctDays": ["2024-01-01"],
               "firstSeenAt": 1704067560000,
               "firstCorrectAt": 1704067560000,
               "lastAttemptAt": 1704067560000,
@@ -239,9 +219,7 @@
               "correctCount": 1,
               "sessionAttempts": 1,
               "currentSessionId": "smoke-session-mcbkt-001",
-              "correctDays": [
-                "2024-01-01"
-              ],
+              "correctDays": ["2024-01-01"],
               "firstSeenAt": 1704067440000,
               "firstCorrectAt": 1704067440000,
               "lastAttemptAt": 1704067440000,
@@ -256,9 +234,7 @@
               "correctCount": 3,
               "sessionAttempts": 4,
               "currentSessionId": "smoke-session-mcbkt-001",
-              "correctDays": [
-                "2024-01-01"
-              ],
+              "correctDays": ["2024-01-01"],
               "firstSeenAt": 1704067260000,
               "firstCorrectAt": 1704067260000,
               "lastAttemptAt": 1704067500000,
@@ -275,9 +251,7 @@
               "correctCount": 1,
               "sessionAttempts": 2,
               "currentSessionId": "smoke-session-mcbkt-001",
-              "correctDays": [
-                "2024-01-01"
-              ],
+              "correctDays": ["2024-01-01"],
               "firstSeenAt": 1704067560000,
               "firstCorrectAt": 1704067560000,
               "lastAttemptAt": 1704067620000,
@@ -301,9 +275,7 @@
               "correctCount": 1,
               "sessionAttempts": 1,
               "currentSessionId": "smoke-session-mcbkt-001",
-              "correctDays": [
-                "2024-01-01"
-              ],
+              "correctDays": ["2024-01-01"],
               "firstSeenAt": 1704067440000,
               "firstCorrectAt": 1704067440000,
               "lastAttemptAt": 1704067440000,
@@ -318,9 +290,7 @@
               "correctCount": 1,
               "sessionAttempts": 1,
               "currentSessionId": "smoke-session-mcbkt-001",
-              "correctDays": [
-                "2024-01-01"
-              ],
+              "correctDays": ["2024-01-01"],
               "firstSeenAt": 1704067680000,
               "firstCorrectAt": 1704067680000,
               "lastAttemptAt": 1704067680000,
@@ -335,9 +305,7 @@
               "correctCount": 3,
               "sessionAttempts": 4,
               "currentSessionId": "smoke-session-mcbkt-001",
-              "correctDays": [
-                "2024-01-01"
-              ],
+              "correctDays": ["2024-01-01"],
               "firstSeenAt": 1704067260000,
               "firstCorrectAt": 1704067260000,
               "lastAttemptAt": 1704067500000,
@@ -354,9 +322,7 @@
               "correctCount": 1,
               "sessionAttempts": 2,
               "currentSessionId": "smoke-session-mcbkt-001",
-              "correctDays": [
-                "2024-01-01"
-              ],
+              "correctDays": ["2024-01-01"],
               "firstSeenAt": 1704067560000,
               "firstCorrectAt": 1704067560000,
               "lastAttemptAt": 1704067620000,
@@ -380,9 +346,7 @@
               "correctCount": 1,
               "sessionAttempts": 1,
               "currentSessionId": "smoke-session-mcbkt-001",
-              "correctDays": [
-                "2024-01-01"
-              ],
+              "correctDays": ["2024-01-01"],
               "firstSeenAt": 1704067440000,
               "firstCorrectAt": 1704067440000,
               "lastAttemptAt": 1704067440000,
@@ -397,9 +361,7 @@
               "correctCount": 1,
               "sessionAttempts": 1,
               "currentSessionId": "smoke-session-mcbkt-001",
-              "correctDays": [
-                "2024-01-01"
-              ],
+              "correctDays": ["2024-01-01"],
               "firstSeenAt": 1704067680000,
               "firstCorrectAt": 1704067680000,
               "lastAttemptAt": 1704067680000,
@@ -414,9 +376,7 @@
               "correctCount": 3,
               "sessionAttempts": 4,
               "currentSessionId": "smoke-session-mcbkt-001",
-              "correctDays": [
-                "2024-01-01"
-              ],
+              "correctDays": ["2024-01-01"],
               "firstSeenAt": 1704067260000,
               "firstCorrectAt": 1704067260000,
               "lastAttemptAt": 1704067500000,
@@ -433,9 +393,7 @@
               "correctCount": 1,
               "sessionAttempts": 1,
               "currentSessionId": "smoke-session-mcbkt-001",
-              "correctDays": [
-                "2024-01-01"
-              ],
+              "correctDays": ["2024-01-01"],
               "firstSeenAt": 1704067740000,
               "firstCorrectAt": 1704067740000,
               "lastAttemptAt": 1704067740000,
@@ -450,9 +408,7 @@
               "correctCount": 1,
               "sessionAttempts": 2,
               "currentSessionId": "smoke-session-mcbkt-001",
-              "correctDays": [
-                "2024-01-01"
-              ],
+              "correctDays": ["2024-01-01"],
               "firstSeenAt": 1704067560000,
               "firstCorrectAt": 1704067560000,
               "lastAttemptAt": 1704067620000,
@@ -476,10 +432,7 @@
               "correctCount": 2,
               "sessionAttempts": 2,
               "currentSessionId": "smoke-session-mcbkt-001",
-              "correctDays": [
-                "2024-01-01",
-                "2024-01-02"
-              ],
+              "correctDays": ["2024-01-01", "2024-01-02"],
               "firstSeenAt": 1704067440000,
               "firstCorrectAt": 1704067440000,
               "lastAttemptAt": 1704153660000,
@@ -494,9 +447,7 @@
               "correctCount": 1,
               "sessionAttempts": 1,
               "currentSessionId": "smoke-session-mcbkt-001",
-              "correctDays": [
-                "2024-01-01"
-              ],
+              "correctDays": ["2024-01-01"],
               "firstSeenAt": 1704067680000,
               "firstCorrectAt": 1704067680000,
               "lastAttemptAt": 1704067680000,
@@ -511,9 +462,7 @@
               "correctCount": 3,
               "sessionAttempts": 4,
               "currentSessionId": "smoke-session-mcbkt-001",
-              "correctDays": [
-                "2024-01-01"
-              ],
+              "correctDays": ["2024-01-01"],
               "firstSeenAt": 1704067260000,
               "firstCorrectAt": 1704067260000,
               "lastAttemptAt": 1704067500000,
@@ -530,9 +479,7 @@
               "correctCount": 1,
               "sessionAttempts": 1,
               "currentSessionId": "smoke-session-mcbkt-001",
-              "correctDays": [
-                "2024-01-01"
-              ],
+              "correctDays": ["2024-01-01"],
               "firstSeenAt": 1704067740000,
               "firstCorrectAt": 1704067740000,
               "lastAttemptAt": 1704067740000,
@@ -547,9 +494,7 @@
               "correctCount": 1,
               "sessionAttempts": 2,
               "currentSessionId": "smoke-session-mcbkt-001",
-              "correctDays": [
-                "2024-01-01"
-              ],
+              "correctDays": ["2024-01-01"],
               "firstSeenAt": 1704067560000,
               "firstCorrectAt": 1704067560000,
               "lastAttemptAt": 1704067620000,
@@ -572,10 +517,7 @@
           "correctCount": 2,
           "sessionAttempts": 2,
           "currentSessionId": "smoke-session-mcbkt-001",
-          "correctDays": [
-            "2024-01-01",
-            "2024-01-02"
-          ],
+          "correctDays": ["2024-01-01", "2024-01-02"],
           "firstSeenAt": 1704067440000,
           "firstCorrectAt": 1704067440000,
           "lastAttemptAt": 1704153660000,
@@ -590,9 +532,7 @@
           "correctCount": 1,
           "sessionAttempts": 1,
           "currentSessionId": "smoke-session-mcbkt-001",
-          "correctDays": [
-            "2024-01-01"
-          ],
+          "correctDays": ["2024-01-01"],
           "firstSeenAt": 1704067680000,
           "firstCorrectAt": 1704067680000,
           "lastAttemptAt": 1704067680000,
@@ -607,9 +547,7 @@
           "correctCount": 3,
           "sessionAttempts": 4,
           "currentSessionId": "smoke-session-mcbkt-001",
-          "correctDays": [
-            "2024-01-01"
-          ],
+          "correctDays": ["2024-01-01"],
           "firstSeenAt": 1704067260000,
           "firstCorrectAt": 1704067260000,
           "lastAttemptAt": 1704067500000,
@@ -626,9 +564,7 @@
           "correctCount": 1,
           "sessionAttempts": 1,
           "currentSessionId": "smoke-session-mcbkt-001",
-          "correctDays": [
-            "2024-01-01"
-          ],
+          "correctDays": ["2024-01-01"],
           "firstSeenAt": 1704067740000,
           "firstCorrectAt": 1704067740000,
           "lastAttemptAt": 1704067740000,
@@ -643,9 +579,7 @@
           "correctCount": 1,
           "sessionAttempts": 2,
           "currentSessionId": "smoke-session-mcbkt-001",
-          "correctDays": [
-            "2024-01-01"
-          ],
+          "correctDays": ["2024-01-01"],
           "firstSeenAt": 1704067560000,
           "firstCorrectAt": 1704067560000,
           "lastAttemptAt": 1704067620000,

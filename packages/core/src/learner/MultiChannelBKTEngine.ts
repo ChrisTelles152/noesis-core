@@ -282,9 +282,7 @@ export class MultiChannelBKTEngine {
     const discounted = sessionAttempts > drilling.attemptsBeforeDiscount;
     const discountFactor = discounted ? drilling.multiplier : 1.0;
 
-    const modifier = skillCategory
-      ? config.skillCategoryModifiers?.[skillCategory]
-      : undefined;
+    const modifier = skillCategory ? config.skillCategoryModifiers?.[skillCategory] : undefined;
     const effectiveParams = applyCategoryModifier(channelParams, modifier);
 
     const newPMastery = calculateBKTUpdate(
@@ -488,8 +486,6 @@ export class MultiChannelBKTEngine {
 /**
  * Factory for ergonomic call-sites.
  */
-export function createMultiChannelBKTEngine(
-  config: MultiChannelBKTConfig
-): MultiChannelBKTEngine {
+export function createMultiChannelBKTEngine(config: MultiChannelBKTConfig): MultiChannelBKTEngine {
   return new MultiChannelBKTEngine(config);
 }

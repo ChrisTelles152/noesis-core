@@ -25,9 +25,7 @@ describe('Top-level barrel — 0.2.0 surface (existing modules)', () => {
   });
 
   it('exports FSRSScheduler + factories', () => {
-    expect(typeof (core as { createFSRSScheduler?: unknown }).createFSRSScheduler).toBe(
-      'function'
-    );
+    expect(typeof (core as { createFSRSScheduler?: unknown }).createFSRSScheduler).toBe('function');
     expect((core as { DEFAULT_FSRS_PARAMS?: unknown }).DEFAULT_FSRS_PARAMS).toBeDefined();
   });
 
@@ -50,12 +48,10 @@ describe('Top-level barrel — 0.2.0 surface (existing modules)', () => {
   });
 
   it('exports event factories + ClockFn / IdGeneratorFn types via runtime', () => {
-    expect(
-      typeof (core as { createEventFactoryContext?: unknown }).createEventFactoryContext
-    ).toBe('function');
-    expect(typeof (core as { createPracticeEvent?: unknown }).createPracticeEvent).toBe(
+    expect(typeof (core as { createEventFactoryContext?: unknown }).createEventFactoryContext).toBe(
       'function'
     );
+    expect(typeof (core as { createPracticeEvent?: unknown }).createPracticeEvent).toBe('function');
   });
 
   it('exports persistence interfaces + InMemoryStateStore', () => {
@@ -76,13 +72,11 @@ describe('Top-level barrel — 0.3.0 additions (every new module reachable)', ()
 
   it('answer: AnswerNormalizer + LevenshteinMatcher + levenshtein()', () => {
     expect((core as { LevenshteinMatcher?: unknown }).LevenshteinMatcher).toBeDefined();
-    expect(
-      typeof (core as { createLevenshteinMatcher?: unknown }).createLevenshteinMatcher
-    ).toBe('function');
+    expect(typeof (core as { createLevenshteinMatcher?: unknown }).createLevenshteinMatcher).toBe(
+      'function'
+    );
     expect(typeof (core as { levenshtein?: unknown }).levenshtein).toBe('function');
-    expect(
-      (core as { DEFAULT_BUDGET_BY_LENGTH?: unknown }).DEFAULT_BUDGET_BY_LENGTH
-    ).toBeDefined();
+    expect((core as { DEFAULT_BUDGET_BY_LENGTH?: unknown }).DEFAULT_BUDGET_BY_LENGTH).toBeDefined();
   });
 
   it('fatigue: FatigueDetector + factory + DEFAULT_FATIGUE_CONFIG', () => {
@@ -94,15 +88,11 @@ describe('Top-level barrel — 0.3.0 additions (every new module reachable)', ()
   });
 
   it('calibration: EloDifficultyCalibrator + factory + pure helpers', () => {
-    expect(
-      (core as { EloDifficultyCalibrator?: unknown }).EloDifficultyCalibrator
-    ).toBeDefined();
+    expect((core as { EloDifficultyCalibrator?: unknown }).EloDifficultyCalibrator).toBeDefined();
     expect(
       typeof (core as { createEloDifficultyCalibrator?: unknown }).createEloDifficultyCalibrator
     ).toBe('function');
-    expect(typeof (core as { expectedProbability?: unknown }).expectedProbability).toBe(
-      'function'
-    );
+    expect(typeof (core as { expectedProbability?: unknown }).expectedProbability).toBe('function');
     expect(typeof (core as { updateRatings?: unknown }).updateRatings).toBe('function');
     expect((core as { DEFAULT_ELO_CONFIG?: unknown }).DEFAULT_ELO_CONFIG).toBeDefined();
   });
@@ -134,12 +124,10 @@ describe('Top-level barrel — 0.3.0 additions (every new module reachable)', ()
 
   it('mastery: LayeredMasteryModel + helpers', () => {
     expect((core as { LayeredMasteryModel?: unknown }).LayeredMasteryModel).toBeDefined();
-    expect(
-      typeof (core as { createLayeredMasteryModel?: unknown }).createLayeredMasteryModel
-    ).toBe('function');
-    expect(
-      typeof (core as { makeChannelMapping?: unknown }).makeChannelMapping
-    ).toBe('function');
+    expect(typeof (core as { createLayeredMasteryModel?: unknown }).createLayeredMasteryModel).toBe(
+      'function'
+    );
+    expect(typeof (core as { makeChannelMapping?: unknown }).makeChannelMapping).toBe('function');
     expect(
       (core as { DEFAULT_LAYERED_MASTERY_CONFIG?: unknown }).DEFAULT_LAYERED_MASTERY_CONFIG
     ).toBeDefined();
@@ -147,9 +135,7 @@ describe('Top-level barrel — 0.3.0 additions (every new module reachable)', ()
   });
 
   it('planning (BudgetedSessionPlanner): factory + defaults', () => {
-    expect(
-      (core as { BudgetedSessionPlanner?: unknown }).BudgetedSessionPlanner
-    ).toBeDefined();
+    expect((core as { BudgetedSessionPlanner?: unknown }).BudgetedSessionPlanner).toBeDefined();
     expect(
       typeof (core as { createBudgetedSessionPlanner?: unknown }).createBudgetedSessionPlanner
     ).toBe('function');
@@ -159,25 +145,21 @@ describe('Top-level barrel — 0.3.0 additions (every new module reachable)', ()
   });
 
   it('planning (PlannerSnapshot): build + replay + serialize', () => {
-    expect(
-      typeof (core as { buildPlannerSnapshot?: unknown }).buildPlannerSnapshot
-    ).toBe('function');
+    expect(typeof (core as { buildPlannerSnapshot?: unknown }).buildPlannerSnapshot).toBe(
+      'function'
+    );
     expect(typeof (core as { planFromSnapshot?: unknown }).planFromSnapshot).toBe('function');
-    expect(
-      typeof (core as { serializePlannerSnapshot?: unknown }).serializePlannerSnapshot
-    ).toBe('function');
+    expect(typeof (core as { serializePlannerSnapshot?: unknown }).serializePlannerSnapshot).toBe(
+      'function'
+    );
     expect(
       typeof (core as { deserializePlannerSnapshot?: unknown }).deserializePlannerSnapshot
     ).toBe('function');
-    expect(
-      (core as { PLANNER_SNAPSHOT_VERSION?: unknown }).PLANNER_SNAPSHOT_VERSION
-    ).toBeDefined();
+    expect((core as { PLANNER_SNAPSHOT_VERSION?: unknown }).PLANNER_SNAPSHOT_VERSION).toBeDefined();
   });
 
   it('session: SessionLifecycleManager + factory', () => {
-    expect(
-      (core as { SessionLifecycleManager?: unknown }).SessionLifecycleManager
-    ).toBeDefined();
+    expect((core as { SessionLifecycleManager?: unknown }).SessionLifecycleManager).toBeDefined();
     expect(
       typeof (core as { createSessionLifecycleManager?: unknown }).createSessionLifecycleManager
     ).toBe('function');
@@ -187,12 +169,9 @@ describe('Top-level barrel — 0.3.0 additions (every new module reachable)', ()
     expect(
       (core as { OptimisticLockConflictError?: unknown }).OptimisticLockConflictError
     ).toBeDefined();
+    expect((core as { InMemoryOptimisticStore?: unknown }).InMemoryOptimisticStore).toBeDefined();
     expect(
-      (core as { InMemoryOptimisticStore?: unknown }).InMemoryOptimisticStore
-    ).toBeDefined();
-    expect(
-      typeof (core as { createInMemoryOptimisticStore?: unknown })
-        .createInMemoryOptimisticStore
+      typeof (core as { createInMemoryOptimisticStore?: unknown }).createInMemoryOptimisticStore
     ).toBe('function');
     expect(typeof (core as { updateWithRetry?: unknown }).updateWithRetry).toBe('function');
   });
@@ -202,9 +181,9 @@ describe('Top-level barrel — 0.3.0 additions (every new module reachable)', ()
     expect(
       typeof (core as { createSessionMetricsLogger?: unknown }).createSessionMetricsLogger
     ).toBe('function');
-    expect(
-      typeof (core as { computeSessionMetrics?: unknown }).computeSessionMetrics
-    ).toBe('function');
+    expect(typeof (core as { computeSessionMetrics?: unknown }).computeSessionMetrics).toBe(
+      'function'
+    );
   });
 });
 
