@@ -12,7 +12,7 @@
     "dev": "NODE_ENV=development tsx apps/server/index.ts",
     "dev:web": "cd apps/web-demo && npm run dev",
     "build": "npm run build:packages && npm run build:apps",
-    "build:packages": "npm run build --workspaces --if-present",
+    "build:packages": "npm run build -w @noesis-edu/core && npm run build --workspaces --if-present",
     "build:apps": "vite build && esbuild apps/server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist",
     "start": "NODE_ENV=production node dist/index.js",
     "check": "tsc",
