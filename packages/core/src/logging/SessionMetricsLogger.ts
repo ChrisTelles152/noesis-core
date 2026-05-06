@@ -168,9 +168,10 @@ function aggregateByChannel(
   buckets: Map<string, AttemptRecord[]>
 ): Record<string, ChannelMetrics> {
   const out: Record<string, ChannelMetrics> = {};
-  const sortedKeys = Array.from(buckets.keys()).sort();
-  for (const ch of sortedKeys) {
-    const records = buckets.get(ch)!;
+  const sortedEntries = Array.from(buckets.entries()).sort(([a], [b]) =>
+    a < b ? -1 : a > b ? 1 : 0
+  );
+  for (const [ch, records] of sortedEntries) {
     const correct = records.filter((r) => r.correct).length;
     out[ch] = {
       attempts: records.length,
@@ -184,9 +185,10 @@ function aggregateByChannel(
 
 function aggregateBySkill(buckets: Map<string, AttemptRecord[]>): Record<string, SkillMetrics> {
   const out: Record<string, SkillMetrics> = {};
-  const sortedKeys = Array.from(buckets.keys()).sort();
-  for (const skill of sortedKeys) {
-    const records = buckets.get(skill)!;
+  const sortedEntries = Array.from(buckets.entries()).sort(([a], [b]) =>
+    a < b ? -1 : a > b ? 1 : 0
+  );
+  for (const [skill, records] of sortedEntries) {
     const correct = records.filter((r) => r.correct).length;
     const channels = new Set<string>();
     for (const r of records) {
