@@ -213,7 +213,8 @@ export class LayeredMasteryModel {
         ? channelsWithData.reduce((sum, c) => sum + c.pMastery, 0) / channelsWithData.length
         : 0;
 
-    const primaryStatus = primary !== null ? channels.find((c) => c.channel === primary) : undefined;
+    const primaryStatus =
+      primary !== null ? channels.find((c) => c.channel === primary) : undefined;
     const secondaryStatus =
       secondary !== null ? channels.find((c) => c.channel === secondary) : undefined;
 
@@ -275,8 +276,10 @@ export class LayeredMasteryModel {
     let skillsMastered = 0;
     let totalPMastery = 0;
     let totalChannelsWithData = 0;
-    const channelBreakdown: Record<ChannelId, { learned: number; mastered: number; total: number }> =
-      {};
+    const channelBreakdown: Record<
+      ChannelId,
+      { learned: number; mastered: number; total: number }
+    > = {};
 
     for (const [skillId, states] of allStates) {
       const status = this.classifySkill(skillId, states, now);

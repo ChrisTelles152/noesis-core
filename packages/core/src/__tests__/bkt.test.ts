@@ -533,7 +533,7 @@ describe('BKTEngine', () => {
       for (let i = 0; i < 3; i++) {
         model = engine.updateModel(
           model,
-          createPracticeEvent('skill-a', false, currentTime + i * 1000),
+          createPracticeEvent('skill-a', false, currentTime + i * 1000)
         );
         trace.push(model.skillProbabilities.get('skill-a')!.pMastery);
       }

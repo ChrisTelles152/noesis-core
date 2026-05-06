@@ -215,9 +215,7 @@ export class SessionLifecycleManager {
    */
   serialize(): string {
     const records = Array.from(this.sessions.values());
-    records.sort((a, b) =>
-      a.sessionId < b.sessionId ? -1 : a.sessionId > b.sessionId ? 1 : 0
-    );
+    records.sort((a, b) => (a.sessionId < b.sessionId ? -1 : a.sessionId > b.sessionId ? 1 : 0));
     // Map<string, NewItemCandidate>'s `newSkillsIntroduced` is a Set; serialize as array.
     const serialized = records.map((r) => ({
       ...r,

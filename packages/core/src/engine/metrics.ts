@@ -7,14 +7,8 @@
 
 import type { NoesisCoreEngineImpl } from './NoesisCoreEngineImpl.js';
 import { calculateRetention } from '../memory/index.js';
-import type {
-  LayeredMasteryModel,
-  MasteryLayer,
-  PackMasterySummary,
-} from '../mastery/index.js';
-import type {
-  ChannelSkillProbability,
-} from '../learner/MultiChannelBKTEngine.js';
+import type { LayeredMasteryModel, MasteryLayer, PackMasterySummary } from '../mastery/index.js';
+import type { ChannelSkillProbability } from '../learner/MultiChannelBKTEngine.js';
 import type { FatigueDetector, FatigueSignal } from '../fatigue/index.js';
 import type { EloDifficultyCalibrator } from '../calibration/index.js';
 

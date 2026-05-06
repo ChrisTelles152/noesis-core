@@ -7,11 +7,7 @@
 
 import { describe, it, expect } from 'vitest';
 import { loadContentPack } from '@noesis/content-pt-br-math';
-import {
-  CANONICAL_LOOP_STAGES,
-  pickItemForStage,
-  gradeAnswer,
-} from '../canonicalLoop';
+import { CANONICAL_LOOP_STAGES, pickItemForStage, gradeAnswer } from '../canonicalLoop';
 
 const pack = loadContentPack();
 

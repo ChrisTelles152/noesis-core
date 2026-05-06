@@ -138,11 +138,11 @@ describe('Knock-Out Review Selection (Phase 3)', () => {
     const pastTime = now - 365 * MS_PER_DAY;
     let time = pastTime;
     const engine = createNoesisCoreEngine(
-    graph,
-    {},
-    () => time,
-    createDeterministicIdGenerator('engine')
-  );
+      graph,
+      {},
+      () => time,
+      createDeterministicIdGenerator('engine')
+    );
     const idGen = createDeterministicIdGenerator('evt');
     const ctx = createEventFactoryContext(() => time, idGen);
 

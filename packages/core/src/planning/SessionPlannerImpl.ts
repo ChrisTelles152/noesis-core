@@ -113,7 +113,7 @@ export class SessionPlannerImpl implements SessionPlanner {
     // When enforceCanonicalLoop is set, gate logic must work even before any
     // stage events have been recorded — treat absent stageHistory as empty.
     const effectiveStageHistory: Map<string, Set<CanonicalStage>> | undefined = enforceLoop
-      ? stageHistory ?? new Map()
+      ? (stageHistory ?? new Map())
       : undefined;
 
     // Priority 1: Due spaced retrieval items
@@ -165,11 +165,7 @@ export class SessionPlannerImpl implements SessionPlanner {
     // Priority 4: New skill introduction (smallest leverage gap).
     // When enforceCanonicalLoop is set, a brand-new skill (no stages recorded
     // yet) yields a `concept_introduction` action instead of `practice`.
-    const newSkillAction = this.getNewSkillAction(
-      learnerModel,
-      skillGraph,
-      effectiveStageHistory
-    );
+    const newSkillAction = this.getNewSkillAction(learnerModel, skillGraph, effectiveStageHistory);
     if (newSkillAction) {
       return newSkillAction;
     }

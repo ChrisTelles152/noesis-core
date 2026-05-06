@@ -39,7 +39,7 @@ export const DEFAULT_PRIOR = 0.3;
 export function computePathStatus(
   skill: Skill,
   estimates: Map<string, number>,
-  _graph: SkillGraph,
+  _graph: SkillGraph
 ): PathStatus {
   for (const prereqId of skill.prerequisites) {
     const prereqEstimate = estimates.get(prereqId) ?? DEFAULT_PRIOR;
@@ -65,7 +65,7 @@ export function computePathStatus(
 export function getMissingPrerequisites(
   skill: Skill,
   estimates: Map<string, number>,
-  graph: SkillGraph,
+  graph: SkillGraph
 ): Skill[] {
   const missing: Skill[] = [];
   for (const prereqId of skill.prerequisites) {
@@ -84,7 +84,7 @@ export function getMissingPrerequisites(
  * the UI treats that as "no data, use priors" rather than failing.
  */
 export function loadEstimatesFromStorage(
-  storageKey = 'noesis-diagnostic-estimates',
+  storageKey = 'noesis-diagnostic-estimates'
 ): Map<string, number> {
   try {
     const raw = typeof localStorage === 'undefined' ? null : localStorage.getItem(storageKey);

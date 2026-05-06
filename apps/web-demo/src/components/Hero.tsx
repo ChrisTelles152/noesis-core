@@ -62,9 +62,7 @@ console.log('Suggested next step:', response.suggestion);`;
             </span>{' '}
             {t('home.headlineRest')}
           </h1>
-          <p className="mt-6 text-xl text-slate-600 max-w-3xl mx-auto">
-            {t('home.subheadline')}
-          </p>
+          <p className="mt-6 text-xl text-slate-600 max-w-3xl mx-auto">{t('home.subheadline')}</p>
           <div className="mt-10 flex flex-col sm:flex-row justify-center items-center space-y-4 sm:space-y-0 sm:space-x-4">
             <Button size="lg" asChild>
               <Link href="/#getstarted">

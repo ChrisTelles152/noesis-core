@@ -79,15 +79,9 @@ describe('EngineConfigOverrides', () => {
 
   describe('fsrs', () => {
     it('rejects requestedRetention <= 0 or >= 1', () => {
-      expect(
-        validateEngineConfigOverrides({ fsrs: { requestedRetention: 0 } })
-      ).toHaveLength(1);
-      expect(
-        validateEngineConfigOverrides({ fsrs: { requestedRetention: 1 } })
-      ).toHaveLength(1);
-      expect(
-        validateEngineConfigOverrides({ fsrs: { requestedRetention: 0.85 } })
-      ).toHaveLength(0);
+      expect(validateEngineConfigOverrides({ fsrs: { requestedRetention: 0 } })).toHaveLength(1);
+      expect(validateEngineConfigOverrides({ fsrs: { requestedRetention: 1 } })).toHaveLength(1);
+      expect(validateEngineConfigOverrides({ fsrs: { requestedRetention: 0.85 } })).toHaveLength(0);
     });
 
     it('rejects non-positive maxInterval', () => {
@@ -97,38 +91,24 @@ describe('EngineConfigOverrides', () => {
     });
 
     it('rejects initialDifficulty out of [0,1]', () => {
-      expect(
-        validateEngineConfigOverrides({ fsrs: { initialDifficulty: 1.5 } })
-      ).toHaveLength(1);
-      expect(
-        validateEngineConfigOverrides({ fsrs: { initialDifficulty: -0.1 } })
-      ).toHaveLength(1);
-      expect(
-        validateEngineConfigOverrides({ fsrs: { initialDifficulty: 0.55 } })
-      ).toHaveLength(0);
+      expect(validateEngineConfigOverrides({ fsrs: { initialDifficulty: 1.5 } })).toHaveLength(1);
+      expect(validateEngineConfigOverrides({ fsrs: { initialDifficulty: -0.1 } })).toHaveLength(1);
+      expect(validateEngineConfigOverrides({ fsrs: { initialDifficulty: 0.55 } })).toHaveLength(0);
     });
   });
 
   describe('session', () => {
     it('accepts pack-tuned session budgets (eng=18, math=20, delf=15)', () => {
-      expect(
-        validateEngineConfigOverrides({ session: { targetItems: 18 } })
-      ).toEqual([]);
-      expect(
-        validateEngineConfigOverrides({ session: { targetItems: 20 } })
-      ).toEqual([]);
-      expect(
-        validateEngineConfigOverrides({ session: { targetItems: 15 } })
-      ).toEqual([]);
+      expect(validateEngineConfigOverrides({ session: { targetItems: 18 } })).toEqual([]);
+      expect(validateEngineConfigOverrides({ session: { targetItems: 20 } })).toEqual([]);
+      expect(validateEngineConfigOverrides({ session: { targetItems: 15 } })).toEqual([]);
     });
 
     it('rejects masteryThreshold out of [0,1]', () => {
-      expect(
-        validateEngineConfigOverrides({ session: { masteryThreshold: 1.5 } })
-      ).toHaveLength(1);
-      expect(
-        validateEngineConfigOverrides({ session: { masteryThreshold: -0.1 } })
-      ).toHaveLength(1);
+      expect(validateEngineConfigOverrides({ session: { masteryThreshold: 1.5 } })).toHaveLength(1);
+      expect(validateEngineConfigOverrides({ session: { masteryThreshold: -0.1 } })).toHaveLength(
+        1
+      );
     });
 
     it('rejects non-positive targetItems', () => {

@@ -116,9 +116,10 @@ describe('Phase B1: CoreEngineAdapter.persistTo + autosave', () => {
     adapter.persistTo(transport, { autosaveDebounceMs: 0 });
 
     adapter.startSession();
-    adapter.recordDiagnostic(['a'], [
-      { skillId: 'a', score: 0.5, itemsAttempted: 1, itemsCorrect: 1 },
-    ]);
+    adapter.recordDiagnostic(
+      ['a'],
+      [{ skillId: 'a', score: 0.5, itemsAttempted: 1, itemsCorrect: 1 }]
+    );
     adapter.endSession({
       durationMinutes: 1,
       itemsAttempted: 1,
@@ -294,7 +295,9 @@ describe('Phase B1: httpTransport', () => {
 
   it('save → PUTs to the URL with JSON body { state } and credentials: include', async () => {
     fetchSpy.mockResolvedValueOnce(new Response('', { status: 200 }));
-    const t = httpTransport('/api/engine/state', { fetchImpl: fetchSpy as unknown as typeof fetch });
+    const t = httpTransport('/api/engine/state', {
+      fetchImpl: fetchSpy as unknown as typeof fetch,
+    });
 
     await t.save('{"hello":"world"}');
 
@@ -321,7 +324,9 @@ describe('Phase B1: httpTransport', () => {
 
   it('save throws when the server returns non-2xx', async () => {
     fetchSpy.mockResolvedValueOnce(new Response('', { status: 500, statusText: 'Server Error' }));
-    const t = httpTransport('/api/engine/state', { fetchImpl: fetchSpy as unknown as typeof fetch });
+    const t = httpTransport('/api/engine/state', {
+      fetchImpl: fetchSpy as unknown as typeof fetch,
+    });
     await expect(t.save('{}')).rejects.toThrow(/save failed \(500/);
   });
 
@@ -332,19 +337,25 @@ describe('Phase B1: httpTransport', () => {
         headers: { 'Content-Type': 'application/json' },
       })
     );
-    const t = httpTransport('/api/engine/state', { fetchImpl: fetchSpy as unknown as typeof fetch });
+    const t = httpTransport('/api/engine/state', {
+      fetchImpl: fetchSpy as unknown as typeof fetch,
+    });
     expect(await t.load()).toBe('{"hello":"world"}');
   });
 
   it('load returns null on 404 (matches apps/server route — "no engine state found")', async () => {
     fetchSpy.mockResolvedValueOnce(new Response('', { status: 404 }));
-    const t = httpTransport('/api/engine/state', { fetchImpl: fetchSpy as unknown as typeof fetch });
+    const t = httpTransport('/api/engine/state', {
+      fetchImpl: fetchSpy as unknown as typeof fetch,
+    });
     expect(await t.load()).toBeNull();
   });
 
   it('load throws on other non-2xx codes', async () => {
     fetchSpy.mockResolvedValueOnce(new Response('', { status: 500, statusText: 'Server Error' }));
-    const t = httpTransport('/api/engine/state', { fetchImpl: fetchSpy as unknown as typeof fetch });
+    const t = httpTransport('/api/engine/state', {
+      fetchImpl: fetchSpy as unknown as typeof fetch,
+    });
     await expect(t.load()).rejects.toThrow(/load failed \(500/);
   });
 });

@@ -60,7 +60,8 @@ function filterByDateRange<E extends { timestamp: Date | string }>(
   const startMs = startDate ? new Date(startDate).getTime() : -Infinity;
   const endMs = endDate ? new Date(endDate).getTime() : Infinity;
   return items.filter((e) => {
-    const ts = e.timestamp instanceof Date ? e.timestamp.getTime() : new Date(e.timestamp).getTime();
+    const ts =
+      e.timestamp instanceof Date ? e.timestamp.getTime() : new Date(e.timestamp).getTime();
     return ts >= startMs && ts <= endMs;
   });
 }
@@ -70,7 +71,14 @@ function paginate<E>(
   items: E[],
   page: number,
   limit: number
-): { items: E[]; page: number; limit: number; total: number; totalPages: number; hasNextPage: boolean } {
+): {
+  items: E[];
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+  hasNextPage: boolean;
+} {
   const total = items.length;
   const totalPages = Math.max(1, Math.ceil(total / limit));
   const start = (page - 1) * limit;
@@ -902,7 +910,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       logger.error(
         'Error loading system curriculum',
         { module: 'routes' },
-        error instanceof Error ? error : undefined,
+        error instanceof Error ? error : undefined
       );
       res.status(500).json({ error: 'Failed to load system curriculum' });
     }
@@ -932,7 +940,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       logger.error(
         'Error creating system skill',
         { module: 'routes' },
-        error instanceof Error ? error : undefined,
+        error instanceof Error ? error : undefined
       );
       res.status(500).json({ error: 'Failed to create skill' });
     }
@@ -964,7 +972,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       logger.error(
         'Error updating system skill',
         { module: 'routes' },
-        error instanceof Error ? error : undefined,
+        error instanceof Error ? error : undefined
       );
       res.status(500).json({ error: 'Failed to update skill' });
     }
@@ -996,7 +1004,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       logger.error(
         'Error deleting system skill',
         { module: 'routes' },
-        error instanceof Error ? error : undefined,
+        error instanceof Error ? error : undefined
       );
       res.status(500).json({ error: 'Failed to delete skill' });
     }
@@ -1028,14 +1036,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
             isAdmin: u.isAdmin,
             progress,
           };
-        }),
+        })
       );
       res.json({ learners });
     } catch (error) {
       logger.error(
         'Error listing learners for mentor view',
         { module: 'routes' },
-        error instanceof Error ? error : undefined,
+        error instanceof Error ? error : undefined
       );
       res.status(500).json({ error: 'Failed to list learners' });
     }
@@ -1059,7 +1067,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           'notStartedSkills',
           'averageMastery',
           'totalEvents',
-        ].join(','),
+        ].join(',')
       );
       for (const u of users) {
         let progress: ReturnType<
@@ -1083,7 +1091,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             csvCell(progress?.notStartedSkills ?? ''),
             csvCell(progress?.averageMastery ?? ''),
             csvCell(progress?.totalEvents ?? ''),
-          ].join(','),
+          ].join(',')
         );
       }
       res.setHeader('Content-Type', 'text/csv; charset=utf-8');
@@ -1093,7 +1101,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       logger.error(
         'Error exporting learners CSV',
         { module: 'routes' },
-        error instanceof Error ? error : undefined,
+        error instanceof Error ? error : undefined
       );
       res.status(500).json({ error: 'Failed to export learners CSV' });
     }

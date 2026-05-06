@@ -99,21 +99,16 @@ export class FatigueDetector {
 
     // Use the smaller of (configured window, half the recorded attempts) so
     // baseline and recent windows don't overlap when we're early in a session.
-    const windowSize = Math.min(
-      this.config.windowSize,
-      Math.floor(this.attempts.length / 2)
-    );
+    const windowSize = Math.min(this.config.windowSize, Math.floor(this.attempts.length / 2));
     const recent = this.attempts.slice(-windowSize);
     const baseline = this.attempts.slice(0, windowSize);
 
     if (baseline.length < 3) return 'none';
 
     const baselineLatency = average(baseline.map((a) => a.responseTimeMs));
-    const baselineAccuracy =
-      baseline.filter((a) => a.correct).length / baseline.length;
+    const baselineAccuracy = baseline.filter((a) => a.correct).length / baseline.length;
     const recentLatency = average(recent.map((a) => a.responseTimeMs));
-    const recentAccuracy =
-      recent.filter((a) => a.correct).length / recent.length;
+    const recentAccuracy = recent.filter((a) => a.correct).length / recent.length;
 
     // Guard against zero baseline latency (would NaN the fractional increase)
     if (baselineLatency === 0) return 'none';

@@ -33,14 +33,14 @@ function renderMentor(): ReturnType<typeof render> {
   return render(
     <Router hook={memoryHook}>
       <Mentor />
-    </Router>,
+    </Router>
   );
 }
 
 describe('Phase H6: Mentor dashboard', () => {
   it('shows the loading state on first render', () => {
     vi.spyOn(global, 'fetch').mockImplementation(
-      () => new Promise(() => undefined), // never resolves
+      () => new Promise(() => undefined) // never resolves
     );
     renderMentor();
     expect(screen.queryByTestId('mentor-loading')).not.toBeNull();
@@ -48,7 +48,7 @@ describe('Phase H6: Mentor dashboard', () => {
 
   it('renders the forbidden card when API returns 403', async () => {
     vi.spyOn(global, 'fetch').mockResolvedValue(
-      new Response(JSON.stringify({ error: 'admin only' }), { status: 403 }),
+      new Response(JSON.stringify({ error: 'admin only' }), { status: 403 })
     );
     renderMentor();
     await waitFor(() => {
@@ -58,7 +58,7 @@ describe('Phase H6: Mentor dashboard', () => {
 
   it('renders the empty card when learners array is empty', async () => {
     vi.spyOn(global, 'fetch').mockResolvedValue(
-      new Response(JSON.stringify({ learners: [] }), { status: 200 }),
+      new Response(JSON.stringify({ learners: [] }), { status: 200 })
     );
     renderMentor();
     await waitFor(() => {
@@ -91,7 +91,7 @@ describe('Phase H6: Mentor dashboard', () => {
       },
     ];
     vi.spyOn(global, 'fetch').mockResolvedValue(
-      new Response(JSON.stringify({ learners }), { status: 200 }),
+      new Response(JSON.stringify({ learners }), { status: 200 })
     );
     renderMentor();
     await waitFor(() => {
@@ -155,8 +155,8 @@ describe('Phase H6: Mentor dashboard', () => {
     await waitFor(() => {
       expect(
         fetchSpy.mock.calls.some(
-          ([u]) => typeof u === 'string' && u.endsWith('/api/mentor/export.csv'),
-        ),
+          ([u]) => typeof u === 'string' && u.endsWith('/api/mentor/export.csv')
+        )
       ).toBe(true);
     });
     // The download anchor was created. (cleanup runs synchronously after click,

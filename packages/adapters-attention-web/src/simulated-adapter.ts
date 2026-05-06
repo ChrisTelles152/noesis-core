@@ -21,11 +21,7 @@
  *     Core engine via the SDK's existing event pipeline.
  */
 
-import type {
-  AttentionData,
-  AttentionTrackingOptions,
-  AttentionChangeCallback,
-} from './types';
+import type { AttentionData, AttentionTrackingOptions, AttentionChangeCallback } from './types';
 import type {
   CognitiveStateEvent,
   CognitiveStateVector,

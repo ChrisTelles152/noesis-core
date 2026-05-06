@@ -11,22 +11,14 @@
  * prerequisites, etc.) per the core graph validator.
  */
 
-import {
-  loadSkillGraphFromJSON,
-  type SkillGraph,
-  type ItemSkillMapping,
-} from '@noesis-edu/core';
+import { loadSkillGraphFromJSON, type SkillGraph, type ItemSkillMapping } from '@noesis-edu/core';
 import graphData from './graph.json';
 import itemsData from './items.json';
 import goldenData from './goldenSequence.json';
 
 export type AnswerType = 'numeric' | 'multiple-choice' | 'free-text';
 
-export type CanonicalStage =
-  | 'concept_introduction'
-  | 'practice'
-  | 'application'
-  | 'reflection';
+export type CanonicalStage = 'concept_introduction' | 'practice' | 'application' | 'reflection';
 
 export interface ContentItem {
   /** Stable identifier — referenced by goldenSequences and engine items */

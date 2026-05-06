@@ -111,9 +111,7 @@ describe('computeSessionMetrics — median and p90', () => {
   });
 
   it('p90 of [0..100] is approximately 90 (linear interpolation)', () => {
-    const records = Array.from({ length: 11 }, (_, i) =>
-      attempt({ responseTimeMs: i * 10 })
-    );
+    const records = Array.from({ length: 11 }, (_, i) => attempt({ responseTimeMs: i * 10 }));
     const m = computeSessionMetrics(records);
     // rank = 0.9 * 10 = 9 → exact index → 90
     expect(m.p90ResponseTimeMs).toBe(90);
@@ -201,9 +199,7 @@ describe('computeSessionMetrics — per-skill breakdown', () => {
   });
 
   it('omits channels=[] when no attempts had a channel', () => {
-    const m = computeSessionMetrics([
-      attempt({ skillId: 's1', channel: undefined }),
-    ]);
+    const m = computeSessionMetrics([attempt({ skillId: 's1', channel: undefined })]);
     expect(m.bySkill.s1.channels).toEqual([]);
   });
 

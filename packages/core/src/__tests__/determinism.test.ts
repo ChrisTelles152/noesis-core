@@ -95,8 +95,7 @@ describe('Determinism contract: Core construction', () => {
 
   it('FSRSScheduler constructor throws without a clock', () => {
     expect(
-      () =>
-        new (FSRSScheduler as unknown as new (p: unknown, clock?: ClockFn) => FSRSScheduler)({})
+      () => new (FSRSScheduler as unknown as new (p: unknown, clock?: ClockFn) => FSRSScheduler)({})
     ).toThrow(/clock must be injected/);
   });
 
@@ -109,19 +108,13 @@ describe('Determinism contract: Core construction', () => {
   it('createEventFactoryContext throws without clock or idGenerator', () => {
     expect(() =>
       (
-        createEventFactoryContext as unknown as (
-          clock?: ClockFn,
-          idGen?: IdGeneratorFn
-        ) => unknown
+        createEventFactoryContext as unknown as (clock?: ClockFn, idGen?: IdGeneratorFn) => unknown
       )()
     ).toThrow(/clock must be injected/);
     expect(() =>
-      (
-        createEventFactoryContext as unknown as (
-          clock?: ClockFn,
-          idGen?: IdGeneratorFn
-        ) => unknown
-      )(() => 0)
+      (createEventFactoryContext as unknown as (clock?: ClockFn, idGen?: IdGeneratorFn) => unknown)(
+        () => 0
+      )
     ).toThrow(/idGenerator must be injected/);
   });
 

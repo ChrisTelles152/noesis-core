@@ -35,7 +35,7 @@ function renderAuthoring(): ReturnType<typeof render> {
   return render(
     <Router hook={memoryHook}>
       <Authoring />
-    </Router>,
+    </Router>
   );
 }
 
@@ -48,7 +48,7 @@ describe('Phase H7: Authoring page', () => {
 
   it('renders the forbidden card when API returns 403', async () => {
     vi.spyOn(global, 'fetch').mockResolvedValue(
-      new Response(JSON.stringify({ error: 'admin only' }), { status: 403 }),
+      new Response(JSON.stringify({ error: 'admin only' }), { status: 403 })
     );
     renderAuthoring();
     await waitFor(() => {
@@ -58,7 +58,7 @@ describe('Phase H7: Authoring page', () => {
 
   it('renders the empty state when the curriculum has no skills', async () => {
     vi.spyOn(global, 'fetch').mockResolvedValue(
-      new Response(JSON.stringify({ skills: [] }), { status: 200 }),
+      new Response(JSON.stringify({ skills: [] }), { status: 200 })
     );
     renderAuthoring();
     await waitFor(() => {
@@ -75,8 +75,8 @@ describe('Phase H7: Authoring page', () => {
             { id: 'sk_b', name: 'Skill B', prerequisites: ['sk_a'] },
           ],
         }),
-        { status: 200 },
-      ),
+        { status: 200 }
+      )
     );
     renderAuthoring();
     await waitFor(() => {
@@ -89,10 +89,14 @@ describe('Phase H7: Authoring page', () => {
 
   it('clicking Save fires POST /api/admin/skills with the form payload', async () => {
     const fetchSpy = vi.spyOn(global, 'fetch').mockImplementation(async (url, init) => {
-      if (typeof url === 'string' && url === '/api/admin/skills' && (init?.method ?? 'GET') === 'POST') {
+      if (
+        typeof url === 'string' &&
+        url === '/api/admin/skills' &&
+        (init?.method ?? 'GET') === 'POST'
+      ) {
         return new Response(
           JSON.stringify({ skill: { id: 'sk_new', name: 'New' }, skillCount: 1 }),
-          { status: 201 },
+          { status: 201 }
         );
       }
       // Default GET → empty list
@@ -108,7 +112,7 @@ describe('Phase H7: Authoring page', () => {
     await waitFor(() => {
       const postCall = fetchSpy.mock.calls.find(
         ([u, i]) =>
-          typeof u === 'string' && u === '/api/admin/skills' && (i?.method ?? 'GET') === 'POST',
+          typeof u === 'string' && u === '/api/admin/skills' && (i?.method ?? 'GET') === 'POST'
       );
       expect(postCall).toBeDefined();
     });
@@ -116,7 +120,7 @@ describe('Phase H7: Authoring page', () => {
 
   it('Save button disabled when id or name is empty', async () => {
     vi.spyOn(global, 'fetch').mockResolvedValue(
-      new Response(JSON.stringify({ skills: [] }), { status: 200 }),
+      new Response(JSON.stringify({ skills: [] }), { status: 200 })
     );
     renderAuthoring();
     await waitFor(() => {
@@ -134,7 +138,11 @@ describe('Phase H7: Authoring page', () => {
 
   it('clicking Edit reveals the inline form, Save fires PUT', async () => {
     const fetchSpy = vi.spyOn(global, 'fetch').mockImplementation(async (url, init) => {
-      if (typeof url === 'string' && url.startsWith('/api/admin/skills/') && init?.method === 'PUT') {
+      if (
+        typeof url === 'string' &&
+        url.startsWith('/api/admin/skills/') &&
+        init?.method === 'PUT'
+      ) {
         return new Response(JSON.stringify({ skill: { id: 'sk_a', name: 'Renamed' } }), {
           status: 200,
         });
@@ -143,7 +151,7 @@ describe('Phase H7: Authoring page', () => {
         JSON.stringify({
           skills: [{ id: 'sk_a', name: 'Skill A', prerequisites: [] }],
         }),
-        { status: 200 },
+        { status: 200 }
       );
     });
     renderAuthoring();
@@ -156,7 +164,7 @@ describe('Phase H7: Authoring page', () => {
     fireEvent.click(screen.getByTestId('save-sk_a'));
     await waitFor(() => {
       const putCall = fetchSpy.mock.calls.find(
-        ([u, i]) => typeof u === 'string' && u === '/api/admin/skills/sk_a' && i?.method === 'PUT',
+        ([u, i]) => typeof u === 'string' && u === '/api/admin/skills/sk_a' && i?.method === 'PUT'
       );
       expect(putCall).toBeDefined();
     });
@@ -164,12 +172,16 @@ describe('Phase H7: Authoring page', () => {
 
   it('clicking Delete fires DELETE after confirm', async () => {
     const fetchSpy = vi.spyOn(global, 'fetch').mockImplementation(async (url, init) => {
-      if (typeof url === 'string' && url.startsWith('/api/admin/skills/') && init?.method === 'DELETE') {
+      if (
+        typeof url === 'string' &&
+        url.startsWith('/api/admin/skills/') &&
+        init?.method === 'DELETE'
+      ) {
         return new Response(JSON.stringify({ deleted: 'sk_a', skillCount: 0 }), { status: 200 });
       }
       return new Response(
         JSON.stringify({ skills: [{ id: 'sk_a', name: 'A', prerequisites: [] }] }),
-        { status: 200 },
+        { status: 200 }
       );
     });
     renderAuthoring();
@@ -180,7 +192,7 @@ describe('Phase H7: Authoring page', () => {
     await waitFor(() => {
       const delCall = fetchSpy.mock.calls.find(
         ([u, i]) =>
-          typeof u === 'string' && u === '/api/admin/skills/sk_a' && i?.method === 'DELETE',
+          typeof u === 'string' && u === '/api/admin/skills/sk_a' && i?.method === 'DELETE'
       );
       expect(delCall).toBeDefined();
     });

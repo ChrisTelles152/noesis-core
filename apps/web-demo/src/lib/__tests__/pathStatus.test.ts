@@ -92,10 +92,7 @@ describe('loadEstimatesFromStorage', () => {
   });
 
   it('parses a valid object payload into a Map', () => {
-    localStorage.setItem(
-      'noesis-test-key',
-      JSON.stringify({ adicao: 0.8, subtracao: 0.5 }),
-    );
+    localStorage.setItem('noesis-test-key', JSON.stringify({ adicao: 0.8, subtracao: 0.5 }));
     const map = loadEstimatesFromStorage('noesis-test-key');
     expect(map.get('adicao')).toBe(0.8);
     expect(map.get('subtracao')).toBe(0.5);
@@ -104,7 +101,7 @@ describe('loadEstimatesFromStorage', () => {
   it('drops non-numeric values silently rather than crashing the Path page', () => {
     localStorage.setItem(
       'noesis-test-key',
-      JSON.stringify({ adicao: 0.8, garbage: 'not-a-number', missing: null }),
+      JSON.stringify({ adicao: 0.8, garbage: 'not-a-number', missing: null })
     );
     const map = loadEstimatesFromStorage('noesis-test-key');
     expect(map.get('adicao')).toBe(0.8);

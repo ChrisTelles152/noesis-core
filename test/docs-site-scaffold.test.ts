@@ -29,7 +29,7 @@ function readText(rel: string): string {
 describe('Phase I3: docs/site/ scaffold', () => {
   it('has package.json with astro + starlight as dependencies', () => {
     const pkg = readJson<{ dependencies: Record<string, string>; scripts: Record<string, string> }>(
-      'docs/site/package.json',
+      'docs/site/package.json'
     );
     expect(pkg.dependencies['astro']).toBeDefined();
     expect(pkg.dependencies['@astrojs/starlight']).toBeDefined();

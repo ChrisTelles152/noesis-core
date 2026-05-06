@@ -681,10 +681,7 @@ describe('SessionPlannerImpl', () => {
       // prereq-a's BKT mastery is high enough to satisfy the gate for
       // introducing skill-b — but its memory state is `relearning`,
       // signalling recent failures. The relearning state should win.
-      const learnerModel = createMockLearnerModel(
-        { 'prereq-a': 0.9, 'skill-b': 0.1 },
-        currentTime,
-      );
+      const learnerModel = createMockLearnerModel({ 'prereq-a': 0.9, 'skill-b': 0.1 }, currentTime);
       const memoryStates = [
         createMockMemoryState('prereq-a', {
           state: 'relearning',
@@ -708,10 +705,7 @@ describe('SessionPlannerImpl', () => {
       const skillGraph = createMockSkillGraph(['prereq-a', 'skill-b'], {
         'skill-b': ['prereq-a'],
       });
-      const learnerModel = createMockLearnerModel(
-        { 'prereq-a': 0.9, 'skill-b': 0.1 },
-        currentTime,
-      );
+      const learnerModel = createMockLearnerModel({ 'prereq-a': 0.9, 'skill-b': 0.1 }, currentTime);
       // Same setup as above but prereq is back in 'review' state.
       const memoryStates = [
         createMockMemoryState('prereq-a', {
@@ -786,8 +780,14 @@ describe('Phase C3: canonical 5-stage learning loop enforcement', () => {
     const learnerModel: LearnerModel = {
       learnerId: 'l1',
       skillProbabilities: new Map([
-        ['a', { skillId: 'a', pMastery: 0.3, pSlip: 0.1, pGuess: 0.2, pLearn: 0.1, lastUpdated: 0 }],
-        ['b', { skillId: 'b', pMastery: 0.3, pSlip: 0.1, pGuess: 0.2, pLearn: 0.1, lastUpdated: 0 }],
+        [
+          'a',
+          { skillId: 'a', pMastery: 0.3, pSlip: 0.1, pGuess: 0.2, pLearn: 0.1, lastUpdated: 0 },
+        ],
+        [
+          'b',
+          { skillId: 'b', pMastery: 0.3, pSlip: 0.1, pGuess: 0.2, pLearn: 0.1, lastUpdated: 0 },
+        ],
       ]),
       totalEvents: 0,
       createdAt: 0,
@@ -827,9 +827,10 @@ describe('Phase C3: canonical 5-stage learning loop enforcement', () => {
   it('falls back to practice once concept_introduction has been recorded for the skill', () => {
     const { planner, graph, learnerModel, config } = buildPlannerSetup();
 
-    const stageHistory = new Map<string, Set<'concept_introduction' | 'practice' | 'application' | 'reflection'>>([
-      ['a', new Set(['concept_introduction'])],
-    ]);
+    const stageHistory = new Map<
+      string,
+      Set<'concept_introduction' | 'practice' | 'application' | 'reflection'>
+    >([['a', new Set(['concept_introduction'])]]);
 
     const action = planner.getNextAction(learnerModel, graph, [], config, stageHistory);
     expect(action.type).toBe('practice');
@@ -851,7 +852,13 @@ describe('Phase C3: canonical 5-stage learning loop enforcement', () => {
     });
 
     const transferTests: TransferTest[] = [
-      { id: 'tt-a', skillId: 'a', transferType: 'near', context: 'word problem', passingScore: 0.8 },
+      {
+        id: 'tt-a',
+        skillId: 'a',
+        transferType: 'near',
+        context: 'word problem',
+        passingScore: 0.8,
+      },
     ];
     const transferResults: TransferTestResult[] = [];
     const planner = createSessionPlanner({}, transferTests, transferResults);
@@ -1079,4 +1086,3 @@ describe('Phase C3: engine wires stageHistory into planner; PracticeEvent + Stag
     expect(engineB.exportState()).toBe(exported);
   });
 });
-

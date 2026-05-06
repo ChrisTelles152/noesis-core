@@ -131,10 +131,7 @@ export type { EloCalibratorConfig, EloUpdateResult } from './calibration/index.j
 export type { ItemAttempt, ItemHistoryConfig, ItemMasteryInfo } from './history/index.js';
 
 // ---------- Answer normalizer ----------
-export type {
-  AnswerNormalizer,
-  LevenshteinMatcherConfig,
-} from './answer/index.js';
+export type { AnswerNormalizer, LevenshteinMatcherConfig } from './answer/index.js';
 
 // ---------- Engine config overrides (the pack-tuning surface) ----------
 export type {

@@ -25,22 +25,19 @@ can be replayed to reproduce the same state byte-for-byte.
 
 <CardGrid stagger>
   <Card title="Deterministic core" icon="approve-check">
-    BKT, FSRS, session planner — all pure, all replayable. Inject your
-    own clock and id generator at construction time; the engine *requires*
-    them so a silent `Date.now()` can't sneak in.
+    BKT, FSRS, session planner — all pure, all replayable. Inject your own clock and id generator at
+    construction time; the engine *requires* them so a silent `Date.now()` can't sneak in.
   </Card>
   <Card title="NALS cognitive vector" icon="puzzle">
-    Attention, recall strength, and affect are first-class events the
-    engine reduces into per-learner state — not just dashboard metrics.
+    Attention, recall strength, and affect are first-class events the engine reduces into
+    per-learner state — not just dashboard metrics.
   </Card>
   <Card title="Canonical 5-stage loop" icon="seti:lock">
-    concept_introduction → practice → application → reflection. Codified
-    in `SessionAction.type` and gated by an opt-in `enforceCanonicalLoop`
-    planner flag.
+    concept_introduction → practice → application → reflection. Codified in `SessionAction.type` and
+    gated by an opt-in `enforceCanonicalLoop` planner flag.
   </Card>
   <Card title="Pilot product" icon="rocket">
-    A working Brazilian-Portuguese math curriculum with 25 skills, 50
-    practice items, diagnostic placement, and per-skill canonical loop —
-    proves the platform end-to-end.
+    A working Brazilian-Portuguese math curriculum with 25 skills, 50 practice items, diagnostic
+    placement, and per-skill canonical loop — proves the platform end-to-end.
   </Card>
 </CardGrid>

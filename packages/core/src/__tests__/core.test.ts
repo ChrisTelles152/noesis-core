@@ -1871,7 +1871,7 @@ describe('Critical Path: multi-learner isolation', () => {
     skillId: string,
     correct: boolean,
     timestamp: number,
-    seq: number,
+    seq: number
   ): PracticeEvent {
     return {
       id: `evt-${learnerId}-${seq}`,
@@ -1961,11 +1961,11 @@ describe('Critical Path: multi-learner isolation', () => {
 
     // Two-learner state must round-trip through replay just like the
     // single-learner case in the existing replay test does.
-    expect(replay.getLearnerModel('learner-A')!.skillProbabilities.get('arithmetic')!.pMastery).toBe(
-      live.getLearnerModel('learner-A')!.skillProbabilities.get('arithmetic')!.pMastery,
-    );
-    expect(replay.getLearnerModel('learner-B')!.skillProbabilities.get('arithmetic')!.pMastery).toBe(
-      live.getLearnerModel('learner-B')!.skillProbabilities.get('arithmetic')!.pMastery,
-    );
+    expect(
+      replay.getLearnerModel('learner-A')!.skillProbabilities.get('arithmetic')!.pMastery
+    ).toBe(live.getLearnerModel('learner-A')!.skillProbabilities.get('arithmetic')!.pMastery);
+    expect(
+      replay.getLearnerModel('learner-B')!.skillProbabilities.get('arithmetic')!.pMastery
+    ).toBe(live.getLearnerModel('learner-B')!.skillProbabilities.get('arithmetic')!.pMastery);
   });
 });
