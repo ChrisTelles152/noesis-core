@@ -4,17 +4,20 @@
 
 ## Status
 
-✅ **v0.1.0 Complete** - All core modules implemented and tested.
+✅ **v0.3.0** — Phases A–E shipped. See [`CHANGELOG.md`](./CHANGELOG.md) for the full set of changes since v0.1.0.
 
 ## Features
 
-- **Skill Graph**: DAG-based skill representation with validation, cycle detection, and topological ordering
-- **Bayesian Knowledge Tracing (BKT)**: Research-backed learner modeling with inspectable probability estimates
-- **FSRS Memory Scheduling**: Modern spaced repetition scheduling for optimal retention
-- **Diagnostic Assessment**: Cold-start placement through adaptive diagnostic testing
-- **Transfer Testing**: Near/far transfer test gating for verified skill mastery
-- **Session Planning**: Deterministic action planning with configurable policies
-- **Event Replay**: Full determinism for reproducible learning decisions
+- **Skill Graph**: DAG with cycle detection, topological order, and FIRe-style `encompassedSkills` for trickle-down review credit.
+- **Bayesian Knowledge Tracing (BKT)**: Research-backed learner modeling with inspectable probability estimates.
+- **FSRS Memory Scheduling**: Modern spaced repetition with per-user-per-skill `learningSpeed` multipliers.
+- **Diagnostic Assessment**: Cold-start placement through adaptive diagnostic testing.
+- **Transfer Testing**: Near/far transfer test gating for verified skill mastery.
+- **Session Planning**: Deterministic action planning with optional knock-out reviews + prerequisite re-validation.
+- **NALS Cognitive-State Vector**: First-class attention / recall-strength / affect events with confidence + timestamp.
+- **Canonical 5-stage learning loop**: `concept_introduction → practice → application → reflection → spaced` (opt-in via `SessionConfig.enforceCanonicalLoop`).
+- **Determinism by default**: clock + idGenerator are required — no silent `Date.now()` / `Math.random()` leaks. Three factory paths (`createDeterministicEngine` / `createSystemEngine` / `createNoesisCoreEngine`) make the trade-off explicit.
+- **Replay**: byte-identical state across `processEvent` ↔ `replayEvents` ↔ `exportState/importState` round-trips, gated in CI.
 
 ## Installation
 
@@ -27,15 +30,21 @@ npm install @noesis-edu/core
 ```typescript
 import {
   createSkillGraph,
-  createNoesisCoreEngine,
+  createSystemEngine,
   type Skill,
   type PracticeEvent,
 } from '@noesis-edu/core';
 
-// 1. Define your skill graph
+// 1. Define your skill graph. `encompassedSkills` is optional and gives
+//    practicing this skill fractional review credit on the listed skills.
 const skills: Skill[] = [
   { id: 'arithmetic', name: 'Basic Arithmetic', prerequisites: [] },
-  { id: 'algebra', name: 'Algebra', prerequisites: ['arithmetic'] },
+  {
+    id: 'algebra',
+    name: 'Algebra',
+    prerequisites: ['arithmetic'],
+    encompassedSkills: ['arithmetic'], // optional — FIRe-style trickle-down
+  },
   { id: 'calculus', name: 'Calculus', prerequisites: ['algebra'] },
 ];
 
@@ -47,8 +56,13 @@ if (!validation.valid) {
   console.error('Invalid skill graph:', validation.errors);
 }
 
-// 2. Create the core engine
-const engine = createNoesisCoreEngine(graph);
+// 2. Create the core engine.
+//
+// `createSystemEngine` opts in to system clock + crypto.randomUUID(). Use
+// `createDeterministicEngine(graph, {}, startTime)` for replay/testing,
+// or `createNoesisCoreEngine(graph, {}, clock, idGenerator)` when you have
+// your own injectable sources (e.g., a server clock + a request-scoped UUID).
+const engine = createSystemEngine(graph);
 
 // 3. Process learning events
 const event: PracticeEvent = {

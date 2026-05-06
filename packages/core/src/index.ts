@@ -28,9 +28,17 @@ export * from './transfer/index.js';
 export * from './diagnostic/index.js';
 export * from './engine/index.js';
 export * from './persistence/index.js';
+export * from './config/index.js';
+export * from './answer/index.js';
+export * from './fatigue/index.js';
+export * from './calibration/index.js';
+export * from './history/index.js';
+export * from './mastery/index.js';
+export * from './session/index.js';
+export * from './logging/index.js';
 
 // Explicit re-export for discoverability
 export { DEFAULT_SESSION_CONFIG } from './planning/index.js';
 
 // Version
-export const VERSION = '0.1.0';
+export const VERSION = '0.3.0-rc.0';

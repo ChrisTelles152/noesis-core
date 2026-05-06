@@ -310,4 +310,134 @@ describe('getLearnerMetrics', () => {
     expect(metricsA.retentionBySkill).not.toHaveProperty('algebra'); // Not practiced
     expect(metricsB.retentionBySkill).not.toHaveProperty('arithmetic'); // Not practiced
   });
+
+  // -------------------------------------------------------------------------
+  // PHASE J / Tier-3 — Edge case: metrics for a learner that has never been
+  // touched by an event. Pin the empty-shape contract so a future change
+  // that throws on missing learners (or returns undefined) is loud.
+  // -------------------------------------------------------------------------
+  it('returns an empty-but-valid metrics object for a learner with no events', () => {
+    const engine = createTestEngine();
+    const metrics = getLearnerMetrics(engine, 'never-seen-this-learner');
+
+    // Object exists; doesn't throw; learnerId echoed back.
+    expect(metrics).toBeDefined();
+    expect(metrics.learnerId).toBe('never-seen-this-learner');
+
+    // Maps are empty — no events means no skill state to read.
+    expect(Object.keys(metrics.masteryBySkill).length).toBe(0);
+    expect(Object.keys(metrics.retentionBySkill).length).toBe(0);
+    expect(metrics.nextReviews).toEqual([]);
+
+    // Averages collapse to 0 when there's nothing to average over.
+    expect(metrics.averageMastery).toBe(0);
+    expect(metrics.averageRetention).toBe(0);
+
+    // No practice events for this learner.
+    expect(metrics.totalPracticeEvents).toBe(0);
+  });
+});
+
+// =============================================================================
+// 0.3.0 ADDITIONS — layered mastery, fatigue, difficulty
+// =============================================================================
+
+const learnerId = 'test-learner';
+
+describe('getLearnerMetrics — 0.3.0 layeredMastery option', () => {
+  it('omits layered mastery fields when option is not supplied', () => {
+    const engine = createTestEngine(1000);
+    const metrics = getLearnerMetrics(engine, learnerId);
+    expect(metrics.layeredMastery).toBeUndefined();
+    expect(metrics.layeredMasterySummary).toBeUndefined();
+  });
+
+  it('populates layered mastery + summary when model + states are supplied', async () => {
+    const { LayeredMasteryModel } = await import('../mastery/index.js');
+    const engine = createTestEngine(1000);
+    const model = new LayeredMasteryModel();
+    const states = new Map([
+      [
+        'arithmetic',
+        [
+          {
+            skillId: 'arithmetic',
+            channel: 'default',
+            pMastery: 0.9,
+            attempts: 8,
+            correctCount: 5,
+            sessionAttempts: 0,
+            currentSessionId: null,
+            correctDays: ['2026-01-15', '2026-01-16'],
+            firstSeenAt: 0,
+            firstCorrectAt: 1,
+            lastAttemptAt: 1000 + 25 * 60 * 60 * 1000,
+            lastCorrect: true,
+            lastUpdated: 1000 + 25 * 60 * 60 * 1000,
+          },
+        ],
+      ],
+    ]);
+    const m = getLearnerMetrics(engine, learnerId, 1000 + 25 * 60 * 60 * 1000, {
+      layeredMastery: { model, states },
+    });
+    expect(m.layeredMastery).toBeDefined();
+    expect(m.layeredMastery!.arithmetic).toBe('mastered');
+    expect(m.layeredMasterySummary).toBeDefined();
+    expect(m.layeredMasterySummary!.skillsMastered).toBe(1);
+  });
+});
+
+describe('getLearnerMetrics — 0.3.0 fatigue option', () => {
+  it('omits fatigue field when option is not supplied', () => {
+    const engine = createTestEngine(1000);
+    const metrics = getLearnerMetrics(engine, learnerId);
+    expect(metrics.fatigue).toBeUndefined();
+  });
+
+  it('populates fatigue signal + duration + count when detector is supplied', async () => {
+    const { FatigueDetector } = await import('../fatigue/index.js');
+    const engine = createTestEngine(1000);
+    let now = 1000;
+    const fd = new FatigueDetector({}, () => now);
+    fd.recordAttempt(500, true);
+    now = 2000;
+    fd.recordAttempt(700, false);
+    const m = getLearnerMetrics(engine, learnerId, now, { fatigue: fd });
+    expect(m.fatigue).toBeDefined();
+    expect(m.fatigue!.attemptCount).toBe(2);
+    expect(m.fatigue!.signal).toBe('none');
+  });
+});
+
+describe('getLearnerMetrics — 0.3.0 difficulty option', () => {
+  it('omits difficulty field when option is not supplied', () => {
+    const engine = createTestEngine(1000);
+    const metrics = getLearnerMetrics(engine, learnerId);
+    expect(metrics.difficulty).toBeUndefined();
+  });
+
+  it('populates difficulty learner + item ratings when calibrator is supplied', async () => {
+    const { EloDifficultyCalibrator } = await import('../calibration/index.js');
+    const engine = createTestEngine(1000);
+    const cal = new EloDifficultyCalibrator();
+    cal.recordAnswer('arithmetic', 'item-x', true);
+    cal.recordAnswer('algebra', 'item-y', false);
+    const m = getLearnerMetrics(engine, learnerId, 1000, { difficulty: cal });
+    expect(m.difficulty).toBeDefined();
+    expect(m.difficulty!.learnerRatings.arithmetic).toBeGreaterThan(1200);
+    expect(m.difficulty!.learnerRatings.algebra).toBeLessThan(1200);
+    expect(Object.keys(m.difficulty!.itemRatings).sort()).toEqual(['item-x', 'item-y']);
+  });
+});
+
+describe('getLearnerMetrics — 0.3.0 backward compatibility', () => {
+  it('three-arg signature (engine, learnerId, atTime) still works', () => {
+    const engine = createTestEngine(1000);
+    const metrics = getLearnerMetrics(engine, learnerId, 5000);
+    expect(metrics.timestamp).toBe(5000);
+    expect(metrics.layeredMastery).toBeUndefined();
+    expect(metrics.fatigue).toBeUndefined();
+    expect(metrics.difficulty).toBeUndefined();
+  });
 });

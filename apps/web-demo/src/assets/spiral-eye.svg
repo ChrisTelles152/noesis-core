@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-label="Noesis">
+  <title>Noesis</title>
+  <!--
+    Spiral-eye placeholder logo.
+
+    Composition:
+      - Outer circle  — the "eye" boundary
+      - Polyline      — Archimedean spiral, 2.5 turns, 31 points (the "iris")
+      - Center dot    — the pupil
+
+    Geometry: r(θ) = 1.5 + 1.95·θ, sampled every 30° from θ=0 to θ=5π.
+    Stroke uses currentColor so the logo inherits its parent's text color
+    (Slate Grey by default per the brand palette in tailwind.config.ts).
+
+    This is an interim asset. The final brand-spec spiral-eye logo can
+    drop in by replacing this single file — every <link rel="icon"> and
+    every <img> reference points at @/assets/spiral-eye.svg.
+  -->
+  <circle cx="50" cy="50" r="42" stroke-width="3.5"/>
+  <polyline stroke-width="2.5" points="51.5,50 52.18,51.26 51.77,53.07 50,54.56 47.21,54.83 44.28,53.30 42.38,50 42.52,45.68 45.17,41.63 50,39.32 55.85,39.87 61.01,43.64 63.74,50 62.78,57.38 57.89,63.67 50,66.80 41.09,65.43 33.68,59.42 30.14,50 31.91,39.56 39.05,31.04 50,27.08 61.97,29.27 71.62,37.52 75.98,50 73.38,63.50 64.01,74.27 50,79.04 34.97,76.04 23.10,65.54 17.90,50"/>
+  <circle cx="50" cy="50" r="2.5" fill="currentColor" stroke="none"/>
+</svg>

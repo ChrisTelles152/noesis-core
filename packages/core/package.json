@@ -1,6 +1,6 @@
 {
   "name": "@noesis-edu/core",
-  "version": "0.1.0",
+  "version": "0.3.0-rc.0",
   "description": "Noesis Core SDK - Portable, dependency-free, deterministic mastery-based learning engine",
   "type": "module",
   "main": "./dist/index.js",
@@ -10,6 +10,10 @@
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
+    },
+    "./contracts": {
+      "types": "./dist/contracts.d.ts",
+      "import": "./dist/contracts.js"
     }
   },
   "files": [

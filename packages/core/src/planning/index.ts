@@ -15,6 +15,28 @@ export {
   type SessionStats,
 } from './SessionPlannerImpl.js';
 
+export {
+  BudgetedSessionPlanner,
+  createBudgetedSessionPlanner,
+  DEFAULT_SESSION_BUDGET_CONFIG,
+  type SessionBudgetConfig,
+  type ReviewCandidate,
+  type ErrorCandidate,
+  type NewItemCandidate,
+  type SessionPlanInput,
+  type SessionPlan,
+} from './BudgetedSessionPlanner.js';
+
+export {
+  buildPlannerSnapshot,
+  planFromSnapshot,
+  serializePlannerSnapshot,
+  deserializePlannerSnapshot,
+  PLANNER_SNAPSHOT_VERSION,
+  type PlannerSnapshot,
+  type BuildSnapshotArgs,
+} from './PlannerSnapshot.js';
+
 /**
  * Default session configuration
  */

@@ -19,13 +19,13 @@ npm install
 npm run dev
 ```
 
-The server starts on `http://localhost:5000` by default.
+The server starts on `http://localhost:5174` by default. (5174 avoids the macOS AirPlay Receiver conflict on port 5000.)
 
 ## Environment Variables
 
 | Variable | Required | Description |
 |----------|----------|-------------|
-| `PORT` | No | Server port (default: 5000) |
+| `PORT` | No | Server port (default: 5174 — avoids macOS AirPlay on 5000) |
 | `NODE_ENV` | No | Environment: development/production |
 | `DATABASE_URL` | No | PostgreSQL connection string |
 | `SESSION_SECRET` | **Yes (prod)** | Session encryption secret |

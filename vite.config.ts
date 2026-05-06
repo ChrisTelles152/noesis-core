@@ -26,6 +26,12 @@ export default defineConfig({
       ),
       '@noesis/adapters-llm': path.resolve(import.meta.dirname, 'packages', 'adapters-llm', 'src'),
       '@noesis/sdk-web': path.resolve(import.meta.dirname, 'packages', 'sdk-web', 'src'),
+      '@noesis/content-pt-br-math': path.resolve(
+        import.meta.dirname,
+        'packages',
+        'content-pt-br-math',
+        'src'
+      ),
     },
   },
   root: path.resolve(import.meta.dirname, 'apps', 'web-demo'),

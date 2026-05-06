@@ -18,7 +18,7 @@ npm install
 npm run dev
 ```
 
-The app starts on `http://localhost:5000` (served by the Express backend).
+The app starts on `http://localhost:5174` (served by the Express backend in dev via Vite middleware). Default port avoids the macOS AirPlay Receiver conflict on 5000; override with `PORT=...` in your `.env`.
 
 ## Tech Stack
 

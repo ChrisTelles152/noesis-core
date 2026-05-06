@@ -218,11 +218,31 @@ export interface MemoryScheduler {
 // =============================================================================
 
 /**
+ * Canonical 5-stage learning loop (NALS / INTENTION.md):
+ *   concept_introduction → practice → application → reflection → spaced
+ *
+ * The planner tracks stage progression per-learner-per-skill so it can
+ * enforce ordering when {@link SessionConfig.enforceCanonicalLoop} is set:
+ *   - new skills emit `concept_introduction` first, not `practice`,
+ *   - `transfer_test` is gated on all four stages being recorded.
+ */
+export type CanonicalStage = 'concept_introduction' | 'practice' | 'application' | 'reflection';
+
+/**
  * A recommended next action in a learning session
  */
 export interface SessionAction {
   /** Type of action */
-  type: 'practice' | 'review' | 'diagnostic' | 'transfer_test' | 'prerequisite_probe' | 'rest';
+  type:
+    | 'practice'
+    | 'review'
+    | 'diagnostic'
+    | 'transfer_test'
+    | 'prerequisite_probe'
+    | 'rest'
+    | 'concept_introduction'
+    | 'application'
+    | 'reflection';
   /** Target skill ID (if applicable) */
   skillId?: string;
   /** Specific item/question ID (if applicable) */
@@ -263,25 +283,43 @@ export interface SessionConfig {
    * Default 0.7.
    */
   prerequisiteRevalidationThreshold?: number;
+  /**
+   * Enforce the canonical 5-stage learning loop:
+   *   concept_introduction → practice → application → reflection → spaced.
+   * When `true`:
+   *   - the planner emits `concept_introduction` for any skill that has no
+   *     stages recorded yet (instead of `practice`),
+   *   - `transfer_test` requires all four stages to be recorded.
+   * Default `false` so existing consumers keep their current behaviour.
+   */
+  enforceCanonicalLoop?: boolean;
 }
 
 /**
  * Interface for session planning
  */
 export interface SessionPlanner {
-  /** Get the next recommended action */
+  /**
+   * Get the next recommended action.
+   *
+   * @param stageHistory - Optional per-skill canonical-loop stage history.
+   *   Required when {@link SessionConfig.enforceCanonicalLoop} is set.
+   *   Caller (typically the engine) is responsible for keying it by learner.
+   */
   getNextAction(
     learnerModel: LearnerModel,
     skillGraph: SkillGraph,
     memoryStates: MemoryState[],
-    config: SessionConfig
+    config: SessionConfig,
+    stageHistory?: Map<string, Set<CanonicalStage>>
   ): SessionAction;
   /** Plan a complete session */
   planSession(
     learnerModel: LearnerModel,
     skillGraph: SkillGraph,
     memoryStates: MemoryState[],
-    config: SessionConfig
+    config: SessionConfig,
+    stageHistory?: Map<string, Set<CanonicalStage>>
   ): SessionAction[];
 }
 
@@ -376,6 +414,34 @@ export interface PracticeEvent extends BaseEvent {
   confidence?: number;
   /** Error category (if incorrect) */
   errorCategory?: string;
+  /**
+   * Canonical-loop stage this attempt represents. Defaults to `'practice'`.
+   * Use `'application'` when the attempt is a transfer/application of the
+   * skill to a novel context. Other stages flow through
+   * {@link StageCompletedEvent}. Backward-compatible: omitting the field
+   * means `'practice'`.
+   */
+  stage?: 'practice' | 'application';
+}
+
+/**
+ * Stage-completion event for stages that do not have a practice attempt
+ * (concept_introduction and reflection). The engine reduces this into the
+ * per-learner-per-skill stage history that the planner reads when
+ * {@link SessionConfig.enforceCanonicalLoop} is set.
+ *
+ * `'practice'` and `'application'` are NOT emitted via this event — they are
+ * recorded automatically when a {@link PracticeEvent} flows through the
+ * engine, since those stages always involve a real practice attempt.
+ */
+export interface StageCompletedEvent extends BaseEvent {
+  type: 'stage_completed';
+  /** Skill the stage applies to. */
+  skillId: string;
+  /** Which canonical-loop stage was completed. */
+  stage: 'concept_introduction' | 'reflection';
+  /** Optional context payload (e.g. reflection text). */
+  notes?: string;
 }
 
 /**
@@ -444,6 +510,62 @@ export interface ImplicitCreditEvent extends BaseEvent {
   nextReviewShiftMs: number;
 }
 
+// =============================================================================
+// COGNITIVE-STATE VECTOR (NALS) — INTENTION.md spec
+// =============================================================================
+
+/**
+ * A single measurement of one component of the Cognitive-State Vector.
+ *
+ * Each measurement carries:
+ * - `value` — the observed quantity, normalized to [0, 1].
+ * - `confidence` — how confident the source is in `value`, [0, 1]. A
+ *   simulated/self-reported source may report `confidence = 1`; an inferred
+ *   source (gaze tracker, response-latency heuristic) typically reports < 1.
+ * - `timestamp` — Unix ms when the measurement was made.
+ */
+export interface CognitiveStateMeasurement {
+  /** Normalized observation value, [0, 1]. */
+  value: number;
+  /** Confidence in this measurement, [0, 1]. */
+  confidence: number;
+  /** Unix ms timestamp this measurement was made. */
+  timestamp: number;
+}
+
+/**
+ * Cognitive-State Vector (NALS spec from INTENTION.md).
+ *
+ * Three first-class measurements describe the learner's moment-to-moment state:
+ * - **A**ttention: how focused the learner is on the current task.
+ * - **R**ecall strength: current memory retrievability for the active material.
+ * - A**f**fect: emotional state (calm vs. frustrated, engaged vs. bored, etc.).
+ *
+ * Each measurement is independently sourced and timestamped, so a single
+ * vector can mix data from different adapters (e.g., simulated attention +
+ * inferred recall strength + self-reported affect).
+ */
+export interface CognitiveStateVector {
+  /** Attention (A) — focus on current task. */
+  attention: CognitiveStateMeasurement;
+  /** Recall strength (R) — current memory retrievability. */
+  recallStrength: CognitiveStateMeasurement;
+  /** Affect (F) — emotional state. */
+  affect: CognitiveStateMeasurement;
+}
+
+/**
+ * CognitiveStateEvent — emitted when an attention/affect adapter reports a
+ * new reading. Engine appends to a per-learner timeline so consumers can
+ * inspect the vector history (for analytics) and the planner can use the
+ * latest vector to inform recommendations.
+ */
+export interface CognitiveStateEvent extends BaseEvent {
+  type: 'cognitive_state';
+  /** The full vector at this point in time. */
+  vector: CognitiveStateVector;
+}
+
 /**
  * Union type of all events
  */
@@ -452,7 +574,9 @@ export type NoesisEvent =
   | DiagnosticEvent
   | TransferTestEvent
   | SessionEvent
-  | ImplicitCreditEvent;
+  | ImplicitCreditEvent
+  | CognitiveStateEvent
+  | StageCompletedEvent;
 
 // =============================================================================
 // DIAGNOSTIC ENGINE TYPES

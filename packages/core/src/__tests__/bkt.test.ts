@@ -463,4 +463,86 @@ describe('BKTEngine', () => {
       expect(model.skillProbabilities.get('skill-a')!.pMastery).toBe(0.8);
     });
   });
+
+  // ===========================================================================
+  // PHASE J2 — Tier-2 missing tests: BKT convergence numbers
+  //
+  // Pin the exact mastery probability after 1 and 2 consecutive correct
+  // attempts with default params. Today: 2 correct → ~0.919 with defaults
+  // (well above the 0.85 mastery threshold). The audit (ALGORITHM_AUDIT.md
+  // Warning #1) flags this as "converges too fast" relative to literature
+  // (which suggests 4-6 attempts). Pinning the number here so any future
+  // tuning of pLearn/pInit/pSlip/pGuess fails this test loudly and forces
+  // a documentation update.
+  // ===========================================================================
+  describe('BKT convergence numbers (default params)', () => {
+    it('one correct attempt: pMastery moves from 0.30 prior to ~0.6927', () => {
+      const skillGraph = createMockSkillGraph(['skill-a']);
+      let model = engine.createModel('learner-1', skillGraph);
+      expect(model.skillProbabilities.get('skill-a')!.pMastery).toBeCloseTo(0.3, 5);
+
+      model = engine.updateModel(model, createPracticeEvent('skill-a', true, currentTime));
+
+      const after1 = model.skillProbabilities.get('skill-a')!.pMastery;
+      // Derivation:
+      //   posterior = (0.3 * 0.9) / (0.3 * 0.9 + 0.7 * 0.2) = 0.27 / 0.41 ≈ 0.65854
+      //   after pLearn:  0.65854 + (1 - 0.65854) * 0.1     ≈ 0.69268
+      expect(after1).toBeCloseTo(0.6927, 4);
+    });
+
+    it('two correct attempts: pMastery crosses 0.85 (Warning #1: converges fast)', () => {
+      const skillGraph = createMockSkillGraph(['skill-a']);
+      let model = engine.createModel('learner-1', skillGraph);
+      model = engine.updateModel(model, createPracticeEvent('skill-a', true, currentTime));
+      model = engine.updateModel(model, createPracticeEvent('skill-a', true, currentTime + 1000));
+
+      const after2 = model.skillProbabilities.get('skill-a')!.pMastery;
+      // Derivation (continuing from after1 ≈ 0.69268):
+      //   posterior = (0.69268 * 0.9) / (0.69268 * 0.9 + 0.30732 * 0.2) ≈ 0.91029
+      //   after pLearn:  0.91029 + (1 - 0.91029) * 0.1                  ≈ 0.91926
+      expect(after2).toBeCloseTo(0.9193, 3);
+      // Crosses the default 0.85 mastery threshold — this is the literal
+      // "converges too fast" finding from the audit.
+      expect(after2).toBeGreaterThan(0.85);
+    });
+
+    it('one correct + one incorrect: pMastery drops below the after-1-correct number', () => {
+      const skillGraph = createMockSkillGraph(['skill-a']);
+      let model = engine.createModel('learner-1', skillGraph);
+      model = engine.updateModel(model, createPracticeEvent('skill-a', true, currentTime));
+      const after1Correct = model.skillProbabilities.get('skill-a')!.pMastery;
+
+      model = engine.updateModel(model, createPracticeEvent('skill-a', false, currentTime + 1000));
+      const afterMixed = model.skillProbabilities.get('skill-a')!.pMastery;
+
+      expect(afterMixed).toBeLessThan(after1Correct);
+      // Notable subtle: with default params a single wrong answer following
+      // a single right one can pull pMastery *below* the 0.30 prior — about
+      // 0.298. The right answer raised the prior to 0.6927, which made the
+      // wrong answer more informative (Bayes loves contrast). Pinning the
+      // number here so a future param tweak that softens this overshoot
+      // becomes visible.
+      expect(afterMixed).toBeCloseTo(0.298, 2);
+    });
+
+    it('three consecutive incorrect attempts: pMastery monotonically decreases', () => {
+      const skillGraph = createMockSkillGraph(['skill-a']);
+      let model = engine.createModel('learner-1', skillGraph);
+
+      const trace: number[] = [model.skillProbabilities.get('skill-a')!.pMastery];
+      for (let i = 0; i < 3; i++) {
+        model = engine.updateModel(
+          model,
+          createPracticeEvent('skill-a', false, currentTime + i * 1000)
+        );
+        trace.push(model.skillProbabilities.get('skill-a')!.pMastery);
+      }
+
+      // Strictly decreasing — failures shouldn't accidentally raise mastery
+      // through some pLearn quirk.
+      for (let i = 1; i < trace.length; i++) {
+        expect(trace[i]).toBeLessThan(trace[i - 1]);
+      }
+    });
+  });
 });

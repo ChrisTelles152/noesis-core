@@ -1,8 +1,11 @@
 import { Link } from 'wouter';
+import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import CodeBlock from '@/components/CodeBlock';
+import spiralEyeUrl from '@/assets/spiral-eye.svg';
 
 export default function Hero() {
+  const { t } = useTranslation();
   const codeExample = `// Initialize Noesis SDK with default configuration
 import { NoesisSDK } from '@noesis-edu/core';
 
@@ -47,38 +50,41 @@ console.log('Suggested next step:', response.suggestion);`;
     <section className="py-12 md:py-20 bg-gradient-to-b from-white to-slate-50">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="max-w-4xl mx-auto text-center">
+          <img
+            src={spiralEyeUrl}
+            alt="Noesis"
+            className="mx-auto mb-8 h-16 w-16 text-neural-copper"
+            aria-label="Noesis spiral-eye logo"
+          />
           <h1 className="text-4xl md:text-5xl font-bold text-slate-900 tracking-tight">
             <span className="bg-clip-text text-transparent bg-gradient-to-r from-primary-600 to-secondary-500">
-              Adaptive Learning
+              {t('home.headline')}
             </span>{' '}
-            for Every Platform
+            {t('home.headlineRest')}
           </h1>
-          <p className="mt-6 text-xl text-slate-600 max-w-3xl mx-auto">
-            The universal infrastructure layer for attention-aware, personalized learning
-            experiences. Open-source SDK that makes any app smarter about how people learn.
-          </p>
+          <p className="mt-6 text-xl text-slate-600 max-w-3xl mx-auto">{t('home.subheadline')}</p>
           <div className="mt-10 flex flex-col sm:flex-row justify-center items-center space-y-4 sm:space-y-0 sm:space-x-4">
             <Button size="lg" asChild>
               <Link href="/#getstarted">
                 <a className="w-full sm:w-auto">
-                  Get Started
+                  {t('common.getStarted')}
                   <i className="fas fa-arrow-right ml-2"></i>
                 </a>
               </Link>
             </Button>
             <Button variant="outline" size="lg" asChild>
               <Link href="/documentation">
-                <a className="w-full sm:w-auto">View Documentation</a>
+                <a className="w-full sm:w-auto">{t('common.documentation')}</a>
               </Link>
             </Button>
           </div>
 
           <div className="mt-12 text-sm flex items-center justify-center text-slate-600">
-            <span className="mr-4">Open Source</span>
+            <span className="mr-4">{t('home.openSource')}</span>
             <div className="w-px h-4 bg-slate-300"></div>
-            <span className="mx-4">MIT License</span>
+            <span className="mx-4">{t('home.mitLicense')}</span>
             <div className="w-px h-4 bg-slate-300"></div>
-            <span className="ml-4">Cross-Platform</span>
+            <span className="ml-4">{t('home.crossPlatform')}</span>
           </div>
         </div>
 

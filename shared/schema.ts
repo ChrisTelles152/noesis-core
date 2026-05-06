@@ -1,4 +1,13 @@
-import { pgTable, text, serial, integer, jsonb, timestamp, index } from 'drizzle-orm/pg-core';
+import {
+  pgTable,
+  text,
+  serial,
+  integer,
+  jsonb,
+  timestamp,
+  index,
+  boolean,
+} from 'drizzle-orm/pg-core';
 import { createInsertSchema } from 'drizzle-zod';
 import { z } from 'zod';
 
@@ -11,6 +20,9 @@ export const users = pgTable('users', {
   googleId: text('google_id').unique(),
   displayName: text('display_name'),
   avatarUrl: text('avatar_url'),
+  // Admin flag (Phase H6) — false by default. Promoted via storage.setUserAdmin.
+  // Used by requireAdmin middleware to gate /api/mentor and /api/admin routes.
+  isAdmin: boolean('is_admin').notNull().default(false),
 });
 
 export const insertUserSchema = createInsertSchema(users).pick({
@@ -136,3 +148,39 @@ export const engineStates = pgTable(
 );
 
 export type EngineState = typeof engineStates.$inferSelect;
+
+// Per-user skill graph + item mappings + transfer tests (one row per user,
+// upserted on save). Used by the server-side EngineManager (Phase E2) so the
+// engine can be hydrated and the planner can reason about a real curriculum.
+export const skillGraphs = pgTable(
+  'skill_graphs',
+  {
+    id: serial('id').primaryKey(),
+    userId: integer('user_id')
+      .notNull()
+      .unique()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    skills: jsonb('skills').notNull(), // Skill[]
+    itemMappings: jsonb('item_mappings'), // ItemSkillMapping[] | null
+    transferTests: jsonb('transfer_tests'), // TransferTest[] | null
+    updatedAt: timestamp('updated_at').notNull().defaultNow(),
+  },
+  (table) => [index('skill_graphs_user_id_idx').on(table.userId)]
+);
+
+export type SkillGraphRow = typeof skillGraphs.$inferSelect;
+
+// System-wide curriculum (Phase H7) — a single row keyed by id=1 holding the
+// admin-authored skills/items/transferTests. Distinct from per-user
+// skill_graphs so an admin can edit the template without touching any
+// learner's actual graph. Engines today still pull per-user; promoting the
+// system curriculum to seed new learners is a follow-up.
+export const systemCurriculum = pgTable('system_curriculum', {
+  id: serial('id').primaryKey(),
+  skills: jsonb('skills').notNull(),
+  itemMappings: jsonb('item_mappings'),
+  transferTests: jsonb('transfer_tests'),
+  updatedAt: timestamp('updated_at').notNull().defaultNow(),
+});
+
+export type SystemCurriculumRow = typeof systemCurriculum.$inferSelect;

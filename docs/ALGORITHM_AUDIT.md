@@ -59,16 +59,30 @@ this.sessionPlanner = new SessionPlannerImpl(
 
 ### 1. BKT mastery convergence is very fast (2 correct answers to mastery)
 
+**Status:** ACKNOWLEDGED — keeping current defaults for the pilot. See "Decision rationale" below.
+
 **File:** `BKTEngine.ts` — default params `pInit=0.3, pLearn=0.1, pSlip=0.1, pGuess=0.2`
 
-With these defaults, only **2 consecutive correct answers** bring `pMastery` from 0.3 to above the 0.85 mastery threshold. Conversely, **2 consecutive incorrect answers** drop mastery from 0.85 to ~0.19. This is standard BKT behavior but very aggressive for pedagogical purposes — most ITS literature reports 4-6 correct answers as typical for mastery.
+With these defaults, only **2 consecutive correct answers** bring `pMastery` from 0.3 to above the 0.85 mastery threshold. Specifically: 1 correct → 0.6927, 2 correct → 0.9193 (pinned in `bkt.test.ts > BKT convergence numbers`). Conversely, **2 consecutive incorrect answers** drop mastery from 0.85 to ~0.19. This is standard BKT behavior but very aggressive for pedagogical purposes — most ITS literature reports 4-6 correct answers as typical for mastery.
 
 **Impact:** Learners may be declared "mastered" on a skill after just 2 lucky correct answers, leading to premature progression. The high volatility (2 wrongs to lose mastery) also means a learner's state fluctuates wildly with individual responses.
 
-**Recommendation:** Consider adjusting parameters for the pilot:
-- Lower `pLearn` to 0.05 (slower convergence, ~4 correct answers to mastery)
-- Or lower `pInit` to 0.1 (starts further from threshold, needs ~3 correct)
-- This is a **product/pedagogy decision**, not a code bug
+**Decision rationale (Phase J4):** The Brazilian-Portuguese-math pilot will run with ~10–20 learners over a few weeks. At that sample size we cannot statistically distinguish 2-attempt convergence from 4-attempt convergence — there isn't enough signal to validate either parameter set against the other. Tuning to what literature *says* without data from *our* learners would be cargo-cult adjustment.
+
+The plan is therefore:
+1. Ship the pilot with the current defaults.
+2. Log every practice event so post-pilot we have a real dataset.
+3. Fit the BKT params (and ideally a learner-specific learning-speed signal — see §5.1.2 follow-up note) against the pilot data to find what convergence rate actually predicts long-horizon retention for *our* curriculum and *our* learners.
+4. Re-tune in a documented commit, with the fitted convergence test bumped to the new number.
+
+The convergence numbers are pinned in `packages/core/src/__tests__/bkt.test.ts > BKT convergence numbers (default params)`. If the defaults are tuned later, those tests will fail and force this audit entry to be re-dated.
+
+**Alternatives considered (and not chosen for the pilot):**
+- Lower `pLearn` to 0.05 (slower convergence, but with `pInit=0.3` this only marginally moves the convergence count — still 2 attempts to cross 0.85 with default thresholds).
+- Lower `pInit` to 0.1 (3 attempts to cross 0.85). Cleanest single change but rolls back our cold-start prior across all 25 skills, which interacts with the diagnostic propagation logic.
+- Combined `pInit=0.1` + `pLearn=0.05` (3 attempts, smoother trajectory). Smallest behaviour change among the "more conservative" options.
+
+Any of these is a one-line code change once we choose to act on real data. Until then: status quo with the rationale on record.
 
 ### 2. Two competing spaced repetition systems
 

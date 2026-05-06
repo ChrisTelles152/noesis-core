@@ -1,0 +1,47 @@
+{
+  "name": "@noesis/content-pt-br-math",
+  "version": "0.1.0",
+  "description": "Brazilian Portuguese math content pack for Noesis (Phase-1 STEM wedge).",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./graph.json": "./src/graph.json",
+    "./items.json": "./src/items.json",
+    "./goldenSequence.json": "./src/goldenSequence.json"
+  },
+  "files": [
+    "dist",
+    "src"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "clean": "rm -rf dist",
+    "typecheck": "tsc --noEmit"
+  },
+  "keywords": [
+    "noesis",
+    "math",
+    "portuguese",
+    "brazil",
+    "pt-BR",
+    "content-pack"
+  ],
+  "author": "Noesis Team",
+  "license": "MIT",
+  "peerDependencies": {
+    "@noesis-edu/core": "*"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.3"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

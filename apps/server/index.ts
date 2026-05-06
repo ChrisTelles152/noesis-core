@@ -13,6 +13,9 @@ import { sanitizeInput } from './middleware/sanitize';
 import { initializeWebSocket } from './websocket';
 import { setupOpenApiRoutes } from './openapi';
 import { performanceMiddleware, performanceMonitor } from './performance';
+import { buildHelmetOptions, isRealGazeTrackingEnabled } from './security-headers';
+import { configureEngineManager } from './engine-manager';
+import { storage } from './storage';
 
 // Validate environment at startup
 const envValid = logEnvironmentStatus(log);
@@ -31,24 +34,12 @@ const app = express();
 // - Strict-Transport-Security: enforces HTTPS
 // - Content-Security-Policy: restricts resource loading
 app.use(
-  helmet({
-    contentSecurityPolicy: isProduction()
-      ? {
-          directives: {
-            defaultSrc: ["'self'"],
-            scriptSrc: ["'self'"], // No unsafe-inline in production - bundled scripts don't need it
-            styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'], // unsafe-inline needed for CSS-in-JS
-            fontSrc: ["'self'", 'https://fonts.gstatic.com'],
-            imgSrc: ["'self'", 'data:', 'blob:'],
-            connectSrc: ["'self'", 'wss:', 'https://api.openai.com', 'https://api.anthropic.com'],
-            frameSrc: ["'none'"],
-            objectSrc: ["'none'"],
-          },
-        }
-      : false, // Disable CSP in development for easier debugging
-    crossOriginEmbedderPolicy: false, // Needed for WebGazer
-    crossOriginOpenerPolicy: { policy: 'same-origin-allow-popups' },
-  })
+  helmet(
+    buildHelmetOptions({
+      production: isProduction(),
+      enableRealGazeTracking: isRealGazeTrackingEnabled(),
+    })
+  )
 );
 
 // Request ID tracking (before other middleware)
@@ -189,6 +180,14 @@ app.use((req, res, next) => {
   });
 
   next();
+});
+
+// Configure the per-user engine manager (Phase E1 + E2). Hydrates an engine
+// on first access for each user from the stored curriculum + event log.
+configureEngineManager({
+  curriculumSource: { loadCurriculum: (userId) => storage.loadCurriculum(userId) },
+  events: storage,
+  state: storage,
 });
 
 (async () => {
