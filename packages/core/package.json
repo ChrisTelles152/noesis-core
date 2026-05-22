@@ -1,6 +1,6 @@
 {
   "name": "@noesis-edu/core",
-  "version": "0.3.0-rc.0",
+  "version": "0.3.0",
   "description": "Noesis Core SDK - Portable, dependency-free, deterministic mastery-based learning engine",
   "type": "module",
   "main": "./dist/index.js",
