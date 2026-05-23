@@ -5,9 +5,11 @@ node_modules
 .pnp.js
 
 # Production
-dist
+# Note: packages/core/dist is committed for Vercel github: install support
 build
 server/public
+packages/*/dist
+!packages/core/dist
 
 # Testing
 coverage
