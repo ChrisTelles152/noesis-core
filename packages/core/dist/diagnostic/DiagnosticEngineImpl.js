@@ -1,0 +1,239 @@
+/**
+ * Diagnostic Engine Implementation
+ *
+ * Provides diagnostic assessment for cold-start learner placement.
+ * Uses adaptive item selection to efficiently estimate skill mastery.
+ *
+ * Key responsibilities:
+ * - Generate diagnostic tests targeting key skills
+ * - Analyze responses to estimate initial mastery levels
+ * - Prioritize skills based on prerequisite structure
+ *
+ * DETERMINISM: All operations are pure and produce the same output
+ * for the same input. No randomness.
+ */
+/**
+ * Default diagnostic configuration
+ */
+export const DEFAULT_DIAGNOSTIC_CONFIG = {
+    minItemsPerSkill: 2,
+    maxItemsPerSkill: 5,
+    masteryThreshold: 0.7,
+    difficultyWeight: 0.3,
+    prerequisiteBoostFactor: 0.9,
+};
+/**
+ * Diagnostic Engine Implementation
+ */
+export class DiagnosticEngineImpl {
+    config;
+    constructor(config = {}) {
+        this.config = { ...DEFAULT_DIAGNOSTIC_CONFIG, ...config };
+    }
+    /**
+     * Generate a diagnostic test for a skill graph
+     *
+     * Algorithm:
+     * 1. Get skills in topological order (prerequisites first)
+     * 2. For each skill, select items with appropriate difficulty spread
+     * 3. Return item IDs in order
+     *
+     * @param skillGraph - The skill graph to assess
+     * @param itemMappings - Available items with skill mappings
+     * @param maxItems - Maximum total items to include
+     * @returns Array of item IDs in recommended order
+     */
+    generateDiagnostic(skillGraph, itemMappings, maxItems) {
+        const selectedItems = [];
+        const skillOrder = skillGraph.getTopologicalOrder();
+        // Group items by primary skill
+        const itemsBySkill = new Map();
+        for (const mapping of itemMappings) {
+            const items = itemsBySkill.get(mapping.primarySkillId) || [];
+            items.push(mapping);
+            itemsBySkill.set(mapping.primarySkillId, items);
+        }
+        // Calculate target items per skill
+        const totalSkills = skillOrder.length;
+        const baseItemsPerSkill = Math.max(this.config.minItemsPerSkill, Math.min(this.config.maxItemsPerSkill, Math.floor(maxItems / Math.max(1, totalSkills))));
+        // Select items for each skill in topological order
+        for (const skillId of skillOrder) {
+            if (selectedItems.length >= maxItems)
+                break;
+            const skillItems = itemsBySkill.get(skillId) || [];
+            if (skillItems.length === 0)
+                continue;
+            // Sort items by difficulty for deterministic selection
+            const sortedItems = [...skillItems].sort((a, b) => {
+                if (a.difficulty !== b.difficulty) {
+                    return a.difficulty - b.difficulty;
+                }
+                return a.itemId.localeCompare(b.itemId);
+            });
+            // Select items with difficulty spread
+            const targetCount = Math.min(baseItemsPerSkill, maxItems - selectedItems.length, sortedItems.length);
+            // Select evenly spaced items by difficulty
+            const indices = this.selectSpacedIndices(sortedItems.length, targetCount);
+            for (const idx of indices) {
+                const item = sortedItems[idx];
+                if (!selectedItems.includes(item.itemId)) {
+                    selectedItems.push(item.itemId);
+                }
+            }
+        }
+        return selectedItems;
+    }
+    /**
+     * Analyze diagnostic results to initialize learner model
+     *
+     * @param skillGraph - The skill graph
+     * @param itemMappings - Item-to-skill mappings
+     * @param responses - Learner responses (itemId, correct)
+     * @returns Map of skillId to estimated mastery probability
+     */
+    analyzeResults(skillGraph, itemMappings, responses) {
+        // Create item lookup
+        const itemLookup = new Map();
+        for (const mapping of itemMappings) {
+            itemLookup.set(mapping.itemId, mapping);
+        }
+        // Aggregate results by skill
+        const skillResults = new Map();
+        for (const response of responses) {
+            const mapping = itemLookup.get(response.itemId);
+            if (!mapping)
+                continue;
+            // Update primary skill (full weight)
+            this.updateSkillResult(skillResults, mapping.primarySkillId, response.correct, mapping.difficulty, 1.0);
+            // Update secondary skills (half weight — affects accuracy and difficulty equally)
+            for (const secondaryId of mapping.secondarySkillIds) {
+                this.updateSkillResult(skillResults, secondaryId, response.correct, mapping.difficulty, 0.5);
+            }
+        }
+        // Calculate mastery estimates
+        const masteryEstimates = new Map();
+        for (const [skillId, result] of skillResults) {
+            if (result.itemsAttempted === 0) {
+                // No data - use prior (0.3 default)
+                masteryEstimates.set(skillId, 0.3);
+                continue;
+            }
+            // Base accuracy
+            const accuracy = result.itemsCorrect / result.itemsAttempted;
+            // Adjust for difficulty
+            const avgDifficulty = result.totalDifficulty / result.itemsAttempted;
+            const difficultyAdjustment = (avgDifficulty - 0.5) * this.config.difficultyWeight;
+            // Final estimate with clamping
+            const estimate = Math.max(0.05, Math.min(0.95, accuracy + difficultyAdjustment));
+            masteryEstimates.set(skillId, estimate);
+        }
+        // Propagate estimates to prerequisite skills using graph structure
+        return this.propagateEstimates(skillGraph, masteryEstimates);
+    }
+    /**
+     * Update skill result with a response
+     * @param weight - How much this response counts (1.0 for primary, 0.5 for secondary skills)
+     */
+    updateSkillResult(results, skillId, correct, difficulty, weight = 1.0) {
+        const existing = results.get(skillId) || {
+            skillId,
+            itemsAttempted: 0,
+            itemsCorrect: 0,
+            totalDifficulty: 0,
+        };
+        results.set(skillId, {
+            skillId,
+            itemsAttempted: existing.itemsAttempted + weight,
+            itemsCorrect: existing.itemsCorrect + (correct ? weight : 0),
+            totalDifficulty: existing.totalDifficulty + difficulty * weight,
+        });
+    }
+    /**
+     * Select evenly spaced indices for difficulty spread
+     */
+    selectSpacedIndices(total, count) {
+        if (count >= total) {
+            return Array.from({ length: total }, (_, i) => i);
+        }
+        if (count <= 0) {
+            return [];
+        }
+        const indices = [];
+        const step = (total - 1) / (count - 1 || 1);
+        for (let i = 0; i < count; i++) {
+            indices.push(Math.round(i * step));
+        }
+        return indices;
+    }
+    /**
+     * Propagate mastery estimates through prerequisite structure
+     *
+     * If a skill is mastered, its prerequisites should also be considered mastered
+     * (they were necessary to learn the dependent skill)
+     */
+    propagateEstimates(skillGraph, estimates) {
+        const result = new Map(estimates);
+        const skillOrder = skillGraph.getTopologicalOrder();
+        // Process in reverse topological order (dependents before prerequisites)
+        for (let i = skillOrder.length - 1; i >= 0; i--) {
+            const skillId = skillOrder[i];
+            const estimate = result.get(skillId);
+            if (estimate === undefined)
+                continue;
+            // If skill is mastered, boost prerequisite estimates
+            if (estimate >= this.config.masteryThreshold) {
+                const prereqs = skillGraph.getAllPrerequisites(skillId);
+                for (const prereqId of prereqs) {
+                    const prereqEstimate = result.get(prereqId) || 0.3;
+                    // Boost prerequisite estimate (learner must have learned it)
+                    // Use configurable boost factor instead of hardcoded 0.9
+                    result.set(prereqId, Math.max(prereqEstimate, estimate * this.config.prerequisiteBoostFactor));
+                }
+            }
+        }
+        // Initialize any skills without estimates
+        for (const skillId of skillOrder) {
+            if (!result.has(skillId)) {
+                result.set(skillId, 0.3); // Default prior
+            }
+        }
+        return result;
+    }
+    /**
+     * Get diagnostic summary for a set of results
+     */
+    getSummary(skillGraph, estimates) {
+        const skillOrder = skillGraph.getTopologicalOrder();
+        const mastered = [];
+        const learning = [];
+        const notStarted = [];
+        for (const skillId of skillOrder) {
+            const estimate = estimates.get(skillId) || 0.3;
+            if (estimate >= this.config.masteryThreshold) {
+                mastered.push(skillId);
+            }
+            else if (estimate >= 0.3) {
+                learning.push(skillId);
+            }
+            else {
+                notStarted.push(skillId);
+            }
+        }
+        return {
+            totalSkills: skillOrder.length,
+            masteredCount: mastered.length,
+            learningCount: learning.length,
+            notStartedCount: notStarted.length,
+            masteredSkills: mastered,
+            learningSkills: learning,
+            notStartedSkills: notStarted,
+        };
+    }
+}
+/**
+ * Factory function to create a DiagnosticEngine
+ */
+export function createDiagnosticEngine(config = {}) {
+    return new DiagnosticEngineImpl(config);
+}
+//# sourceMappingURL=DiagnosticEngineImpl.js.map
