@@ -1,0 +1,41 @@
+# Dependencies
+node_modules
+**/node_modules
+
+# Build outputs
+dist
+**/dist
+
+# Development files
+.git
+.gitignore
+.env
+.env.*
+!.env.example
+
+# IDE/Editor
+.vscode
+.idea
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Test and coverage
+coverage
+*.test.ts
+*.test.tsx
+__tests__
+
+# Documentation (not needed in container)
+*.md
+docs
+
+# Misc
+*.log
+npm-debug.log*
+.replit
+replit.nix

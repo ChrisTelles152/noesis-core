@@ -1,14 +1,10 @@
 {
-  "include": [
-    "apps/web-demo/src/**/*",
-    "apps/server/**/*",
-    "shared/**/*",
-    "packages/*/src/**/*"
-  ],
+  "include": ["apps/web-demo/src/**/*", "apps/server/**/*", "shared/**/*", "packages/*/src/**/*"],
   "exclude": ["node_modules", "build", "dist", "**/*.test.ts"],
   "compilerOptions": {
     "incremental": true,
     "tsBuildInfoFile": "./node_modules/typescript/tsbuildinfo",
+    "target": "ES2022",
     "noEmit": true,
     "module": "ESNext",
     "strict": true,
@@ -23,10 +19,11 @@
     "paths": {
       "@/*": ["./apps/web-demo/src/*"],
       "@shared/*": ["./shared/*"],
-      "@noesis/core": ["./packages/core/src"],
+      "@noesis-edu/core": ["./packages/core/src"],
       "@noesis/adapters-attention-web": ["./packages/adapters-attention-web/src"],
       "@noesis/adapters-llm": ["./packages/adapters-llm/src"],
-      "@noesis/sdk-web": ["./packages/sdk-web/src"]
+      "@noesis/sdk-web": ["./packages/sdk-web/src"],
+      "@noesis/content-pt-br-math": ["./packages/content-pt-br-math/src"]
     }
   }
 }

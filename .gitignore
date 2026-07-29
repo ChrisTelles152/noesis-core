@@ -5,12 +5,17 @@ node_modules
 .pnp.js
 
 # Production
-dist
+# Note: packages/core/dist is committed for Vercel github: install support
 build
 server/public
+packages/*/dist
+!packages/core/dist
 
 # Testing
 coverage
+
+# Phase H equivalence framework run reports — regenerated on every run
+packages/core/tests/outputs/
 
 # Environment
 .env
@@ -40,3 +45,10 @@ vite.config.ts.*
 
 # Misc
 *.tar.gz
+ecosystem.config.cjs
+
+# SQLite data
+data/*.sqlite
+data/*.sqlite-shm
+data/*.sqlite-wal
+.env
