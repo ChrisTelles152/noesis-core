@@ -18,13 +18,14 @@ It provides modular SDKs to track attention, orchestrate learning content, and i
 
 | Feature | Status | Description |
 |---------|--------|-------------|
-| **Attention Tracking** | ✅ Ready | Gaze tracking with WebGazer.js (optional) or simulation mode |
-| **Mastery Learning** | ✅ Ready | Spaced repetition algorithm for optimal learning retention |
-| **LLM Orchestration** | ✅ Ready | OpenAI GPT-4o integration for personalized recommendations |
-| **Authentication** | ✅ Ready | User registration, login, and session management |
-| **Database Persistence** | ✅ Ready | PostgreSQL via Drizzle ORM (optional, falls back to in-memory) |
-| **Voice Interface** | 🔄 Planned | Voice commands and audio feedback |
-| **XR Support** | 🔄 Planned | Quest, Vision Pro, and desktop simulation |
+| **Attention Tracking** | ✅ Ready | Simulated by default (explicit user signals); WebGazer optional via `ENABLE_REAL_GAZE_TRACKING=true` |
+| **NALS Cognitive-State Vector** | ✅ Ready | First-class attention / recall-strength / affect events with confidence + timestamp |
+| **Canonical Learning Loop** | ✅ Ready | Concept introduction → practice → application → reflection → spaced (opt-in via `enforceCanonicalLoop`) |
+| **Mastery Learning** | ✅ Ready | BKT learner model + FSRS spaced repetition with replay determinism |
+| **Server-Side Engine** | ✅ Ready | HTTP API for thin clients: curriculum upload, next-action, practice, progress |
+| **LLM Orchestration** | ✅ Ready | OpenAI / Anthropic / fallback providers for personalized recommendations |
+| **Authentication** | ✅ Ready | User registration, login, Google OAuth, and session management |
+| **Database Persistence** | ✅ Ready | SQLite (recommended), PostgreSQL, or in-memory storage |
 
 ---
 
@@ -46,31 +47,66 @@ cp .env.example .env
 npm run dev
 ```
 
-Open http://localhost:5000 in your browser.
+Open http://localhost:5174 in your browser.
+
+> **Note**: Default port is 5174 (avoids macOS AirPlay Receiver conflict on port 5000).
+> Default host is 127.0.0.1 (localhost only). Override with environment variables:
+> ```bash
+> PORT=3000 HOST=0.0.0.0 npm run dev  # Custom port, allow external access
+> ```
 
 ---
 
 ## Project Structure
 
+This is a monorepo using npm workspaces with the following structure:
+
 ```
 noesis-core/
-├── client/               # Frontend (React + Vite)
-│   ├── src/
-│   │   ├── sdk/          # Core SDK modules
-│   │   │   ├── attention.ts      # Attention tracking
-│   │   │   ├── mastery.ts        # Spaced repetition
-│   │   │   ├── orchestration.ts  # LLM integration
-│   │   │   └── webgazer-adapter.ts # Real gaze tracking
-│   │   ├── hooks/        # React hooks (useAuth, useAttentionTracking, etc.)
-│   │   ├── pages/        # Page components (Home, Demo, Login, Register)
-│   │   └── components/   # UI components
-├── server/               # Backend (Express)
-│   ├── auth.ts           # Authentication (Passport.js)
-│   ├── routes.ts         # API endpoints
-│   ├── storage.ts        # Data storage (PostgreSQL or in-memory)
-│   └── db.ts             # Database connection
-├── shared/               # Shared types and schemas
-└── .env.example          # Environment configuration template
+├── packages/                      # NPM packages (publishable)
+│   ├── core/                      # @noesis-edu/core - Learning engine (ZERO dependencies)
+│   │   └── src/
+│   │       ├── constitution.ts    # Core interfaces and contracts
+│   │       ├── engine/            # NoesisCoreEngine orchestration
+│   │       ├── learner/           # BKT learner model
+│   │       ├── memory/            # FSRS spaced repetition
+│   │       ├── planning/          # Session planning
+│   │       ├── graph/             # Skill graph (DAG)
+│   │       ├── transfer/          # Transfer testing gates
+│   │       ├── diagnostic/        # Cold-start assessment
+│   │       ├── events/            # Canonical event schema
+│   │       └── persistence/       # Storage adapters
+│   ├── sdk-web/                   # @noesis/sdk-web - Web SDK facade
+│   │   └── src/
+│   │       ├── NoesisSDK.ts       # Unified SDK interface
+│   │       ├── core/              # Core engine adapter
+│   │       └── policies/          # Learning policies
+│   ├── adapters-llm/              # @noesis/adapters-llm - LLM providers
+│   │   └── src/
+│   │       ├── manager.ts         # LLM provider manager
+│   │       ├── orchestration.ts   # Client orchestration
+│   │       └── providers/         # OpenAI, Anthropic, fallback
+│   └── adapters-attention-web/    # @noesis/adapters-attention-web
+│       └── src/
+│           ├── webgazer-adapter.ts # WebGazer.js integration
+│           └── attention.ts       # Attention tracking
+├── apps/                          # Applications
+│   ├── server/                    # Express backend
+│   │   ├── index.ts               # Server entry point
+│   │   ├── routes.ts              # API endpoints
+│   │   ├── auth.ts                # Authentication (Passport.js)
+│   │   ├── storage.ts             # Data storage
+│   │   ├── llm/                   # LLM provider implementations
+│   │   └── middleware/            # Request handling
+│   └── web-demo/                  # React + Vite frontend
+│       └── src/
+│           ├── hooks/             # React hooks
+│           ├── pages/             # Page components
+│           ├── components/        # UI components
+│           └── sdk/               # SDK wrappers
+├── shared/                        # Shared types and schemas
+│   └── schema.ts                  # Drizzle ORM schema
+└── .env.example                   # Environment configuration
 ```
 
 ---
@@ -80,10 +116,19 @@ noesis-core/
 Copy `.env.example` to `.env` and configure:
 
 ```bash
+# Optional: Server port (default: 5174, avoids macOS AirPlay conflict on 5000)
+PORT=5174
+
+# Optional: Server host (default: 127.0.0.1, use 0.0.0.0 for external/container access)
+HOST=127.0.0.1
+
 # Required for LLM features
 OPENAI_API_KEY=sk-your-api-key-here
 
-# Optional: PostgreSQL database (uses in-memory if not set)
+# Optional: SQLite database (recommended for self-hosted/pilot)
+SQLITE_PATH=./data/noesis.sqlite
+
+# Optional: PostgreSQL database (alternative to SQLite; uses in-memory if neither set)
 DATABASE_URL=postgresql://user:password@localhost:5432/noesis
 
 # Optional: Session secret (auto-generated in development)
@@ -194,7 +239,25 @@ npm run test:coverage
 npm run test:watch
 ```
 
-Current test coverage: **115 tests** across 6 test files.
+Current test coverage: **800+ tests** across 35 test files.
+
+### Core Engine Smoke Test
+
+To test the `@noesis-edu/core` package in-browser:
+
+```bash
+# Terminal 1: Start backend (optional, for full demo)
+npm run dev
+
+# Terminal 2: Start frontend
+npm run dev:web
+```
+
+Open http://localhost:5173/core-smoke in your browser. This page tests:
+- Event generation (practice, session start/end)
+- `getNextAction` sequence
+- JSON export
+- Deterministic replay verification
 
 ---
 
@@ -212,7 +275,7 @@ Current test coverage: **115 tests** across 6 test files.
 
 - **Frontend**: React, Vite, TypeScript, Tailwind CSS
 - **Backend**: Node.js, Express, Passport.js
-- **Database**: PostgreSQL (Drizzle ORM) or in-memory
+- **Database**: SQLite (better-sqlite3), PostgreSQL (Drizzle ORM), or in-memory
 - **Testing**: Vitest, Testing Library, Supertest
 - **AI/ML**: OpenAI GPT-4o, WebGazer.js
 
